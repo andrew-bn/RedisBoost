@@ -78,12 +78,13 @@ publish
 # Publish Web Output
 *.Publish.xml
 
-# NuGet Packages Directory
-packages
+*.dgml
 
 # Windows Azure Build Output
 csx
 *.build.csdef
+
+
 
 # Windows Store app package directory
 AppPackages/
