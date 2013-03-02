@@ -42,21 +42,21 @@ namespace NBoosters.RedisBoost
 			return new RedisClientsPool();
 		}
 
-		public static async Task<IRedisClient> Connect(EndPoint endPoint)
+		public static async Task<IRedisClient> ConnectAsync(EndPoint endPoint)
 		{
 			var result = new RedisClient(new RedisConnectionStringBuilder(endPoint));
 			await result.PrepareClientConnection().ConfigureAwait(false);
 			return result;
 		}
 
-		public static async Task<IRedisClient> Connect(EndPoint endPoint, int dbIndex)
+		public static async Task<IRedisClient> ConnectAsync(EndPoint endPoint, int dbIndex)
 		{
 			var result = new RedisClient(new RedisConnectionStringBuilder(endPoint, dbIndex));
 			await result.PrepareClientConnection().ConfigureAwait(false);
 			return result;
 		}
 
-		public static async Task<IRedisClient> Connect(string connectionString)
+		public static async Task<IRedisClient> ConnectAsync(string connectionString)
 		{
 			var result = new RedisClient(new RedisConnectionStringBuilder(connectionString));
 			await result.PrepareClientConnection().ConfigureAwait(false);
@@ -65,7 +65,7 @@ namespace NBoosters.RedisBoost
 
 		protected async Task PrepareClientConnection()
 		{
-			await Connect().ConfigureAwait(false);
+			await ConnectAsync().ConfigureAwait(false);
 			var dbIndex = _connectionStringBuilder.DbIndex;
 			if (dbIndex != 0)
 				await SelectAsync(dbIndex).ConfigureAwait(false);
@@ -219,7 +219,7 @@ namespace NBoosters.RedisBoost
 		}
 		#endregion
 		#region connection
-		public async Task Connect()
+		public async Task ConnectAsync()
 		{
 			try
 			{
@@ -258,10 +258,11 @@ namespace NBoosters.RedisBoost
 		private int _disposed = 0;
 		protected virtual void Dispose(bool disposing)
 		{
+			if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
+					return;
+			
 			if (disposing)
 			{
-				if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
-					return;
 				try
 				{
 					_redisChannel.Dispose();

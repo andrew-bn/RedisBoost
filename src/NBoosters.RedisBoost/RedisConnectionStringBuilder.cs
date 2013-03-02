@@ -2,7 +2,6 @@
 using System.Data.SqlClient;
 using System.Linq;
 using System.Net;
-using NBoosters.RedisBoost.Core;
 
 namespace NBoosters.RedisBoost
 {

@@ -43,6 +43,7 @@
     <Compile Include="Aggregation.cs" />
     <Compile Include="ChannelMessage.cs" />
     <Compile Include="ChannelMessageType.cs" />
+    <Compile Include="Core\RedisClientsPool.cs" />
     <Compile Include="IRedisClientsPool.cs" />
     <Compile Include="IRedisSubscription.cs" />
     <Compile Include="RedisClient.Connection.cs">
@@ -90,7 +91,6 @@
     <Compile Include="RedisClient.Transactions.cs">
       <DependentUpon>RedisClient.cs</DependentUpon>
     </Compile>
-    <Compile Include="RedisClientsPool.cs" />
     <Compile Include="RedisClient.Strings.cs">
       <DependentUpon>RedisClient.cs</DependentUpon>
     </Compile>

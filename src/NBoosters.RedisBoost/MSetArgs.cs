@@ -2,15 +2,13 @@
 {
 	public struct MSetArgs
 	{
-		private string _keyOrField;
-		internal string KeyOrField { get { return _keyOrField; } }
-		private byte[] _value;
-		internal byte[] Value { get { return _value; } }
+		internal readonly string KeyOrField;
+		internal readonly byte[] Value;
 
 		public MSetArgs(string keyOrField, byte[] value)
 		{
-			_keyOrField = keyOrField;
-			_value = value;
+			KeyOrField = keyOrField;
+			Value = value;
 		}
 	}
 }

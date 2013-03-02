@@ -11,6 +11,7 @@ namespace NBoosters.RedisBoost
 			return IntegerResponseCommand(RedisConstants.Publish, ConvertToByteArray(channel), message);
 		}
 
+
 		public Task<IRedisSubscription> SubscribeAsync(params string[] channels)
 		{
 			return SubscriptionCommandAsync(RedisConstants.Subscribe, channels);
@@ -19,11 +20,19 @@ namespace NBoosters.RedisBoost
 		{
 			return SubscriptionCommandAsync(RedisConstants.PSubscribe, pattern);
 		}
-		public Task<IRedisSubscription> UnsubscribeAsync(params string[] channels)
+		Task IRedisSubscription.SubscribeAsync(params string[] channels)
+		{
+			return SubscriptionCommandAsync(RedisConstants.Subscribe, channels);
+		}
+		Task IRedisSubscription.PSubscribeAsync(params string[] pattern)
+		{
+			return SubscriptionCommandAsync(RedisConstants.PSubscribe, pattern);
+		}
+		public Task UnsubscribeAsync(params string[] channels)
 		{
 			return SubscriptionCommandAsync(RedisConstants.Unsubscribe, channels);
 		}
-		public Task<IRedisSubscription> PUnsubscribeAsync(params string[] channels)
+		public Task PUnsubscribeAsync(params string[] channels)
 		{
 			return SubscriptionCommandAsync(RedisConstants.PUnsubscribe, channels);
 		}

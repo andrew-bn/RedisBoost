@@ -1514,7 +1514,7 @@ namespace NBoosters.RedisBoost.Tests
 		}
 		private IRedisClient CreateClient()
 		{
-			var cli = RedisClient.Connect(ConfigurationManager.ConnectionStrings["Redis"].ConnectionString).Result;
+			var cli = RedisClient.ConnectAsync(ConfigurationManager.ConnectionStrings["Redis"].ConnectionString).Result;
 			cli.FlushDbAsync().Wait();
 			return cli;
 		}

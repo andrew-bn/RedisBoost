@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NBoosters.RedisBoost
+namespace NBoosters.RedisBoost.Core
 {
 	internal sealed class RedisClientsPool : IRedisClientsPool, IDisposable
 	{
