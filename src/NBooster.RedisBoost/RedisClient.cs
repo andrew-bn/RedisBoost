@@ -32,12 +32,12 @@ namespace NBooster.RedisBoost
 
 		#region factory
 
-		public static IRedisClientsPool CreateClientsPool(int inactivityTimeout)
+		internal static IRedisClientsPool CreateClientsPool(int inactivityTimeout)
 		{
 			return new RedisClientsPool(inactivityTimeout);
 		}
 
-		public static IRedisClientsPool CreateClientsPool()
+		internal static IRedisClientsPool CreateClientsPool()
 		{
 			return new RedisClientsPool();
 		}

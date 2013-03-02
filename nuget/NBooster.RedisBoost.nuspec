@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>NBooster.RedisBoost</id>
+    <version>1.1.0</version>
+    <title>NBooster.RedisBoost</title>
+    <authors>NBooster</authors>
+    <owners>NBooster</owners>
+    <projectUrl>https://github.com/NBooster/RedisBoost</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Lightweight asynchronous Redis client</description>
+    <copyright>NBooster</copyright>
+    <tags>boost nbooster redis async</tags>
+  </metadata>
+  <files>
+    <file src="..\src\NBooster.RedisBoost\bin\Release\NBooster.RedisBoost.dll" target="lib\net45\" />
+   </files>
+</package>

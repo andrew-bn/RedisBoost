@@ -5,6 +5,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NBooster.RedisBoost", "src\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NBooster.RedisBoost.Tests", "tests\NBooster.RedisBoost.Tests\NBooster.RedisBoost.Tests.csproj", "{F5802D85-C912-440F-B48B-982C2C9B1EB6}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuget", "nuget", "{990EE99D-DC21-420F-AD09-8F2248CC7E42}"
+	ProjectSection(SolutionItems) = preProject
+		nuget\NBooster.RedisBoost.nuspec = nuget\NBooster.RedisBoost.nuspec
+		nuget\nuget.exe = nuget\nuget.exe
+		nuget\nugetpack.cmd = nuget\nugetpack.cmd
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

@@ -79,6 +79,7 @@ publish
 *.Publish.xml
 
 *.dgml
+*.nupkg
 
 # Windows Azure Build Output
 csx
