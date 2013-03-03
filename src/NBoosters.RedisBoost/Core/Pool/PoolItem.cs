@@ -8,17 +8,17 @@ namespace NBoosters.RedisBoost.Core.Pool
 		{
 			Client = client;
 			Timestamp = DateTime.Now;
-			DestroingException = null;
+			DestroyingException = null;
 		}
 		public PoolItem(IPooledRedisClient client, Exception ex)
 		{
 			Client = client;
 			Timestamp = DateTime.Now;
-			DestroingException = ex;
+			DestroyingException = ex;
 		}
 		public readonly DateTime Timestamp;
 		public readonly IPooledRedisClient Client;
-		public readonly Exception DestroingException;
-		public bool HasErrors { get { return DestroingException != null; } }
+		public readonly Exception DestroyingException;
+		public bool HasErrors { get { return DestroyingException != null; } }
 	}
 }

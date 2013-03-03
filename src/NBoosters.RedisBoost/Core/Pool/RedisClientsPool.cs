@@ -62,7 +62,7 @@ namespace NBoosters.RedisBoost.Core.Pool
 			if (pool.TryDequeue(out item))
 			{
 				if (item.HasErrors)
-					tcs.SetException(item.DestroingException);
+					tcs.SetException(item.DestroyingException);
 				else
 					tcs.SetResult(item.Client);
 			}
@@ -158,7 +158,7 @@ namespace NBoosters.RedisBoost.Core.Pool
 
 		private Exception DestroyPoolItem(PoolItem item)
 		{
-			if (item.HasErrors) return item.DestroingException;
+			if (item.HasErrors) return item.DestroyingException;
 			return TryDestroyClient(item.Client);
 		}
 		private Exception TryDestroyClient(IPooledRedisClient client)
