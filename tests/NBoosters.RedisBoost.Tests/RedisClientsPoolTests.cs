@@ -103,6 +103,13 @@ namespace NBooster.RedisBoost.Tests
 			_redisClient.Verify(c => c.Destroy());
 		}
 		[Test]
+		public void ReturnClient_StatusIsFatalError_DestroysClient()
+		{
+			_redisClient.Setup(c => c.State).Returns(RedisClient.ClientState.FatalError);
+			CreatePool().ReturnClient(_redisClient.Object);
+			_redisClient.Verify(c => c.Destroy());
+		}
+		[Test]
 		public void TimeoutExpired_QuitCommandCalled()
 		{
 			CreatePool(timeout: 100).ReturnClient(_redisClient.Object);
@@ -123,7 +130,7 @@ namespace NBooster.RedisBoost.Tests
 			_redisClient.Setup(c => c.Destroy()).Throws(new Exception("some exception"));
 			var pool = CreatePool(timeout: 100);
 			pool.ReturnClient(_redisClient.Object);
-			Thread.Sleep(200);
+			Thread.Sleep(1000);
 			_redisClient.Verify(c => c.Destroy());
 			pool.CreateClientAsync(_connectionString).Wait();
 		}
@@ -163,10 +170,11 @@ namespace NBooster.RedisBoost.Tests
 		[Test]
 		public void ReturnClient_PoolIsOversized_DestroyCalled()
 		{
-			var pool = CreatePool(maxPoolSize:1);
+			var pool = CreatePool(maxPoolSize:100);
+			for (int i = 0; i < 100;i++ )
+				pool.ReturnClient(_redisClient.Object);
 			pool.ReturnClient(_redisClient.Object);
-			pool.ReturnClient(_redisClient.Object);
-			_redisClient.Verify(c => c.Destroy());
+			_redisClient.Verify(c => c.Destroy(), Times.Once());
 		}
 		[Test]
 		public void ReturnClient_AfterPoolDispose_DestroyExpected()

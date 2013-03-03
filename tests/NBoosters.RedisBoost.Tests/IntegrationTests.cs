@@ -1522,6 +1522,28 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreEqual(cli1, cli2);
 			}
 		}
+
+		[Test]
+		public void PoolTest_Timeout()
+		{
+			using (var pool = RedisClient.CreateClientsPool(100))
+			{
+				IRedisClient cli1;
+				IRedisClient cli2;
+				using (cli1 = pool.CreateClientAsync(ConnectionString).Result)
+				{
+					cli1.SetAsync("Key", GetBytes("Value")).Wait();
+				}
+
+				Thread.Sleep(1000);
+				using (cli2 = pool.CreateClientAsync(ConnectionString).Result)
+				{
+					cli2.GetAsync("Key").Wait();
+				}
+				Assert.AreNotEqual(cli1, cli2);
+			}
+		}
+		
 		private static byte[] GetBytes(string value)
 		{
 			return Encoding.UTF8.GetBytes(value);

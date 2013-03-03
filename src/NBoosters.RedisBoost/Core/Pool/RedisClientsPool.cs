@@ -90,7 +90,8 @@ namespace NBoosters.RedisBoost.Core.Pool
 		{
 			if (pooledRedisClient.State == RedisClient.ClientState.Subscription ||
 				pooledRedisClient.State == RedisClient.ClientState.Quit ||
-				pooledRedisClient.State == RedisClient.ClientState.Disconnect)
+				pooledRedisClient.State == RedisClient.ClientState.Disconnect ||
+				pooledRedisClient.State == RedisClient.ClientState.FatalError)
 			{
 				pooledRedisClient.Destroy();
 			}
