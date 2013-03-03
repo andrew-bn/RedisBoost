@@ -43,7 +43,11 @@
     <Compile Include="Aggregation.cs" />
     <Compile Include="ChannelMessage.cs" />
     <Compile Include="ChannelMessageType.cs" />
-    <Compile Include="Core\RedisClientsPool.cs" />
+    <Compile Include="Core\IPrepareSupportRedisClient.cs" />
+    <Compile Include="Core\Pool\IPooledRedisClient.cs" />
+    <Compile Include="Core\Pool\PooledRedisClient.cs" />
+    <Compile Include="Core\Pool\PoolItem.cs" />
+    <Compile Include="Core\Pool\RedisClientsPool.cs" />
     <Compile Include="IRedisClientsPool.cs" />
     <Compile Include="IRedisSubscription.cs" />
     <Compile Include="RedisClient.Connection.cs">

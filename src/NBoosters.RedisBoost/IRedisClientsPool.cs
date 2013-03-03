@@ -1,12 +1,13 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace NBoosters.RedisBoost
 {
-	public interface IRedisClientsPool
+	public interface IRedisClientsPool: IDisposable
 	{
-		Task<IRedisClient> CreateClient(string connectionString);
-		Task<IRedisClient> CreateClient(EndPoint endPoint);
-		Task<IRedisClient> CreateClient(EndPoint endPoint, int dbIndex);
+		Task<IRedisClient> CreateClientAsync(string connectionString);
+		Task<IRedisClient> CreateClientAsync(EndPoint endPoint);
+		Task<IRedisClient> CreateClientAsync(EndPoint endPoint, int dbIndex);
 	}
 }

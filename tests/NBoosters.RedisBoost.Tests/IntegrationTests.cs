@@ -152,7 +152,7 @@ namespace NBoosters.RedisBoost.Tests
 				cli.SetAsync("Key", GetBytes("Value")).Wait();
 				var expR = cli.ExpireAtAsync("Key", DateTime.Now.AddSeconds(2)).Result;
 				var ttl = cli.TtlAsync("Key").Result;
-				Assert.Greater(ttl,0);
+				Assert.Greater(ttl, 0);
 			}
 		}
 		[Test]
@@ -1297,7 +1297,7 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreEqual(0, cli1.PublishAsync("channel", GetBytes("Message")).Result);
 			}
 		}
-		
+
 		[Test]
 		public void Publish_SubscribeFilter()
 		{
@@ -1347,7 +1347,7 @@ namespace NBoosters.RedisBoost.Tests
 			using (var cli1 = CreateClient())
 			{
 				Assert.AreEqual("OK", cli1.MultiAsync().Result);
-				Assert.AreEqual(0,cli1.IncrAsync("foo").Result);
+				Assert.AreEqual(0, cli1.IncrAsync("foo").Result);
 				Assert.AreEqual(0, cli1.IncrAsync("bar").Result);
 				var result = cli1.ExecAsync().Result;
 				Assert.AreEqual("1", GetString(result[0]));
@@ -1360,9 +1360,9 @@ namespace NBoosters.RedisBoost.Tests
 			using (var cli = CreateClient())
 			{
 				var result = cli.EvalAsync("return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
-											new []{"key1","key2"}, GetBytes("first"), GetBytes("second")).Result;
+											new[] { "key1", "key2" }, GetBytes("first"), GetBytes("second")).Result;
 
-				Assert.AreEqual(RedisResponseType.MultiBulk,result.ResponseType);
+				Assert.AreEqual(RedisResponseType.MultiBulk, result.ResponseType);
 				var mb = result.AsMultiBulk();
 				Assert.AreEqual("key1", GetString(mb[0].AsBulk()));
 				Assert.AreEqual("key2", GetString(mb[1].AsBulk()));
@@ -1377,7 +1377,7 @@ namespace NBoosters.RedisBoost.Tests
 			{
 				var sha1 = cli.ScriptLoadAsync("return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}").Result;
 
-				var result = cli.EvalShaAsync(sha1, new[] {"key1", "key2"}, GetBytes("first"), GetBytes("second")).Result;
+				var result = cli.EvalShaAsync(sha1, new[] { "key1", "key2" }, GetBytes("first"), GetBytes("second")).Result;
 				Assert.AreEqual(RedisResponseType.MultiBulk, result.ResponseType);
 				var mb = result.AsMultiBulk();
 				Assert.AreEqual("key1", GetString(mb[0].AsBulk()));
@@ -1394,7 +1394,7 @@ namespace NBoosters.RedisBoost.Tests
 				var sha1 = cli.ScriptLoadAsync("return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}").Result;
 
 				var result = cli.ScriptExistsAsync(sha1).Result;
-				Assert.AreEqual(1,result.Length);
+				Assert.AreEqual(1, result.Length);
 				Assert.AreEqual("1", GetString(result[0]));
 			}
 		}
@@ -1424,7 +1424,7 @@ namespace NBoosters.RedisBoost.Tests
 		{
 			using (var cli = CreateClient())
 			{
-				Assert.AreEqual("PONG",cli.PingAsync().Result);
+				Assert.AreEqual("PONG", cli.PingAsync().Result);
 			}
 		}
 		[Test]
@@ -1435,7 +1435,7 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreEqual("OK", cli.QuitAsync().Result);
 			}
 		}
-		
+
 		[Test]
 		public void ClientList()
 		{
@@ -1445,7 +1445,7 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.IsNotEmpty(result);
 			}
 		}
-		
+
 		[Test]
 		public void DbSize()
 		{
@@ -1485,7 +1485,7 @@ namespace NBoosters.RedisBoost.Tests
 		{
 			using (var cli = CreateClient())
 			{
-				Assert.Greater(cli.LastSaveAsync().Result,0);
+				Assert.Greater(cli.LastSaveAsync().Result, 0);
 			}
 		}
 		[Test]
@@ -1504,6 +1504,24 @@ namespace NBoosters.RedisBoost.Tests
 				var result = cli.ConfigResetStatAsync().Result;
 			}
 		}
+		[Test]
+		public void PoolTest()
+		{
+			using (var pool = RedisClient.CreateClientsPool())
+			{
+				IRedisClient cli1 = null;
+				IRedisClient cli2 = null;
+				using (cli1 = pool.CreateClientAsync(ConnectionString).Result)
+				{
+					cli1.SetAsync("Key", GetBytes("Value")).Wait();
+				}
+				using (cli2 = pool.CreateClientAsync(ConnectionString).Result)
+				{
+					cli2.GetAsync("Key").Wait();
+				}
+				Assert.AreEqual(cli1, cli2);
+			}
+		}
 		private static byte[] GetBytes(string value)
 		{
 			return Encoding.UTF8.GetBytes(value);
@@ -1512,9 +1530,13 @@ namespace NBoosters.RedisBoost.Tests
 		{
 			return Encoding.UTF8.GetString(data);
 		}
+		private string ConnectionString
+		{
+			get { return ConfigurationManager.ConnectionStrings["Redis"].ConnectionString; }
+		}
 		private IRedisClient CreateClient()
 		{
-			var cli = RedisClient.ConnectAsync(ConfigurationManager.ConnectionStrings["Redis"].ConnectionString).Result;
+			var cli = RedisClient.ConnectAsync(ConnectionString).Result;
 			cli.FlushDbAsync().Wait();
 			return cli;
 		}

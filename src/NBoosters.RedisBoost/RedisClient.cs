@@ -6,10 +6,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
 using NBoosters.RedisBoost.Core.Misk;
+using NBoosters.RedisBoost.Core.Pool;
 
 namespace NBoosters.RedisBoost
 {
-	public partial class RedisClient : IRedisClient, IRedisSubscription
+	public partial class RedisClient : IPrepareSupportRedisClient, IRedisSubscription
 	{
 		internal enum ClientState
 		{
@@ -28,42 +29,46 @@ namespace NBoosters.RedisBoost
 		private readonly RedisConnectionStringBuilder _connectionStringBuilder;
 		public string ConnectionString { get; private set; }
 		private volatile ClientState _state;
-		internal ClientState State { get { return _state; } }
+		ClientState IPrepareSupportRedisClient.State { get { return _state; } }
 
 		#region factory
 
-		internal static IRedisClientsPool CreateClientsPool(int inactivityTimeout)
-		{
-			return new RedisClientsPool(inactivityTimeout);
-		}
-
-		internal static IRedisClientsPool CreateClientsPool()
+		public static IRedisClientsPool CreateClientsPool()
 		{
 			return new RedisClientsPool();
+		}
+		public static IRedisClientsPool CreateClientsPool(int inactivityTimeout)
+		{
+			return new RedisClientsPool(inactivityTimeout: inactivityTimeout);
+		}
+
+		public static IRedisClientsPool CreateClientsPool(int maxPoolsSize, int inactivityTimeout)
+		{
+			return new RedisClientsPool(maxPoolsSize, inactivityTimeout);
 		}
 
 		public static async Task<IRedisClient> ConnectAsync(EndPoint endPoint)
 		{
 			var result = new RedisClient(new RedisConnectionStringBuilder(endPoint));
-			await result.PrepareClientConnection().ConfigureAwait(false);
+			await ((IPrepareSupportRedisClient)result).PrepareClientConnection().ConfigureAwait(false);
 			return result;
 		}
 
 		public static async Task<IRedisClient> ConnectAsync(EndPoint endPoint, int dbIndex)
 		{
 			var result = new RedisClient(new RedisConnectionStringBuilder(endPoint, dbIndex));
-			await result.PrepareClientConnection().ConfigureAwait(false);
+			await ((IPrepareSupportRedisClient)result).PrepareClientConnection().ConfigureAwait(false);
 			return result;
 		}
 
 		public static async Task<IRedisClient> ConnectAsync(string connectionString)
 		{
 			var result = new RedisClient(new RedisConnectionStringBuilder(connectionString));
-			await result.PrepareClientConnection().ConfigureAwait(false);
+			await ((IPrepareSupportRedisClient)result).PrepareClientConnection().ConfigureAwait(false);
 			return result;
 		}
 
-		protected async Task PrepareClientConnection()
+		async Task IPrepareSupportRedisClient.PrepareClientConnection()
 		{
 			await ConnectAsync().ConfigureAwait(false);
 			var dbIndex = _connectionStringBuilder.DbIndex;
