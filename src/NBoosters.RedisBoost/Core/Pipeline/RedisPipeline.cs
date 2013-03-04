@@ -34,13 +34,13 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 			else
 			{
 				_requestsQueue.Enqueue(item);
-				TryRunSendProcess();
+				TryStartSendProcess();
 			}
 
 			return item.TaskCompletionSource.Task;
 		}
 
-		private void TryRunSendProcess()
+		private void TryStartSendProcess()
 		{
 			if (Interlocked.CompareExchange(ref _sendIsRunning, 1, 0) == 0)
 				RunSendProcess(); // start send process if not yet started

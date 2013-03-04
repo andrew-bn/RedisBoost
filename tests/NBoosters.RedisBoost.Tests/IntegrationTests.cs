@@ -1552,6 +1552,7 @@ namespace NBoosters.RedisBoost.Tests
 			using (var cli = CreateClient())
 			{
 				var tasks = new List<Task<byte[]>>();
+
 				for (int i = 0; i < 10000; i++)
 				{
 					cli.SetAsync("Key" + i, GetBytes("Value"+i));
@@ -1561,9 +1562,8 @@ namespace NBoosters.RedisBoost.Tests
 				Debug.WriteLine("Commands were pipelined");
 
 				for (int i = 0; i < 10000; i++)
-				{
 					Assert.AreEqual("Value"+i,GetString(tasks[i].Result));
-				}
+
 			}
 		}
 
