@@ -17,11 +17,6 @@ namespace NBoosters.RedisBoost
 		{
 			return StatusResponseCommand(RedisConstants.Ping);
 		}
-		Task IRedisSubscription.QuitAsync()
-		{
-			_state = ClientState.Quit;
-			return ExecuteCommand(RedisConstants.Quit);
-		}
 		public Task<string> QuitAsync()
 		{
 			_state = ClientState.Quit;

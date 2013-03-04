@@ -14,5 +14,7 @@ namespace NBoosters.RedisBoost.Core
 		Task ConnectAsync(EndPoint endPoint);
 		Task DisconnectAsync();
 		Task Flush();
+
+		bool BufferIsEmpty { get; }
 	}
 }

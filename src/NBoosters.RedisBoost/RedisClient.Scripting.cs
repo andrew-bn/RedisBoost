@@ -48,7 +48,7 @@ namespace NBoosters.RedisBoost
 			for (int i = 0; i < arguments.Length; i++)
 				request[3 + keys.Length + i] = arguments[i];
 
-			return SendCommandAndReadResponse(request);
+			return ExecutePipelinedCommand(request);
 		}
 	}
 }

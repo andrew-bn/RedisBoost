@@ -14,10 +14,12 @@ namespace NBoosters.RedisBoost
 
 		public Task<IRedisSubscription> SubscribeAsync(params string[] channels)
 		{
+			ClosePipeline();
 			return SubscriptionCommandAsync(RedisConstants.Subscribe, channels);
 		}
 		public Task<IRedisSubscription> PSubscribeAsync(params string[] pattern)
 		{
+			ClosePipeline();
 			return SubscriptionCommandAsync(RedisConstants.PSubscribe, pattern);
 		}
 		Task IRedisSubscription.SubscribeAsync(params string[] channels)
@@ -46,7 +48,7 @@ namespace NBoosters.RedisBoost
 			for (int i = 0; i < channels.Length; i++)
 				request[1 + i] = ConvertToByteArray(channels[i]);
 
-			await ExecuteCommand(request).ConfigureAwait(false);
+			await SendDirectReqeust(request).ConfigureAwait(false);
 			return this;
 		}
 
@@ -61,7 +63,7 @@ namespace NBoosters.RedisBoost
 			RedisResponse[] response;
 			do
 			{
-				var reply = await ReadResponse().ConfigureAwait(false);
+				var reply = await ReadDirectResponse().ConfigureAwait(false);
 				
 				if (reply.ResponseType == RedisResponseType.Status && _state != ClientState.Connect)
 					return new ChannelMessage(ChannelMessageType.Quit, null, null);
@@ -93,6 +95,10 @@ namespace NBoosters.RedisBoost
 
 			throw new RedisException("Unexpected response");
 		}
-
+		Task IRedisSubscription.QuitAsync()
+		{
+			_state = ClientState.Quit;
+			return SendDirectReqeust(RedisConstants.Quit);
+		}
 	}
 }

@@ -9,6 +9,7 @@ namespace NBoosters.RedisBoost.Core
 	{
 		void EngageWith(Socket socket);
 		void DisposeAndReuse();
+		bool BufferIsEmpty { get; }
 		Task Flush();
 		ArraySegment<byte> WriteData(ArraySegment<byte> data);
 		bool WriteArgumentsCountLine(int argsCount);

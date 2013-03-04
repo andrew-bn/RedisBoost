@@ -57,7 +57,6 @@ namespace NBoosters.RedisBoost.Core
 					_redisStream.WriteNewLine();
 				}
 			}
-			await _redisStream.Flush().ConfigureAwait(false);
 		}
 		public async Task<RedisResponse> ReadResponseAsync()
 		{
@@ -104,6 +103,12 @@ namespace NBoosters.RedisBoost.Core
 		public void Dispose()
 		{
 			_redisStream.DisposeAndReuse();
+		}
+
+
+		public bool BufferIsEmpty
+		{
+			get { return _redisStream.BufferIsEmpty; }
 		}
 	}
 }

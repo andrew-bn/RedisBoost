@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -203,6 +204,12 @@ namespace NBoosters.RedisBoost.Core
 			_notIoArgs.AcceptSocket = null;
 
 			_socket.Dispose();
+		}
+
+
+		public bool BufferIsEmpty
+		{
+			get { return _writeBufferOffset == 0; }
 		}
 	}
 }

@@ -44,6 +44,9 @@
     <Compile Include="ChannelMessage.cs" />
     <Compile Include="ChannelMessageType.cs" />
     <Compile Include="Core\IPrepareSupportRedisClient.cs" />
+    <Compile Include="Core\Pipeline\IRedisPipeline.cs" />
+    <Compile Include="Core\Pipeline\PipelineItem.cs" />
+    <Compile Include="Core\Pipeline\RedisPipeline.cs" />
     <Compile Include="Core\Pool\IPooledRedisClient.cs" />
     <Compile Include="Core\Pool\PooledRedisClient.cs" />
     <Compile Include="Core\Pool\PoolItem.cs" />

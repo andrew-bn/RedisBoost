@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace NBoosters.RedisBoost.Tests
@@ -1543,7 +1546,27 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreNotEqual(cli1, cli2);
 			}
 		}
-		
+		[Test]
+		public void PipelineTest()
+		{
+			using (var cli = CreateClient())
+			{
+				var tasks = new List<Task<byte[]>>();
+				for (int i = 0; i < 10000; i++)
+				{
+					cli.SetAsync("Key" + i, GetBytes("Value"+i));
+					tasks.Add(cli.GetAsync("Key"+i));
+				}
+
+				Debug.WriteLine("Commands were pipelined");
+
+				for (int i = 0; i < 10000; i++)
+				{
+					Assert.AreEqual("Value"+i,GetString(tasks[i].Result));
+				}
+			}
+		}
+
 		private static byte[] GetBytes(string value)
 		{
 			return Encoding.UTF8.GetBytes(value);

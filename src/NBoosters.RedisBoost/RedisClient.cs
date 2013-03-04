@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
 using NBoosters.RedisBoost.Core.Misk;
+using NBoosters.RedisBoost.Core.Pipeline;
 using NBoosters.RedisBoost.Core.Pool;
 
 namespace NBoosters.RedisBoost
@@ -24,6 +25,7 @@ namespace NBoosters.RedisBoost
 
 		static readonly ObjectsPool<IRedisChannel> _redisChannelPool = new ObjectsPool<IRedisChannel>();
 
+		private readonly IRedisPipeline _redisPipeline;
 		private readonly IRedisChannel _redisChannel;
 		private readonly IRedisDataAnalizer _redisDataAnalizer;
 		private readonly RedisConnectionStringBuilder _connectionStringBuilder;
@@ -94,6 +96,8 @@ namespace NBoosters.RedisBoost
 			_redisChannel.EngageWith(sock);
 
 			_redisDataAnalizer = _redisChannel.RedisDataAnalizer;
+
+			_redisPipeline = new RedisPipeline(_redisChannel);
 		}
 
 		#region converters
@@ -135,33 +139,33 @@ namespace NBoosters.RedisBoost
 		#region read response
 		private async Task<byte[][]> MultiBulkResponseCommand(params byte[][] args)
 		{
-			var reply = await SendCommandAndReadResponse(args).ConfigureAwait(false);
+			var reply = await ExecutePipelinedCommand(args).ConfigureAwait(false);
 			return ToBytesArray(reply.AsMultiBulk());
 		}
 		private async Task<string> StatusResponseCommand(params byte[][] args)
 		{
-			var reply = await SendCommandAndReadResponse(args).ConfigureAwait(false);
+			var reply = await ExecutePipelinedCommand(args).ConfigureAwait(false);
 			if (reply.ResponseType != RedisResponseType.Status)
 				return string.Empty;
 			return reply.AsStatus();
 		}
 		private async Task<long> IntegerResponseCommand(params byte[][] args)
 		{
-			var reply = await SendCommandAndReadResponse(args).ConfigureAwait(false);
+			var reply = await ExecutePipelinedCommand(args).ConfigureAwait(false);
 			if (reply.ResponseType != RedisResponseType.Integer)
 				return default(long);
 			return reply.AsInteger();
 		}
 		private async Task<long?> IntegerOrBulkNullResponseCommand(params byte[][] args)
 		{
-			var reply = await SendCommandAndReadResponse(args).ConfigureAwait(false);
+			var reply = await ExecutePipelinedCommand(args).ConfigureAwait(false);
 			if (reply.ResponseType == RedisResponseType.Integer)
 				return reply.AsInteger();
 			return null;
 		}
 		private async Task<byte[]> BulkResponseCommand(params byte[][] args)
 		{
-			var reply = await SendCommandAndReadResponse(args).ConfigureAwait(false);
+			var reply = await ExecutePipelinedCommand(args).ConfigureAwait(false);
 			return reply.ResponseType != RedisResponseType.Bulk ? null : reply.AsBulk();
 		}
 		private byte[][] ToBytesArray(RedisResponse[] response)
@@ -186,16 +190,16 @@ namespace NBoosters.RedisBoost
 		}
 		#endregion
 		#region commands execution
-		private async Task<RedisResponse> SendCommandAndReadResponse(params byte[][] args)
+		private void ClosePipeline()
 		{
-			await ExecuteCommand(args).ConfigureAwait(false);
-			return await ReadResponse().ConfigureAwait(false);
+			_redisPipeline.ClosePipeline();
 		}
-		private async Task ExecuteCommand(params byte[][] args)
+
+		private async Task<RedisResponse> ExecutePipelinedCommand(params byte[][] args)
 		{
 			try
 			{
-				await _redisChannel.SendAsync(args).ConfigureAwait(false);
+				return await _redisPipeline.ExecuteCommandAsync(args).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{
@@ -203,7 +207,22 @@ namespace NBoosters.RedisBoost
 				throw new RedisException(ex.Message, ex);
 			}
 		}
-		public async Task<RedisResponse> ReadResponse()
+
+		private async Task SendDirectReqeust(params byte[][] args)
+		{
+			try
+			{
+				await _redisChannel.SendAsync(args).ConfigureAwait(false);
+				if (!_redisChannel.BufferIsEmpty)
+					await _redisChannel.Flush().ConfigureAwait(false);
+			}
+			catch (Exception ex)
+			{
+				DisposeIfFatalError(ex);
+				throw new RedisException(ex.Message, ex);
+			}
+		}
+		public async Task<RedisResponse> ReadDirectResponse()
 		{
 			try
 			{
@@ -222,6 +241,7 @@ namespace NBoosters.RedisBoost
 				throw new RedisException(ex.Message, ex);
 			}
 		}
+
 		#endregion
 		#region connection
 		public async Task ConnectAsync()
