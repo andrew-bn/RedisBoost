@@ -124,15 +124,16 @@ namespace NBooster.RedisBoost.Tests
 			_redisClient.Verify(c => c.Destroy());
 		}
 		[Test]
-		[ExpectedException(typeof(AggregateException))]
-		public void TimeoutExpired_DestroyExceptionOccured_ThrowThenAClientIsCreatedByPool()
+		public void TimeoutExpired_DestroyExceptionOccured_NextClientCreatesWithoutExceptions()
 		{
 			_redisClient.Setup(c => c.Destroy()).Throws(new Exception("some exception"));
 			var pool = CreatePool(timeout: 100);
 			pool.ReturnClient(_redisClient.Object);
 			Thread.Sleep(1000);
 			_redisClient.Verify(c => c.Destroy());
-			pool.CreateClientAsync(_connectionString).Wait();
+			var cli = pool.CreateClientAsync(_connectionString).Result;
+			Assert.NotNull(cli);
+
 		}
 		[Test]
 		public void DisposePool_QuitCommandCalled()

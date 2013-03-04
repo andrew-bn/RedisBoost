@@ -60,12 +60,7 @@ namespace NBoosters.RedisBoost.Core.Pool
 
 			PoolItem item;
 			if (pool.TryDequeue(out item))
-			{
-				if (item.HasErrors)
-					tcs.SetException(item.DestroyingException);
-				else
-					tcs.SetResult(item.Client);
-			}
+				tcs.SetResult(item.Client);
 			else
 			{
 				CreateAndPrepareClient(connectionString)
@@ -143,11 +138,7 @@ namespace NBoosters.RedisBoost.Core.Pool
 						break;
 
 					if ((now - item.Timestamp).TotalMilliseconds > _inactivityTimeout)
-					{
-						var ex = DestroyPoolItem(item);
-						if (ex != null)
-							queue.Enqueue(new PoolItem(item.Client, ex));
-					}
+						DestroyPoolItem(item);
 					else
 					{
 						queue.Enqueue(item);
@@ -159,7 +150,6 @@ namespace NBoosters.RedisBoost.Core.Pool
 
 		private Exception DestroyPoolItem(PoolItem item)
 		{
-			if (item.HasErrors) return item.DestroyingException;
 			return TryDestroyClient(item.Client);
 		}
 		private Exception TryDestroyClient(IPooledRedisClient client)
