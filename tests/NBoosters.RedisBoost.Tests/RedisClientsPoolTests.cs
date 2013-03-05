@@ -123,6 +123,7 @@ namespace NBooster.RedisBoost.Tests
 			Thread.Sleep(1000);
 			_redisClient.Verify(c => c.Destroy());
 		}
+		
 		[Test]
 		public void TimeoutExpired_DestroyExceptionOccured_NextClientCreatesWithoutExceptions()
 		{
@@ -133,8 +134,8 @@ namespace NBooster.RedisBoost.Tests
 			_redisClient.Verify(c => c.Destroy());
 			var cli = pool.CreateClientAsync(_connectionString).Result;
 			Assert.NotNull(cli);
-
 		}
+
 		[Test]
 		public void DisposePool_QuitCommandCalled()
 		{

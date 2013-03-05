@@ -51,11 +51,19 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 			PipelineItem item;
 			
 			ContinueSending:
-			
+
 			if (_requestsQueue.TryDequeue(out item))
-				_channel.SendAsync(item.Request).ContinueWith(ItemSendProcessDone, item);
-			else if (!_channel.BufferIsEmpty)
-				_channel.Flush().ContinueWith(BufferFlushProcessDont);
+			{
+				if (_pipelineException==null)
+					_channel.SendAsync(item.Request).ContinueWith(ItemSendProcessDone, item);
+				else
+				{
+					item.TaskCompletionSource.SetException(_pipelineException);
+					goto ContinueSending;
+				}
+			}
+			else if (!_channel.BufferIsEmpty && _pipelineException == null)
+				_channel.Flush().ContinueWith(BufferFlushProcessDone);
 			else
 			{
 				Interlocked.Exchange(ref _sendIsRunning, 0);
@@ -65,7 +73,7 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 			}
 		}
 
-		private void BufferFlushProcessDont(Task task)
+		private void BufferFlushProcessDone(Task task)
 		{
 			if (task.IsFaulted)
 				_pipelineException = task.Exception;
@@ -80,13 +88,12 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 				_pipelineException = task.Exception;
 
 			if (_pipelineException != null)
-			{
 				item.TaskCompletionSource.SetException(_pipelineException);
-				return;
+			else
+			{
+				_responsesQueue.Enqueue(item);
+				TryRunReceiveProcess();
 			}
-
-			_responsesQueue.Enqueue(item);
-			TryRunReceiveProcess();
 
 			RunSendProcess();
 		}
@@ -104,14 +111,20 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 			ContinueReceiving:
 			if (_responsesQueue.TryDequeue(out item))
 			{
-				_channel.ReadResponseAsync().ContinueWith(ItemReceiveProcessDone, item);
-				return;
+				if (_pipelineException == null)
+					_channel.ReadResponseAsync().ContinueWith(ItemReceiveProcessDone, item);
+				else
+				{
+					item.TaskCompletionSource.SetException(_pipelineException);
+					goto ContinueReceiving;
+				}
 			}
-
-			Interlocked.Exchange(ref _receiveIsRunning, 0);
-			if (_responsesQueue.Count > 0 && Interlocked.CompareExchange(ref _receiveIsRunning, 1, 0) == 0)
-				goto ContinueReceiving;
-
+			else
+			{
+				Interlocked.Exchange(ref _receiveIsRunning, 0);
+				if (_responsesQueue.Count > 0 && Interlocked.CompareExchange(ref _receiveIsRunning, 1, 0) == 0)
+					goto ContinueReceiving;
+			}
 		}
 
 		private void ItemReceiveProcessDone(Task<RedisResponse> task, object state)
@@ -122,12 +135,9 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 				_pipelineException = task.Exception;
 
 			if (_pipelineException != null)
-			{
 				item.TaskCompletionSource.SetException(_pipelineException);
-				return;
-			}
-
-			item.TaskCompletionSource.SetResult(task.Result);
+			else
+				item.TaskCompletionSource.SetResult(task.Result);
 
 			RunReceiveProcess();
 		}

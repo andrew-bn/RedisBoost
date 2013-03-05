@@ -1610,7 +1610,6 @@ namespace NBoosters.RedisBoost.Tests
 				{
 					Assert.IsTrue(tasks[i].IsFaulted);
 				}
-
 			}
 		}
 		private int _requestId = 0;
