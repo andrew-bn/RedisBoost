@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
@@ -1547,6 +1548,25 @@ namespace NBoosters.RedisBoost.Tests
 			}
 		}
 		[Test]
+		public void ClosePipline()
+		{
+			using (var cli = CreateClient())
+			{
+				cli.SetAsync("Key", GetBytes("Value")).Wait();
+				var sub = cli.SubscribeAsync("channel").Result;
+				try
+				{
+					var res = cli.GetAsync("Key").Result;
+				}
+				catch (AggregateException ex)
+				{
+					Assert.AreEqual(typeof(RedisException), ex.InnerException.GetType());
+					Assert.AreEqual("Pipeline is closed", ex.InnerException.Message);
+				}
+				
+			}
+		}
+		[Test]
 		public void PipelineTest()
 		{
 			using (var cli = CreateClient())
@@ -1566,7 +1586,65 @@ namespace NBoosters.RedisBoost.Tests
 
 			}
 		}
+		[Test]
+		public void PipelineTest_PipelineIsClosed()
+		{
+			using (var cli = CreateClient())
+			{
+				var tasks = new List<Task<byte[]>>();
 
+				for (int i = 0; i < 10000; i++)
+				{
+					cli.SetAsync("Key" + i, GetBytes("Value" + i));
+					tasks.Add(cli.GetAsync("Key" + i));
+					if (i == 4999)
+						cli.SubscribeAsync("channel").Wait();
+				}
+
+				for (int i = 0; i < 5000; i++)
+				{
+					Assert.IsFalse(tasks[i].IsFaulted);
+					Assert.AreEqual("Value" + i, GetString(tasks[i].Result));
+				}
+				for (int i = 5000; i < 10000; i++)
+				{
+					Assert.IsTrue(tasks[i].IsFaulted);
+				}
+
+			}
+		}
+		private int _requestId = 0;
+		[Test]
+		public void PipelineTest_ParallelPipelining()
+		{
+			_requestId = 0;
+			using (var cli = CreateClient())
+			{
+
+				var tasksDic = new ConcurrentDictionary<Guid, Task<byte[]>>();
+				var tasks = new List<Task>();
+				for (int i = 0; i < 10; i++)
+				{
+					var t = Task.Run(() =>
+						{
+							for (int j = 0; j < 5000; j++)
+							{
+								var id = Guid.NewGuid();
+								var keyId = Interlocked.Increment(ref _requestId);
+								cli.SetAsync("Key" + keyId, GetBytes("Value" + id));
+								tasksDic.TryAdd(id, cli.GetAsync("Key" + keyId));
+							}
+						});
+					tasks.Add(t);
+				}
+				Task.WaitAll(tasks.ToArray());
+
+				foreach (var item in tasksDic)
+				{
+					Assert.AreEqual("Value" + item.Key, GetString(item.Value.Result));
+				}
+			}
+		}
 		private static byte[] GetBytes(string value)
 		{
 			return Encoding.UTF8.GetBytes(value);

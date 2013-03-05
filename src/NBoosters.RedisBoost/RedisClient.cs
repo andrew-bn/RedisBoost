@@ -204,7 +204,9 @@ namespace NBoosters.RedisBoost
 			catch (Exception ex)
 			{
 				DisposeIfFatalError(ex);
-				throw new RedisException(ex.Message, ex);
+				if (!(ex is RedisException))
+					throw new RedisException(ex.Message, ex);
+				throw;
 			}
 		}
 
@@ -219,7 +221,9 @@ namespace NBoosters.RedisBoost
 			catch (Exception ex)
 			{
 				DisposeIfFatalError(ex);
-				throw new RedisException(ex.Message, ex);
+				if (!(ex is RedisException))
+					throw new RedisException(ex.Message, ex);
+				throw;
 			}
 		}
 		public async Task<RedisResponse> ReadDirectResponse()
@@ -231,14 +235,12 @@ namespace NBoosters.RedisBoost
 					throw new RedisException(reply.AsError());
 				return reply;
 			}
-			catch (RedisException)
-			{
-				throw;
-			}
 			catch (Exception ex)
 			{
 				DisposeIfFatalError(ex);
-				throw new RedisException(ex.Message, ex);
+				if (!(ex is RedisException))
+					throw new RedisException(ex.Message, ex);
+				throw;
 			}
 		}
 
