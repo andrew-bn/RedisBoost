@@ -7,8 +7,8 @@
     <ProjectGuid>{F5802D85-C912-440F-B48B-982C2C9B1EB6}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>NBooster.RedisBoost.Tests</RootNamespace>
-    <AssemblyName>NBooster.RedisBoost.Tests</AssemblyName>
+    <RootNamespace>NBoosters.RedisBoost.Tests</RootNamespace>
+    <AssemblyName>NBoosters.RedisBoost.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\</SolutionDir>

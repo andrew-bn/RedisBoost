@@ -9,7 +9,7 @@ using NBoosters.RedisBoost.Core;
 using NBoosters.RedisBoost.Core.Pipeline;
 using NUnit.Framework;
 
-namespace NBooster.RedisBoost.Tests
+namespace NBoosters.RedisBoost.Tests
 {
 	[TestFixture]
 	public class RedisPipelineTests

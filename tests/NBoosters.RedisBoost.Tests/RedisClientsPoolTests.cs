@@ -10,7 +10,7 @@ using NBoosters.RedisBoost.Core;
 using NBoosters.RedisBoost.Core.Pool;
 using NUnit.Framework;
 
-namespace NBooster.RedisBoost.Tests
+namespace NBoosters.RedisBoost.Tests
 {
 	[TestFixture]
 	public class RedisClientsPoolTests
