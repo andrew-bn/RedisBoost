@@ -2,30 +2,29 @@
 using System.Data.SqlClient;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
+using NBoosters.RedisBoost.Core;
 
 namespace NBoosters.RedisBoost
 {
 	public class RedisConnectionStringBuilder: DbConnectionStringBuilder
 	{
-		private const int DEFAULT_PORT = 6379;
 		private readonly SqlConnectionStringBuilder _connectionStringBuilder;
 		private readonly string _connectionString;
 		public EndPoint EndPoint { get; private set; }
 		public int DbIndex { get; private set; }
 
-		public RedisConnectionStringBuilder(EndPoint endPoint)
+		public RedisConnectionStringBuilder(string host, int port = RedisConstants.DefaultPort, int dbIndex = 0)
+			: this(string.Format("data source={0}:{1};initial catalog=\"{2}\"", host, port, dbIndex))
 		{
-			_connectionString = string.Format("data source={0}", endPoint);
-			EndPoint = endPoint;
 		}
-
-		public RedisConnectionStringBuilder(EndPoint endPoint,int dbIndex)
+		public RedisConnectionStringBuilder(EndPoint endPoint,int dbIndex = 0)
 		{
-			_connectionString = string.Format("data source={0};initial catalog=\"{1}\"", 
-				endPoint,dbIndex);
+			_connectionString = string.Format("data source={0};initial catalog=\"{1}\"", endPoint, dbIndex);
 			EndPoint = endPoint;
 			DbIndex = dbIndex;
 		}
+
 		public RedisConnectionStringBuilder(string connectionString)
 		{
 			_connectionString = connectionString;
@@ -44,10 +43,10 @@ namespace NBoosters.RedisBoost
 			return result;
 		}
 
-		private EndPoint ParseEndpoint(string address)
+		private static EndPoint ParseEndpoint(string address)
 		{
-			int port = DEFAULT_PORT;
-			string host = string.Empty;
+			var port = RedisConstants.DefaultPort;
+			var host = string.Empty;
 			var parts = address.Split(':').Select(x => x.Trim()).ToArray();
 
 			if (parts.Length >= 1)
@@ -57,7 +56,7 @@ namespace NBoosters.RedisBoost
 
 			IPAddress ipAddress;
 			if (!IPAddress.TryParse(host,out ipAddress))
-				return new DnsEndPoint(host, port);
+				return new DnsEndPoint(host, port, AddressFamily.InterNetwork);
 
 			return new IPEndPoint(ipAddress,port);
 		}

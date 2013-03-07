@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -1642,6 +1643,15 @@ namespace NBoosters.RedisBoost.Tests
 				{
 					Assert.AreEqual("Value" + item.Key, GetString(item.Value.Result));
 				}
+			}
+		}
+		[Test]
+		public void Ctor_WithHostPort()
+		{
+			var sb = new RedisConnectionStringBuilder(ConnectionString);
+			using (var cli = RedisClient.ConnectAsync(((IPEndPoint)sb.EndPoint).Address.ToString(), ((IPEndPoint)sb.EndPoint).Port, 3).Result)
+			{
+				Assert.AreEqual("PONG",cli.PingAsync().Result);
 			}
 		}
 		private static byte[] GetBytes(string value)

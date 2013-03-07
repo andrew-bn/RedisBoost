@@ -40,14 +40,14 @@ namespace NBoosters.RedisBoost.Core.Pool
 			return CreateClientAsync(new RedisConnectionStringBuilder(connectionString));
 		}
 
-		public Task<IRedisClient> CreateClientAsync(EndPoint endPoint)
-		{
-			return CreateClientAsync(new RedisConnectionStringBuilder(endPoint));
-		}
-
-		public Task<IRedisClient> CreateClientAsync(EndPoint endPoint, int dbIndex)
+		public Task<IRedisClient> CreateClientAsync(EndPoint endPoint, int dbIndex = 0)
 		{
 			return CreateClientAsync(new RedisConnectionStringBuilder(endPoint, dbIndex));
+		}
+
+		public Task<IRedisClient> CreateClientAsync(string host, int port = RedisConstants.DefaultPort, int dbIndex = 0)
+		{
+			return CreateClientAsync(new RedisConnectionStringBuilder(host, port, dbIndex));
 		}
 
 		internal Task<IRedisClient> CreateClientAsync(RedisConnectionStringBuilder connectionString)

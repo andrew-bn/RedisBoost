@@ -49,16 +49,16 @@ namespace NBoosters.RedisBoost
 			return new RedisClientsPool(maxPoolsSize, inactivityTimeout);
 		}
 
-		public static async Task<IRedisClient> ConnectAsync(EndPoint endPoint)
+		public static async Task<IRedisClient> ConnectAsync(EndPoint endPoint, int dbIndex = 0)
 		{
-			var result = new RedisClient(new RedisConnectionStringBuilder(endPoint));
+			var result = new RedisClient(new RedisConnectionStringBuilder(endPoint, dbIndex));
 			await ((IPrepareSupportRedisClient)result).PrepareClientConnection().ConfigureAwait(false);
 			return result;
 		}
 
-		public static async Task<IRedisClient> ConnectAsync(EndPoint endPoint, int dbIndex)
+		public static async Task<IRedisClient> ConnectAsync(string host, int port = RedisConstants.DefaultPort, int dbIndex = 0)
 		{
-			var result = new RedisClient(new RedisConnectionStringBuilder(endPoint, dbIndex));
+			var result = new RedisClient(new RedisConnectionStringBuilder(host, port, dbIndex));
 			await ((IPrepareSupportRedisClient)result).PrepareClientConnection().ConfigureAwait(false);
 			return result;
 		}

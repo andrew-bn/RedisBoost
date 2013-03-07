@@ -11,6 +11,7 @@ namespace NBoosters.RedisBoost.Core
 		}
 
 		//common
+		public const int DefaultPort = 6379;
 		public static DateTime InitialUnixTime = new DateTime(1970, 1, 1, 0, 0, 0, 0);
 		public static byte Minus = GetBytes("-")[0];
 		public static byte Colon = GetBytes(":")[0];
