@@ -101,7 +101,17 @@ namespace NBoosters.RedisBoost
 		}
 
 		#region converters
-		private byte[] ConvertToByteArray(Aggregation aggregation)
+		private static byte[] ConvertToByteArray(Subcommand subcommand)
+		{
+			var result = RedisConstants.RefCount;
+			if (subcommand == Subcommand.IdleTime)
+				result = RedisConstants.IdleTime;
+			else if (subcommand == Subcommand.Encoding)
+				result = RedisConstants.ObjEncoding;
+
+			return result;
+		}
+		private static byte[] ConvertToByteArray(Aggregation aggregation)
 		{
 			var aggr = RedisConstants.Sum;
 			if (aggregation == Aggregation.Max)
@@ -199,7 +209,10 @@ namespace NBoosters.RedisBoost
 		{
 			try
 			{
-				return await _redisPipeline.ExecuteCommandAsync(args).ConfigureAwait(false);
+				var reply = await _redisPipeline.ExecuteCommandAsync(args).ConfigureAwait(false);
+				if (reply.ResponseType == RedisResponseType.Error)
+					throw new RedisException(reply.AsError());
+				return reply;
 			}
 			catch (Exception ex)
 			{
