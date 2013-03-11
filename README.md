@@ -128,6 +128,47 @@ Each instance of clients pool actually can manage many pools, one for each conne
 
 If you dispose clients pool then all clients that are in pool will be disconnected from Redis and disposed.
 
+Pipelining support
+----------
+Since Redis server supports pipelining, RedisBoost also supports it.
+
+Any command that is sent to Redis is pipelined. 
+Only Pub/Sub commands are sent directly to Redis and not pipelined. 
+Then you switch to Pub/Sub mode Redis pipeline is closed.
+
+Let's see an example
+
+```csharp
+[Test]
+public void PipelineTest()
+{
+	using (var cli = CreateClient())
+	{
+		var tasks = new List<Task<byte[]>>();
+
+		for (int i = 0; i < 10000; i++)
+		{
+			cli.SetAsync("Key" + i, GetBytes("Value"+i));
+			tasks.Add(cli.GetAsync("Key"+i));
+		}
+		
+		// some other work here...
+		//...
+		
+		for (int i = 0; i < 10000; i++)
+			Assert.AreEqual("Value"+i,GetString(tasks[i].Result));
+	}
+}
+```
+Please consider the example above. As you can see it executes 10000 commands, 
+and does not wait until the end of execution.
+
+At the end all responses are checked.
+
+In the test library NBoosters.RedisBoost.Tests there is a 
+IntegrationTests.PipelineTest_ParallelPipelining test that shows 
+parallel work with the same redis client in pipeline style
+
 Error handling
 ----------
 * All Redis server errors are thrown RedisException and treated as not critical.
