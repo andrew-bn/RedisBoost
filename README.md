@@ -85,3 +85,50 @@ var client = RedisClient.ConnectAsync(cs).Result;
 The code above will make new connection to Redis server and perform a 'SELECT 7' command.
 
 *Currently passing password in connection string is not supported, but will be soon*
+
+Clients pool support
+-----------
+Each RedisClient instance represents one connection to Redis. 
+If you create this instance directly (not using Clients pool)
+then calling the IDisposable.Dispose will dispose socket and close connection to Redis.
+If you are worried about the ammount of redis connections your application makes you can use clients pool
+
+```csharp
+[Test]
+public void ClientsPool()
+{
+	using (var pool = RedisClient.CreateClientsPool())
+	{
+		IRedisClient cli1, cli2;
+		using (cli1 = pool.CreateClientAsync(ConnectionString).Result)
+		{
+			cli1.SetAsync("Key", GetBytes("Value")).Wait();
+		}
+		using (cli2 = pool.CreateClientAsync(ConnectionString).Result)
+		{
+			cli2.GetAsync("Key").Wait();
+		}
+		Assert.AreEqual(cli1, cli2);
+	}
+}
+```
+
+Please consider the code above. cli1 and cli2 whould be the same instances, 
+since IDisposable.Dispose won't close connection
+but only will return client to pool.
+
+Use RedisClient.CreateClientsPool() factory method to create clients pool. 
+This method has some overloads so you can pass inactivity timeout and pool size.
+Then inactivity timeout passes RedisClient is disconnected from Redis and disposed.
+
+Keep in mind that if you switch RedisClient to Pub/Sub mode then this client can't be returned to pool.
+So this client will be disposed if IDisposable.Dispose() is called.
+
+Each instance of clients pool actually can manage many pools, one for each connection string.
+
+If you dispose clients pool then all clients that are in pool will be disconnected from Redis and disposed.
+
+Error handling
+----------
+* All Redis server errors are thrown RedisException and treated as not critical.
+* All socket errors are wrapped into RedisException but treated as critical. Client would be disconnected and disposed.
