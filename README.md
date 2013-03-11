@@ -121,8 +121,8 @@ Use RedisClient.CreateClientsPool() factory method to create clients pool.
 This method has some overloads so you can pass inactivity timeout and pool size.
 Then inactivity timeout passes RedisClient is disconnected from Redis and disposed.
 
-Keep in mind that if you switch RedisClient to Pub/Sub mode then this client can't be returned to pool.
-So this client will be disposed if IDisposable.Dispose() is called.
+If RedisClient was disconnected, disposed, was called QUIT command or you've switched to Pub/Sub mode then this
+client can't be returned to pool. Such clients would be disposed if IDisposable.Dispose() is called.
 
 Each instance of clients pool actually can manage many pools, one for each connection string.
 
