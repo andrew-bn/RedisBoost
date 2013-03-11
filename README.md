@@ -1,4 +1,4 @@
-RedisBoost
+RedisBoost (.NET 4.5)
 ==========
 
 * Thread-safe asynchronous architecture
@@ -65,3 +65,23 @@ public void Publish_Subscribe_WithFilter()
 }
 ```
 
+Connection string support
+----------
+You can describe your connections with connection strings.
+
+```xml
+	  <connectionStrings>
+    		<add name="Redis" connectionString="data source=10.1.2.210:6379;initial catalog=7"/>
+ 	  </connectionStrings>
+```
+
+Now use this connection string to initialize new instance of RedisClient
+
+```csharp
+var cs = ConfigurationManager.ConnectionStrings["Redis"].ConnectionString;
+var client = RedisClient.ConnectAsync(cs).Result;
+```
+
+The code above will make new connection to Redis server and perform a 'SELECT 7' command.
+
+*Currently passing password in connection string is not supported, but will be soon*
