@@ -176,4 +176,4 @@ Error handling
  
 Serialization
 ----------
-*This feature is not supported yet*
+*This feature is not supported yet. High priority task*
