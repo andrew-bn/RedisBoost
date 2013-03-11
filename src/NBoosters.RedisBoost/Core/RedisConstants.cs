@@ -30,11 +30,21 @@ namespace NBoosters.RedisBoost.Core
 		public static byte[] Aggregate = GetBytes("AGGREGATE");
 		public static byte[] WithScores = GetBytes("WITHSCORES");
 		public static byte[] Limit = GetBytes("LIMIT");
-
+		public static byte[] RefCount = GetBytes("REFCOUNT");
+		public static byte[] ObjEncoding = GetBytes("ENCODING");
+		public static byte[] IdleTime = GetBytes("IDLETIME");
+		public static byte[] By = GetBytes("BY");
+		public static byte[] Asc = GetBytes("ASC");
+		public static byte[] Desc = GetBytes("DESC");
+		public static byte[] Alpha = GetBytes("ALPHA");
+		public static byte[] Store = GetBytes("STORE");
 		//keys
 		public readonly static byte[] Del = GetBytes("DEL");
 		public readonly static byte[] Dump = GetBytes("DUMP");
+		public readonly static byte[] Move = GetBytes("MOVE");
+		public readonly static byte[] Object = GetBytes("OBJECT");
 		public readonly static byte[] Restore = GetBytes("RESTORE");
+		public readonly static byte[] Sort = GetBytes("SORT");
 		public readonly static byte[] Exists = GetBytes("EXISTS");
 		public readonly static byte[] Expire = GetBytes("EXPIRE");
 		public readonly static byte[] PExpire = GetBytes("PEXPIRE");
@@ -187,9 +197,7 @@ namespace NBoosters.RedisBoost.Core
 		// not done
 		// keys
 		public readonly static byte[] Migrate = GetBytes("MIGRATE");
-		public readonly static byte[] Move = GetBytes("MOVE");
-		public readonly static byte[] Object = GetBytes("OBJECT");
-		public readonly static byte[] Sort = GetBytes("SORT");
+		
 
 		//strings
 		//BITOP

@@ -13,6 +13,11 @@ namespace NBoosters.RedisBoost
 		Task<byte[][]> KeysAsync(string pattern);
 		Task<long> DelAsync(string key);
 		Task<byte[]> DumpAsync(string key);
+		Task<long> MoveAsync(string key, int db);
+		Task<RedisResponse> ObjectAsync(Subcommand subcommand, params string[] args);
+		Task<RedisResponse> SortAsync(string key, string by = null, long? limitOffset = null,
+		                         long? limitCount = null, bool? asc = null, bool alpha = false, string destination = null,
+		                         string[] getPatterns = null);
 		Task<string> RestoreAsync(string key, int ttlInMilliseconds, byte[] serializedValue);
 		Task<long> ExistsAsync(string key);
 		Task<long> ExpireAsync(string key, int seconds);

@@ -212,6 +212,38 @@ namespace NBoosters.RedisBoost.Tests
 			}
 		}
 		[Test]
+		public void Move()
+		{
+			using (var cli = CreateClient())
+			{
+				cli.SetAsync("Key", GetBytes("Value")).Wait();
+				Assert.AreEqual(1,cli.MoveAsync("Key", 3).Result);
+				Assert.AreEqual(0,cli.ExistsAsync("Key").Result);
+				cli.SelectAsync(3).Wait();
+				Assert.AreEqual(1, cli.ExistsAsync("Key").Result);
+			}
+		}
+		[Test]
+		public void Object()
+		{
+			using (var cli = CreateClient())
+			{
+				cli.LPushAsync("mylist", GetBytes("Hello world"));
+				Assert.AreEqual(1, cli.ObjectAsync(Subcommand.RefCount, "mylist").Result.AsInteger());
+				Assert.AreEqual("ziplist", GetString(cli.ObjectAsync(Subcommand.Encoding, "mylist").Result.AsBulk()));
+			}
+		}
+
+		[Test]
+		public void Sort()
+		{
+			using (var cli = CreateClient())
+			{
+				cli.SortAsync("mylist",limitCount:2,limitOffset:23,by:"byPattern",
+					asc:false,alpha:true,destination:"dst",getPatterns: new[]{"getPattern"}).Wait();
+			}
+		}
+		[Test]
 		public void IncrDecr()
 		{
 			using (var cli = CreateClient())
