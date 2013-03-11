@@ -1304,16 +1304,17 @@ namespace NBoosters.RedisBoost.Tests
 		}
 
 		[Test]
-		public void Publish_SubscribeFilter()
+		public void Publish_Subscribe_WithFilter()
 		{
-			using (var cli1 = CreateClient())
+			using (var subscriber = CreateClient().SubscribeAsync("channel").Result)
 			{
-				using (var cli2 = CreateClient())
+				using (var publisher = CreateClient())
 				{
-					var c1 = cli1.SubscribeAsync("channel").Result;
-					cli2.PublishAsync("channel", GetBytes("Message")).Wait();
+					publisher.PublishAsync("channel", GetBytes("Message")).Wait();
 
-					var subResult = c1.ReadMessageAsync(ChannelMessageType.Message | ChannelMessageType.PMessage).Result;
+					var subResult = subscriber.ReadMessageAsync(ChannelMessageType.Message |
+																ChannelMessageType.PMessage).Result;
+					
 					Assert.AreEqual(ChannelMessageType.Message, subResult.MessageType);
 					Assert.AreEqual("channel", subResult.Channels[0]);
 					Assert.AreEqual("Message", GetString(subResult.Value));
@@ -1510,12 +1511,11 @@ namespace NBoosters.RedisBoost.Tests
 			}
 		}
 		[Test]
-		public void PoolTest()
+		public void ClientsPool()
 		{
 			using (var pool = RedisClient.CreateClientsPool())
 			{
-				IRedisClient cli1 = null;
-				IRedisClient cli2 = null;
+				IRedisClient cli1, cli2;
 				using (cli1 = pool.CreateClientAsync(ConnectionString).Result)
 				{
 					cli1.SetAsync("Key", GetBytes("Value")).Wait();
