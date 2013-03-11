@@ -1,6 +1,7 @@
 RedisBoost (.NET 4.5)
 ==========
 
+* Redis 2.6 command set support
 * Thread-safe asynchronous architecture
 * Supports pipelining that will tremendously boost your commands performance
 * Tightly bound to Redis api. Does not expose high level abstractions
