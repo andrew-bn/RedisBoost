@@ -173,3 +173,7 @@ Error handling
 ----------
 * All Redis server errors are thrown RedisException and treated as not critical.
 * All socket errors are wrapped into RedisException but treated as critical. Client would be disconnected and disposed.
+ 
+Serialization
+----------
+*This feature is not supported yet*
