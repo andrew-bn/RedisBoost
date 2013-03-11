@@ -76,6 +76,15 @@ namespace NBoosters.RedisBoost
 			return IntegerResponseCommand(RedisConstants.HIncrBy, ConvertToByteArray(key),
 				field,ConvertToByteArray(increment));
 		}
+		public Task<byte[]> HIncrByFloatAsync(string key, string field, double increment)
+		{
+			return HIncrByFloatAsync(key, ConvertToByteArray(field), increment);
+		}
+		public Task<byte[]> HIncrByFloatAsync(string key, byte[] field, double increment)
+		{
+			return BulkResponseCommand(RedisConstants.HIncrByFloat, ConvertToByteArray(key),
+				field, ConvertToByteArray(increment));
+		}
 
 		public Task<byte[][]> HKeysAsync(string key)
 		{

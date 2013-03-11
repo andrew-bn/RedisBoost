@@ -16,7 +16,13 @@ namespace NBoosters.RedisBoost
 		{
 			return IntegerResponseCommand(RedisConstants.Del, ConvertToByteArray(key));
 		}
-
+		public Task<string> MigrateAsync(string host,int port, string key, int destinationDb, int timeout)
+		{
+			return StatusResponseCommand(RedisConstants.Migrate, 
+										 ConvertToByteArray(host),ConvertToByteArray(port),
+										 ConvertToByteArray(key), ConvertToByteArray(destinationDb),
+										 ConvertToByteArray(timeout));
+		}
 		public Task<byte[]> DumpAsync(string key)
 		{
 			return BulkResponseCommand(RedisConstants.Dump, ConvertToByteArray(key));

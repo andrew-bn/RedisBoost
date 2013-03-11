@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
 
@@ -44,6 +45,11 @@ namespace NBoosters.RedisBoost
 			return IntegerResponseCommand(RedisConstants.IncrBy, ConvertToByteArray(key),
 				ConvertToByteArray(increment));
 		}
+		public Task<byte[]> IncrByFloatAsync(string key, double increment)
+		{
+			return BulkResponseCommand(RedisConstants.IncrByFloat, ConvertToByteArray(key),
+				ConvertToByteArray(increment));
+		}
 		public Task<byte[]> GetRangeAsync(string key, int start, int end)
 		{
 			return BulkResponseCommand(RedisConstants.GetRange, ConvertToByteArray(key),
@@ -62,22 +68,22 @@ namespace NBoosters.RedisBoost
 		{
 			return BulkResponseCommand(RedisConstants.GetSet, ConvertToByteArray(key), value);
 		}
-		public Task<byte[][]> MGetAsync(params string[] key)
+		public Task<byte[][]> MGetAsync(params string[] keys)
 		{
-			if (key.Length == 0)
-				throw new RedisException("Invalid argument 'key'");
-			var request = new byte[key.Length+1][];
+			if (keys.Length == 0)
+				throw new ArgumentException("Invalid argument items count", "keys");
+			var request = new byte[keys.Length+1][];
 			request[0] = RedisConstants.MGet;
 
-			for (int i = 0; i < key.Length; i++)
-				request[i + 1] = ConvertToByteArray(key[i]);
+			for (int i = 0; i < keys.Length; i++)
+				request[i + 1] = ConvertToByteArray(keys[i]);
 
 			return MultiBulkResponseCommand(request);
 		}
 		public Task<string> MSetAsync(params MSetArgs[] args)
 		{
 			if (args.Length == 0)
-				throw new RedisException("Invalid argument 'args'");
+				throw new ArgumentException("Invalid argument items count", "args");
 
 			var request = new byte[args.Length * 2+1][];
 			request[0] = RedisConstants.MSet;
@@ -91,7 +97,7 @@ namespace NBoosters.RedisBoost
 		public Task<long> MSetNxAsync(params MSetArgs[] args)
 		{
 			if (args.Length == 0)
-				throw new RedisException("Invalid argument 'args'");
+				throw new ArgumentException("Invalid argument items count", "args");
 
 			var request = new byte[args.Length * 2 + 1][];
 			request[0] = RedisConstants.MSetNx;
@@ -115,6 +121,30 @@ namespace NBoosters.RedisBoost
 		public Task<long> SetNxAsync(string key, byte[] value)
 		{
 			return IntegerResponseCommand(RedisConstants.SetNx, ConvertToByteArray(key), value);
+		}
+		public Task<long> BitOpAsync(BitOpType bitOp, string destKey, params string[] keys)
+		{
+			if (keys.Length == 0)
+				throw new ArgumentException("Invalid argument items count", "keys");
+
+			var request = new byte[3 + keys.Length][];
+			request[0] = RedisConstants.BitOp;
+			request[1] = ConvertToByteArray(bitOp);
+			request[2] = ConvertToByteArray(destKey);
+			for (int i = 0; i < keys.Length; i++)
+				request[3 + i] = ConvertToByteArray(keys[i]);
+
+			return IntegerResponseCommand(request);
+		}
+		public Task<long> GetBitAsync(string key, long offset)
+		{
+			return IntegerResponseCommand(RedisConstants.GetBit,ConvertToByteArray(key),
+				ConvertToByteArray(offset));
+		}
+		public Task<long> SetBitAsync(string key, long offset, int value)
+		{
+			return IntegerResponseCommand(RedisConstants.SetBit, ConvertToByteArray(key),
+				ConvertToByteArray(offset), ConvertToByteArray(value));
 		}
 	}
 }

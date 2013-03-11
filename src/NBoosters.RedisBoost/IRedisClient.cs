@@ -12,6 +12,10 @@ namespace NBoosters.RedisBoost
 		Task<string> ClientKillAsync(string ip, int port);
 		Task<byte[][]> KeysAsync(string pattern);
 		Task<long> DelAsync(string key);
+		Task<long> BitOpAsync(BitOpType bitOp, string destKey, params string[] keys);
+		Task<long> SetBitAsync(string key, long offset, int value);
+		Task<long> GetBitAsync(string key, long offset);
+		Task<string> MigrateAsync(string host, int port, string key, int destinationDb, int timeout);
 		Task<byte[]> DumpAsync(string key);
 		Task<long> MoveAsync(string key, int db);
 		Task<RedisResponse> ObjectAsync(Subcommand subcommand, params string[] args);
@@ -65,6 +69,8 @@ namespace NBoosters.RedisBoost
 		Task<byte[][]> HGetAllAsync(string key);
 		Task<long> HIncrByAsync(string key, string field, int increment);
 		Task<long> HIncrByAsync(string key, byte[] field, int increment);
+		Task<byte[]> HIncrByFloatAsync(string key, string field, double increment);
+		Task<byte[]> HIncrByFloatAsync(string key, byte[] field, double increment);
 		Task<byte[][]> HKeysAsync(string key);
 		Task<byte[][]> HValsAsync(string key);
 		Task<long> HLenAsync(string key);
@@ -131,11 +137,12 @@ namespace NBoosters.RedisBoost
 		Task<long> IncrAsync(string key);
 		Task<long> DecrByAsync(string key, int decrement);
 		Task<long> IncrByAsync(string key, int increment);
+		Task<byte[]> IncrByFloatAsync(string key, double increment);
 		Task<byte[]> GetRangeAsync(string key, int start, int end);
 		Task<long> SetRangeAsync(string key, int offset, byte[] value);
 		Task<long> StrLenAsync(string key);
 		Task<byte[]> GetSetAsync(string key, byte[] value);
-		Task<byte[][]> MGetAsync(params string[] key);
+		Task<byte[][]> MGetAsync(params string[] keys);
 		Task<string> MSetAsync(params MSetArgs[] args);
 		Task<long> MSetNxAsync(params MSetArgs[] args);
 		Task<string> SetExAsync(string key, int seconds, byte[] value);

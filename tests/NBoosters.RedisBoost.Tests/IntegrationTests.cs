@@ -46,6 +46,39 @@ namespace NBoosters.RedisBoost.Tests
 			}
 		}
 		[Test]
+		public void BitOp()
+		{
+			using (var cli = CreateClient())
+			{
+				cli.SetAsync("key1", GetBytes("foobar")).Wait();
+				cli.SetAsync("key2", GetBytes("abcdef")).Wait();
+				cli.BitOpAsync(BitOpType.And, "dst", "key1", "key2").Wait();
+				Assert.AreEqual("`bc`ab", GetString(cli.GetAsync("dst").Result));
+			}
+		}
+		[Test]
+		public void GetSetBit()
+		{
+			using (var cli = CreateClient())
+			{
+				Assert.AreEqual(0,cli.SetBitAsync("key", 7, 1).Result);
+				Assert.AreEqual(0, cli.GetBitAsync("key", 0).Result);
+				Assert.AreEqual(1, cli.GetBitAsync("key", 7).Result);
+				Assert.AreEqual(0, cli.GetBitAsync("key", 100).Result);
+			}
+		}
+		[Test]
+		public void GetBit()
+		{
+			using (var cli = CreateClient())
+			{
+				cli.SetAsync("key1", GetBytes("foobar")).Wait();
+				cli.SetAsync("key2", GetBytes("abcdef")).Wait();
+				cli.BitOpAsync(BitOpType.And, "dst", "key1", "key2").Wait();
+				Assert.AreEqual("`bc`ab", GetString(cli.GetAsync("dst").Result));
+			}
+		}
+		[Test]
 		public void Dump()
 		{
 			using (var cli = CreateClient())
@@ -260,6 +293,24 @@ namespace NBoosters.RedisBoost.Tests
 			{
 				Assert.AreEqual(3, cli.IncrByAsync("Key", 3).Result);
 				Assert.AreEqual(0, cli.DecrByAsync("Key", 3).Result);
+			}
+		}
+		[Test]
+		public void IncrByFloat()
+		{
+			using (var cli = CreateClient())
+			{
+				cli.SetAsync("key", GetBytes("10.50")).Wait();
+				Assert.AreEqual("10.6", GetString(cli.IncrByFloatAsync("key",0.1).Result));
+			}
+		}
+		[Test]
+		public void HIncrByFloat()
+		{
+			using (var cli = CreateClient())
+			{
+				cli.HSetAsync("key", "field", GetBytes("10.50")).Wait();
+				Assert.AreEqual("10.6",GetString(cli.HIncrByFloatAsync("key","field",0.1).Result));
 			}
 		}
 

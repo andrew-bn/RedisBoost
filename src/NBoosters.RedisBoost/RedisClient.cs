@@ -101,6 +101,18 @@ namespace NBoosters.RedisBoost
 		}
 
 		#region converters
+		private static byte[] ConvertToByteArray(BitOpType bitOp)
+		{
+			var result = RedisConstants.And;
+			if (bitOp == BitOpType.Not)
+				result = RedisConstants.Not;
+			else if (bitOp == BitOpType.Or)
+				result = RedisConstants.Or;
+			else if (bitOp == BitOpType.Xor)
+				result = RedisConstants.Xor;
+
+			return result;
+		}
 		private static byte[] ConvertToByteArray(Subcommand subcommand)
 		{
 			var result = RedisConstants.RefCount;
@@ -125,6 +137,10 @@ namespace NBoosters.RedisBoost
 			return _redisDataAnalizer.ConvertToByteArray(data);
 		}
 		private byte[] ConvertToByteArray(int data)
+		{
+			return _redisDataAnalizer.ConvertToByteArray(data.ToString());
+		}
+		private byte[] ConvertToByteArray(long data)
 		{
 			return _redisDataAnalizer.ConvertToByteArray(data.ToString());
 		}

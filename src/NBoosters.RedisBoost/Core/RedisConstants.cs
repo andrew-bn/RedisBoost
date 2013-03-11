@@ -38,12 +38,17 @@ namespace NBoosters.RedisBoost.Core
 		public static byte[] Desc = GetBytes("DESC");
 		public static byte[] Alpha = GetBytes("ALPHA");
 		public static byte[] Store = GetBytes("STORE");
+		public static byte[] And = GetBytes("AND");
+		public static byte[] Or = GetBytes("OR");
+		public static byte[] Xor = GetBytes("XOR");
+		public static byte[] Not = GetBytes("NOT");
 		//keys
 		public readonly static byte[] Del = GetBytes("DEL");
 		public readonly static byte[] Dump = GetBytes("DUMP");
 		public readonly static byte[] Move = GetBytes("MOVE");
 		public readonly static byte[] Object = GetBytes("OBJECT");
 		public readonly static byte[] Restore = GetBytes("RESTORE");
+		public readonly static byte[] Migrate = GetBytes("MIGRATE");
 		public readonly static byte[] Sort = GetBytes("SORT");
 		public readonly static byte[] Exists = GetBytes("EXISTS");
 		public readonly static byte[] Expire = GetBytes("EXPIRE");
@@ -61,8 +66,12 @@ namespace NBoosters.RedisBoost.Core
 		//strings
 		public readonly static byte[] Decr = GetBytes("DECR");
 		public readonly static byte[] Incr = GetBytes("INCR");
+		public readonly static byte[] BitOp = GetBytes("BITOP");
+		public readonly static byte[] GetBit = GetBytes("GETBIT");
+		public readonly static byte[] SetBit = GetBytes("SETBIT");
 		public readonly static byte[] DecrBy = GetBytes("DECRBY");
 		public readonly static byte[] IncrBy = GetBytes("INCRBY");
+		public readonly static byte[] IncrByFloat = GetBytes("INCRBYFLOAT");
 		public readonly static byte[] GetRange = GetBytes("GETRANGE");
 		public readonly static byte[] SetRange = GetBytes("SETRANGE");
 		public readonly static byte[] GetSet = GetBytes("GETSET");
@@ -86,6 +95,7 @@ namespace NBoosters.RedisBoost.Core
 		public readonly static byte[] HGet = GetBytes("HGET");
 		public readonly static byte[] HGetAll = GetBytes("HGETALL");
 		public readonly static byte[] HIncrBy = GetBytes("HINCRBY");
+		public readonly static byte[] HIncrByFloat = GetBytes("HINCRBYFLOAT");
 		public readonly static byte[] HKeys = GetBytes("HKEYS");
 		public readonly static byte[] HVals = GetBytes("HVALS");
 		public readonly static byte[] HLen = GetBytes("HLEN");
@@ -193,18 +203,5 @@ namespace NBoosters.RedisBoost.Core
 		public readonly static byte[] NoSave = GetBytes("NOSAVE");
 		public readonly static byte[] SlaveOf = GetBytes("SLAVEOF");
 		public readonly static byte[] Time = GetBytes("TIME");
-		
-		// not done
-		// keys
-		public readonly static byte[] Migrate = GetBytes("MIGRATE");
-		
-
-		//strings
-		//BITOP
-		//GETBIT
-		//INCRBYFLOAT
-		//SETBIT
-		//HINCRBYFLOAT
-
 	}
 }
