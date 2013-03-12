@@ -53,14 +53,13 @@ public void Publish_Subscribe_WithFilter()
 	{
 		using (var publisher = CreateClient())
 		{
-			publisher.PublishAsync("channel", GetBytes("Message")).Wait();
-
-			var subResult = subscriber.ReadMessageAsync(ChannelMessageType.Message |
-														ChannelMessageType.PMessage).Result;
-					
-			Assert.AreEqual(ChannelMessageType.Message, subResult.MessageType);
-			Assert.AreEqual("channel", subResult.Channels[0]);
-			Assert.AreEqual("Message", GetString(subResult.Value));
+			publisher.PublishAsync("channel", GetBytes("Message")).Wait()
+			var channelMessage = subscriber.ReadMessageAsync(ChannelMessageType.Message |
+									 ChannelMessageType.PMessage).Result;
+			
+			Assert.AreEqual(ChannelMessageType.Message, channelMessage.MessageType);
+			Assert.AreEqual("channel", channelMessage.Channels[0]);
+			Assert.AreEqual("Message", GetString(channelMessage.Value));
 		}
 	}
 }
