@@ -10,7 +10,7 @@ namespace NBoosters.RedisBoost
 		{
 			return StatusResponseCommand(RedisConstants.Discard);
 		}
-		public Task<byte[][]> ExecAsync()
+		public Task<MultiBulk> ExecAsync()
 		{
 			return MultiBulkResponseCommand(RedisConstants.Exec);
 		}

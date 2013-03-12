@@ -2,7 +2,8 @@
 {
 	public struct ZAddArgs
 	{
-		internal byte[] Member;
+		internal object Member;
+		internal bool IsArray;
 		internal long IntScore;
 		internal double DoubleScore;
 		internal bool UseIntValue;
@@ -13,6 +14,7 @@
 			IntScore = score;
 			DoubleScore = 0;
 			Member = member;
+			IsArray = true;
 		}
 
 		public ZAddArgs(double score, byte[] member)
@@ -21,6 +23,24 @@
 			IntScore = 0;
 			DoubleScore = score;
 			Member = member;
+			IsArray = true;
+		}
+		public ZAddArgs(long score, object member)
+		{
+			UseIntValue = true;
+			IntScore = score;
+			DoubleScore = 0;
+			Member = member;
+			IsArray = false;
+		}
+
+		public ZAddArgs(double score, object member)
+		{
+			UseIntValue = false;
+			IntScore = 0;
+			DoubleScore = score;
+			Member = member;
+			IsArray = false;
 		}
 	}
 }

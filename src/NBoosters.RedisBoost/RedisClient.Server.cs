@@ -85,7 +85,7 @@ namespace NBoosters.RedisBoost
 		{
 			return StatusResponseCommand(RedisConstants.SlaveOf,ConvertToByteArray(host), ConvertToByteArray(port));
 		}
-		public Task<byte[][]> TimeAsync()
+		public Task<MultiBulk> TimeAsync()
 		{
 			return MultiBulkResponseCommand(RedisConstants.Time);
 		}

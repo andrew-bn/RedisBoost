@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace NBoosters.RedisBoost.Core.Serialization
 {
-	internal interface IRedisSerializer
+	public interface IRedisSerializer
 	{
-		byte[] Serialize<T>(T value);
-
+		byte[] Serialize(object value);
+		object Deserialize(Type type, byte[] value);
 	}
 }

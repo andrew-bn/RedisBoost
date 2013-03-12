@@ -5,7 +5,7 @@ namespace NBoosters.RedisBoost
 {
 	public partial class RedisClient
 	{
-		public Task<byte[][]> BlPopAsync(int timeoutInSeconds, params string[] keys)
+		public Task<MultiBulk> BlPopAsync(int timeoutInSeconds, params string[] keys)
 		{
 			var request = new byte[keys.Length+2][];
 			request[0] = RedisConstants.BlPop;
@@ -28,7 +28,7 @@ namespace NBoosters.RedisBoost
 			return IntegerResponseCommand(request);
 		}
 
-		public Task<byte[][]> BrPopAsync(int timeoutInSeconds, params string[] keys)
+		public Task<MultiBulk> BrPopAsync(int timeoutInSeconds, params string[] keys)
 		{
 			var request = new byte[keys.Length + 2][];
 			request[0] = RedisConstants.BrPop;
@@ -87,7 +87,7 @@ namespace NBoosters.RedisBoost
 		{
 			return IntegerResponseCommand(RedisConstants.LPushX, ConvertToByteArray(key), values);
 		}
-		public Task<byte[][]> LRangeAsync(string key, int start, int stop)
+		public Task<MultiBulk> LRangeAsync(string key, int start, int stop)
 		{
 			return MultiBulkResponseCommand(RedisConstants.LRange,
 				ConvertToByteArray(key), ConvertToByteArray(start), ConvertToByteArray(stop));

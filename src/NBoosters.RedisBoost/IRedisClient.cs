@@ -1,16 +1,19 @@
 ﻿using System;
 using System.Threading.Tasks;
+using NBoosters.RedisBoost.Core.Serialization;
 
 namespace NBoosters.RedisBoost
 {
 	public interface IRedisClient : IDisposable
 	{
+		IRedisSerializer Serializer { get; }
 		string ConnectionString { get; }
 
 		Task DisconnectAsync();
 
 		Task<string> ClientKillAsync(string ip, int port);
-		Task<byte[][]> KeysAsync(string pattern);
+		Task<MultiBulk> KeysAsync(string pattern);
+		Task<TResult[]> KeysAsync<TResult>(string pattern);
 		Task<long> DelAsync(string key);
 		Task<long> BitOpAsync(BitOpType bitOp, string destKey, params string[] keys);
 		Task<long> SetBitAsync(string key, long offset, int value);
@@ -50,7 +53,7 @@ namespace NBoosters.RedisBoost
 		Task<string> ShutDownAsync();
 		Task<string> ShutDownAsync(bool save);
 		Task<string> SlaveOfAsync(string host, int port);
-		Task<byte[][]> TimeAsync();
+		Task<MultiBulk> TimeAsync();
 		Task<string> AuthAsync(string password);
 		Task<byte[]> EchoAsync(byte[] message);
 		Task<string> PingAsync();
@@ -66,26 +69,30 @@ namespace NBoosters.RedisBoost
 		Task<long> HDelAsync(string key, params byte[][] fields);
 		Task<byte[]> HGetAsync(string key, string field);
 		Task<byte[]> HGetAsync(string key, byte[] field);
-		Task<byte[][]> HGetAllAsync(string key);
+		Task<MultiBulk> HGetAllAsync(string key);
 		Task<long> HIncrByAsync(string key, string field, int increment);
 		Task<long> HIncrByAsync(string key, byte[] field, int increment);
 		Task<byte[]> HIncrByFloatAsync(string key, string field, double increment);
 		Task<byte[]> HIncrByFloatAsync(string key, byte[] field, double increment);
-		Task<byte[][]> HKeysAsync(string key);
-		Task<byte[][]> HValsAsync(string key);
+		Task<MultiBulk> HKeysAsync(string key);
+		Task<MultiBulk> HValsAsync(string key);
 		Task<long> HLenAsync(string key);
-		Task<byte[][]> HMGetAsync(string key, params string[] fields);
-		Task<byte[][]> HMGetAsync(string key, params byte[][] fields);
+		Task<MultiBulk> HMGetAsync(string key, params string[] fields);
+		Task<MultiBulk> HMGetAsync(string key, params byte[][] fields);
 		Task<string> HMSetAsync(string key, params MSetArgs[] args);
 		Task<RedisResponse> EvalAsync(string script, string[] keys, params byte[][] arguments);
 		Task<RedisResponse> EvalShaAsync(byte[] sha1, string[] keys, params byte[][] arguments);
 		Task<byte[]> ScriptLoadAsync(string script);
-		Task<byte[][]> ScriptExistsAsync(params byte[][] sha1);
+		Task<MultiBulk> ScriptExistsAsync(params byte[][] sha1);
 		Task<string> ScriptFlushAsync();
 		Task<string> ScriptKillAsync();
+		Task<long> ZAddAsync<T>(string key, long score, T member);
 		Task<long> ZAddAsync(string key, long score, byte[] member);
+		Task<long> ZAddAsync<T>(string key, double score, T member);
 		Task<long> ZAddAsync(string key, double score, byte[] member);
 		Task<long> ZAddAsync(string key, params ZAddArgs[] args);
+		Task<long> ZRemAsync<T>(string key, params T[] members);
+		Task<long> ZRemAsync(string key, params object[] members);
 		Task<long> ZRemAsync(string key, params byte[][] members);
 		Task<long> ZRemRangeByRankAsync(string key, long start, long stop);
 		Task<long> ZRemRangeByScoreAsync(string key, long min, long max);
@@ -93,43 +100,39 @@ namespace NBoosters.RedisBoost
 		Task<long> ZCardAsync(string key);
 		Task<long> ZCountAsync(string key, long min, long max);
 		Task<long> ZCountAsync(string key, double min, double max);
-		Task<byte[]> ZIncrByAsync(string key, long min, byte[] value);
-		Task<byte[]> ZIncrByAsync(string key, double min, byte[] value);
+		Task<double> ZIncrByAsync<T>(string key, long increment, T member);
+		Task<double> ZIncrByAsync(string key, long increment, byte[] member);
+		Task<double> ZIncrByAsync<T>(string key, double increment, T member);
+		Task<double> ZIncrByAsync(string key, double increment, byte[] member);
 		Task<long> ZInterStoreAsync(string destinationKey, params string[] keys);
 		Task<long> ZInterStoreAsync(string destinationKey, Aggregation aggregation, params string[] keys);
 		Task<long> ZInterStoreAsync(string destinationKey, params ZAggrStoreArgs[] keys);
 		Task<long> ZInterStoreAsync(string destinationKey, Aggregation aggregation, params ZAggrStoreArgs[] keys);
-		Task<byte[][]> ZRangeAsync(string key, long start, long stop, bool withScores = false);
-		Task<byte[][]> ZRangeByScoreAsync(string key, long min, long max, bool withScores = false);
-
-		Task<byte[][]> ZRangeByScoreAsync(string key, long min, long max,
-														  long limitOffset, long limitCount, bool withScores = false);
-
-		Task<byte[][]> ZRangeByScoreAsync(string key, double min, double max, bool withScores = false);
-
-		Task<byte[][]> ZRangeByScoreAsync(string key, double min, double max,
-														  long limitOffset, long limitCount, bool withScores = false);
-
+		Task<MultiBulk> ZRangeAsync(string key, long start, long stop, bool withScores = false);
+		Task<MultiBulk> ZRangeByScoreAsync(string key, long min, long max, bool withScores = false);
+		Task<MultiBulk> ZRangeByScoreAsync(string key, long min, long max, long limitOffset, long limitCount, bool withScores = false);
+		Task<MultiBulk> ZRangeByScoreAsync(string key, double min, double max, bool withScores = false);
+		Task<MultiBulk> ZRangeByScoreAsync(string key, double min, double max, long limitOffset, long limitCount, bool withScores = false);
+		Task<long?> ZRankAsync<T>(string key, T member);
 		Task<long?> ZRankAsync(string key, byte[] member);
+		Task<long?> ZRevRankAsync<T>(string key, T member);
 		Task<long?> ZRevRankAsync(string key, byte[] member);
-		Task<byte[][]> ZRevRangeAsync(string key, long start, long stop, bool withscores = false);
-		Task<byte[][]> ZRevRangeByScoreAsync(string key, long min, long max, bool withScores = false);
-
-		Task<byte[][]> ZRevRangeByScoreAsync(string key, long min, long max,
-															 long limitOffset, long limitCount, bool withScores = false);
-
-		Task<byte[][]> ZRevRangeByScoreAsync(string key, double min, double max, bool withScores = false);
-
-		Task<byte[][]> ZRevRangeByScoreAsync(string key, double min, double max,
-															 long limitOffset, long limitCount, bool withScores = false);
-
-		Task<byte[]> ZScoreAsync(string key, byte[] member);
+		Task<MultiBulk> ZRevRangeAsync(string key, long start, long stop, bool withscores = false);
+		Task<MultiBulk> ZRevRangeByScoreAsync(string key, long min, long max, bool withScores = false);
+		Task<MultiBulk> ZRevRangeByScoreAsync(string key, long min, long max, long limitOffset, long limitCount, bool withScores = false);
+		Task<MultiBulk> ZRevRangeByScoreAsync(string key, double min, double max, bool withScores = false);
+		Task<MultiBulk> ZRevRangeByScoreAsync(string key, double min, double max, long limitOffset, long limitCount, bool withScores = false);
+		Task<double> ZScoreAsync<T>(string key, T member);
+		Task<double> ZScoreAsync(string key, byte[] member);
 		Task<long> ZUnionStoreAsync(string destinationKey, params string[] keys);
 		Task<long> ZUnionStoreAsync(string destinationKey, Aggregation aggregation, params string[] keys);
 		Task<long> ZUnionStoreAsync(string destinationKey, params ZAggrStoreArgs[] keys);
 		Task<long> ZUnionStoreAsync(string destinationKey, Aggregation aggregation, params ZAggrStoreArgs[] keys);
+		Task<T> GetAsync<T>(string key);
 		Task<byte[]> GetAsync(string key);
+		Task<string> SetAsync<T>(string key, T value);
 		Task<string> SetAsync(string key, byte[] value);
+		Task<long> AppendAsync<T>(string key, T value);
 		Task<long> AppendAsync(string key, byte[] value);
 		Task<long> BitCountAsync(string key);
 		Task<long> BitCountAsync(string key, int start, int end);
@@ -137,35 +140,43 @@ namespace NBoosters.RedisBoost
 		Task<long> IncrAsync(string key);
 		Task<long> DecrByAsync(string key, int decrement);
 		Task<long> IncrByAsync(string key, int increment);
+		Task<T> IncrByFloatAsync<T>(string key, double increment);
 		Task<byte[]> IncrByFloatAsync(string key, double increment);
+		Task<T> GetRangeAsync<T>(string key, int start, int end);
 		Task<byte[]> GetRangeAsync(string key, int start, int end);
+		Task<long> SetRangeAsync<T>(string key, int offset, T value);
 		Task<long> SetRangeAsync(string key, int offset, byte[] value);
 		Task<long> StrLenAsync(string key);
+		Task<T> GetSetAsync<T>(string key, T value);
+		Task<TResult> GetSetAsync<TResult>(string key, object value);
 		Task<byte[]> GetSetAsync(string key, byte[] value);
-		Task<byte[][]> MGetAsync(params string[] keys);
+		Task<MultiBulk> MGetAsync(params string[] keys);
 		Task<string> MSetAsync(params MSetArgs[] args);
 		Task<long> MSetNxAsync(params MSetArgs[] args);
+		Task<string> SetExAsync<T>(string key, int seconds, T value);
 		Task<string> SetExAsync(string key, int seconds, byte[] value);
+		Task<string> PSetExAsync<T>(string key, int milliseconds, T value);
 		Task<string> PSetExAsync(string key, int milliseconds, byte[] value);
+		Task<long> SetNxAsync<T>(string key, T value);
 		Task<long> SetNxAsync(string key, byte[] value);
 		Task<long> SAddAsync(string key, params byte[][] member);
 		Task<long> SRemAsync(string key, params byte[][] member);
 		Task<long> SCardAsync(string key);
-		Task<byte[][]> SDiffAsync(params string[] keys);
+		Task<MultiBulk> SDiffAsync(params string[] keys);
 		Task<long> SDiffStoreAsync(string destinationKey, params string[] keys);
-		Task<byte[][]> SUnionAsync(params string[] keys);
+		Task<MultiBulk> SUnionAsync(params string[] keys);
 		Task<long> SUnionStoreAsync(string destinationKey, params string[] keys);
-		Task<byte[][]> SInterAsync(params string[] keys);
+		Task<MultiBulk> SInterAsync(params string[] keys);
 		Task<long> SInterStoreAsync(string destinationKey, params string[] keys);
 		Task<long> SIsMemberAsync(string key, byte[] value);
-		Task<byte[][]> SMembersAsync(string key);
+		Task<MultiBulk> SMembersAsync(string key);
 		Task<long> SMoveAsync(string sourceKey, string destinationKey, byte[] member);
 		Task<byte[]> SPopAsync(string key);
 		Task<byte[]> SRandMemberAsync(string key);
-		Task<byte[][]> SRandMemberAsync(string key, int count);
-		Task<byte[][]> BlPopAsync(int timeoutInSeconds, params string[] keys);
+		Task<MultiBulk> SRandMemberAsync(string key, int count);
+		Task<MultiBulk> BlPopAsync(int timeoutInSeconds, params string[] keys);
 		Task<long> LPushAsync(string key, params byte[][] values);
-		Task<byte[][]> BrPopAsync(int timeoutInSeconds, params string[] keys);
+		Task<MultiBulk> BrPopAsync(int timeoutInSeconds, params string[] keys);
 		Task<long> RPushAsync(string key, params byte[][] values);
 		Task<byte[]> LPopAsync(string key);
 		Task<byte[]> RPopAsync(string key);
@@ -175,13 +186,13 @@ namespace NBoosters.RedisBoost
 		Task<long> LInsertAsync(string key, byte[] pivot, byte[] value, bool before = true);
 		Task<long> LLenAsync(string key);
 		Task<long> LPushXAsync(string key, byte[] values);
-		Task<byte[][]> LRangeAsync(string key, int start, int stop);
+		Task<MultiBulk> LRangeAsync(string key, int start, int stop);
 		Task<long> LRemAsync(string key, int count, byte[] value);
 		Task<string> LSetAsync(string key, int index, byte[] value);
 		Task<string> LTrimAsync(string key, int start, int stop);
 		Task<long> RPushXAsync(string key, byte[] values);
 		Task<string> DiscardAsync();
-		Task<byte[][]> ExecAsync();
+		Task<MultiBulk> ExecAsync();
 		Task<string> MultiAsync();
 		Task<string> UnwatchAsync();
 		Task<string> WatchAsync(params string[] keys);

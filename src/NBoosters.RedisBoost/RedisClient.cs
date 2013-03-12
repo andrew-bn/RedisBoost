@@ -8,11 +8,13 @@ using NBoosters.RedisBoost.Core;
 using NBoosters.RedisBoost.Core.Misk;
 using NBoosters.RedisBoost.Core.Pipeline;
 using NBoosters.RedisBoost.Core.Pool;
+using NBoosters.RedisBoost.Core.Serialization;
 
 namespace NBoosters.RedisBoost
 {
 	public partial class RedisClient : IPrepareSupportRedisClient, IRedisSubscription
 	{
+		static BasicRedisSerializer _defaultSerializer = new BasicRedisSerializer();
 		internal enum ClientState
 		{
 			None,
@@ -32,7 +34,12 @@ namespace NBoosters.RedisBoost
 		public string ConnectionString { get; private set; }
 		private volatile ClientState _state;
 		ClientState IPrepareSupportRedisClient.State { get { return _state; } }
-
+		public IRedisSerializer Serializer { get; private set; }
+		public static BasicRedisSerializer DefaultSerializer
+		{
+			get { return _defaultSerializer; }
+			set { _defaultSerializer = value; }
+		}
 		#region factory
 
 		public static IRedisClientsPool CreateClientsPool()
@@ -80,10 +87,11 @@ namespace NBoosters.RedisBoost
 
 		#endregion
 
-		protected RedisClient(RedisConnectionStringBuilder connectionString)
+		protected RedisClient(RedisConnectionStringBuilder connectionString, IRedisSerializer serializer = null)
 		{
 			ConnectionString = connectionString.ToString();
 			_connectionStringBuilder = connectionString;
+			Serializer = serializer ?? DefaultSerializer;
 
 			var sock = new Socket(_connectionStringBuilder.EndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
@@ -93,14 +101,32 @@ namespace NBoosters.RedisBoost
 				return new RedisChannel(new RedisStream(dataAnalizer), dataAnalizer);
 			});
 
-			_redisChannel.EngageWith(sock);
+			_redisChannel.EngageWith(sock, Serializer);
 
 			_redisDataAnalizer = _redisChannel.RedisDataAnalizer;
 
 			_redisPipeline = new RedisPipeline(_redisChannel);
+		
 		}
 
 		#region converters
+
+		private byte[] Serialize<T>(T value)
+		{
+			return Serializer.Serialize(value);
+		}
+
+		private byte[][] Serialize<T>(T[] values)
+		{
+			var result = new byte[values.Length][];
+			for (int i = 0; i < result.Length; i++)
+				result[i] = Serializer.Serialize(values[i]);
+			return result;
+		}
+		private T Deserialize<T>(byte[] value)
+		{
+			return (T)Serializer.Deserialize(typeof(T),value);
+		}
 		private static byte[] ConvertToByteArray(BitOpType bitOp)
 		{
 			var result = RedisConstants.And;
@@ -163,10 +189,10 @@ namespace NBoosters.RedisBoost
 		}
 		#endregion
 		#region read response
-		private async Task<byte[][]> MultiBulkResponseCommand(params byte[][] args)
+		private async Task<MultiBulk> MultiBulkResponseCommand(params byte[][] args)
 		{
 			var reply = await ExecutePipelinedCommand(args).ConfigureAwait(false);
-			return ToBytesArray(reply.AsMultiBulk());
+			return reply.AsMultiBulk();
 		}
 		private async Task<string> StatusResponseCommand(params byte[][] args)
 		{
@@ -194,26 +220,7 @@ namespace NBoosters.RedisBoost
 			var reply = await ExecutePipelinedCommand(args).ConfigureAwait(false);
 			return reply.ResponseType != RedisResponseType.Bulk ? null : reply.AsBulk();
 		}
-		private byte[][] ToBytesArray(RedisResponse[] response)
-		{
-			var result = new byte[response.Length][];
-			for (int i = 0; i < result.Length; i++)
-			{
-				switch (response[i].ResponseType)
-				{
-					case RedisResponseType.Bulk:
-						result[i] = response[i].AsBulk();
-						break;
-					case RedisResponseType.Integer:
-						result[i] = ConvertToByteArray(response[i].AsInteger());
-						break;
-					case RedisResponseType.Status:
-						result[i] = ConvertToByteArray(response[i].AsStatus());
-						break;
-				}
-			}
-			return result;
-		}
+		
 		#endregion
 		#region commands execution
 		private void ClosePipeline()

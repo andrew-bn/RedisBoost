@@ -17,7 +17,7 @@ namespace NBoosters.RedisBoost
 		{
 			return BulkResponseCommand(RedisConstants.Script, RedisConstants.Load, ConvertToByteArray(script));
 		}
-		public Task<byte[][]> ScriptExistsAsync(params byte[][] sha1)
+		public Task<MultiBulk> ScriptExistsAsync(params byte[][] sha1)
 		{
 			var request = new byte[2 + sha1.Length][];
 			request[0] = RedisConstants.Script;

@@ -19,7 +19,7 @@ namespace NBoosters.RedisBoost.Tests
 		[SetUp]
 		public void Setup()
 		{
-			_response = RedisResponse.CreateStatus("OK");
+			_response = RedisResponse.CreateStatus("OK",null);
 			_redisChannel = new Mock<IRedisChannel>();
 			_redisChannel.Setup(c => c.BufferIsEmpty)
 			             .Returns(true);

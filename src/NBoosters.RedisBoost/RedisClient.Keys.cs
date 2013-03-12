@@ -7,8 +7,11 @@ namespace NBoosters.RedisBoost
 {
 	public partial class RedisClient
 	{
-
-		public Task<byte[][]> KeysAsync(string pattern)
+		public Task<TResult[]> KeysAsync<TResult>(string pattern)
+		{
+			return KeysAsync(pattern).ContinueWith(t => t.Result.Parts.Select(p => Deserialize<TResult>(p)).ToArray());
+		}
+		public Task<MultiBulk> KeysAsync(string pattern)
 		{
 			return MultiBulkResponseCommand(RedisConstants.Keys, ConvertToByteArray(pattern));
 		}

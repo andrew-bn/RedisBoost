@@ -62,7 +62,7 @@ namespace NBoosters.RedisBoost
 			return BulkResponseCommand(RedisConstants.HGet, ConvertToByteArray(key), field);
 		}
 
-		public Task<byte[][]> HGetAllAsync(string key)
+		public Task<MultiBulk> HGetAllAsync(string key)
 		{
 			return MultiBulkResponseCommand(RedisConstants.HGetAll, ConvertToByteArray(key));
 		}
@@ -86,11 +86,11 @@ namespace NBoosters.RedisBoost
 				field, ConvertToByteArray(increment));
 		}
 
-		public Task<byte[][]> HKeysAsync(string key)
+		public Task<MultiBulk> HKeysAsync(string key)
 		{
 			return MultiBulkResponseCommand(RedisConstants.HKeys, ConvertToByteArray(key));
 		}
-		public Task<byte[][]> HValsAsync(string key)
+		public Task<MultiBulk> HValsAsync(string key)
 		{
 			return MultiBulkResponseCommand(RedisConstants.HVals, ConvertToByteArray(key));
 		}
@@ -99,12 +99,12 @@ namespace NBoosters.RedisBoost
 			return IntegerResponseCommand(RedisConstants.HLen, ConvertToByteArray(key));
 		}
 
-		public Task<byte[][]> HMGetAsync(string key, params string[] fields)
+		public Task<MultiBulk> HMGetAsync(string key, params string[] fields)
 		{
 			return HMGetAsync(key, fields.Select(ConvertToByteArray).ToArray());
 		}
 
-		public Task<byte[][]> HMGetAsync(string key, params byte[][] fields)
+		public Task<MultiBulk> HMGetAsync(string key, params byte[][] fields)
 		{
 			if (fields.Length == 0)
 				throw new RedisException("Invalid argument 'fields'");
@@ -126,8 +126,9 @@ namespace NBoosters.RedisBoost
 			request[1] = ConvertToByteArray(key);
 			for (int i = 0; i < args.Length; i++)
 			{
-				request[i * 2 + 2] = ConvertToByteArray(args[i].KeyOrField);
-				request[i * 2 + 3] = args[i].Value;
+				var arg = args[i];
+				request[i * 2 + 2] = ConvertToByteArray(arg.KeyOrField);
+				request[i * 2 + 3] = arg.IsArray ? (byte[])arg.Value : Serialize(arg.Value);
 			}
 			return StatusResponseCommand(request);
 		}

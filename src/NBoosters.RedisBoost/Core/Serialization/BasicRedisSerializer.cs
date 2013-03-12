@@ -1,49 +1,129 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace NBoosters.RedisBoost.Core.Serialization
 {
-	internal class BasicRedisSerializer : IRedisSerializer
+	public class BasicRedisSerializer : IRedisSerializer
 	{
-		internal const string DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.fffffff";
+		internal static readonly byte[] Null = new byte[] { 0 };
+		internal const string DatetimeFormat = "yyyy-MM-dd'T'HH:mm:ss.fffffff";
+		private static readonly ConcurrentDictionary<Type, DataContractSerializer> _basicSerializers = new ConcurrentDictionary<Type, DataContractSerializer>();
 
-		static readonly byte[] _null = new byte[0];
-		private readonly IRedisSerializer _objectsSerializer;
-
-		public BasicRedisSerializer(IRedisSerializer objectsSerializer)
+		#region serializatoin
+		public virtual byte[] Serialize(object value)
 		{
-			_objectsSerializer = objectsSerializer;
-		}
+			if (value == null)return Null;
 
+			var type = value.GetType();
 
-		public byte[] Serialize<T>(T value)
-		{
-			if (value == null)
-				return _null;
-			if (typeof(T) == typeof(string))
-				return Serialize(value.ToString());
-			if (typeof(T) == typeof(byte[]))
+			if (type == typeof(string))
+				return SerializeString(value.ToString());
+			if (type == typeof(byte[]))
 				return value as byte[];
-			if (typeof(T).IsEnum)
-				return Serialize(value.ToString());
-			if (typeof (T) == typeof (DateTime))
-				return Serialize((value as IFormattable).ToString(DATETIME_FORMAT, CultureInfo.InvariantCulture));
+			if (type.IsEnum)
+				return SerializeString(value.ToString());
+			if (type == typeof(DateTime))
+				return SerializeString((value as IFormattable).ToString(DatetimeFormat, CultureInfo.InvariantCulture));
+			if (type == typeof(Guid))
+				return SerializeString(value.ToString());
+			if (type == typeof (int) || type == typeof (long) || type == typeof (byte) || type == typeof (short) ||
+			    type == typeof (uint) || type == typeof (ulong) || type == typeof (sbyte) || type == typeof (ushort) ||
+			    type == typeof (bool) || type == typeof (decimal) || type == typeof (double) || type == typeof(char))
+				return SerializeString((value as IConvertible).ToString(CultureInfo.InvariantCulture));
 
-			var convertible = value as IConvertible;
-			if (convertible != null)
-				return Serialize(convertible.ToString(CultureInfo.InvariantCulture));
+			var result = SerializeComplexValue(type, value);
 
-			return _objectsSerializer.Serialize(value);
+			if (result.SequenceEqual(Null))
+				throw new SerializationException("Serializer returned unexpected result. byte[]{0} value is reserved for NULL");
+
+			return result;
 		}
 
-		private static byte[] Serialize(string value)
+		protected virtual byte[] SerializeComplexValue(Type type, object value)
+		{
+			var serializer = _basicSerializers.GetOrAdd(type, t => new DataContractSerializer(t));
+
+			using (var ms = new MemoryStream())
+			{
+				serializer.WriteObject(ms,value);
+				return ms.ToArray();
+			}
+		}
+		#endregion
+		#region deserialization
+		public virtual object Deserialize(Type type, byte[] value)
+		{
+			if (value.SequenceEqual(Null)) return null;
+
+			if (type == typeof(string))
+				return DeserializeToString(value);
+			if (type == typeof(byte[]))
+				return value;
+			if (type.IsEnum)
+				return DeserializeToEnum(DeserializeToString(value), type);
+			if (type == typeof (DateTime))
+				return DateTime.ParseExact(DeserializeToString(value), DatetimeFormat, CultureInfo.InvariantCulture);
+			if (type == typeof (Guid))
+				return Guid.Parse(DeserializeToString(value));
+			if (type == typeof(int))
+				return int.Parse(DeserializeToString(value), CultureInfo.InvariantCulture);
+			if (type == typeof(long))
+				return long.Parse(DeserializeToString(value), CultureInfo.InvariantCulture);
+			if (type == typeof(byte))
+				return byte.Parse(DeserializeToString(value), CultureInfo.InvariantCulture);
+			if (type == typeof(short))
+				return short.Parse(DeserializeToString(value), CultureInfo.InvariantCulture);
+			if (type == typeof(uint))
+				return uint.Parse(DeserializeToString(value), CultureInfo.InvariantCulture);
+			if (type == typeof(ulong))
+				return ulong.Parse(DeserializeToString(value), CultureInfo.InvariantCulture);
+			if (type == typeof(sbyte))
+				return sbyte.Parse(DeserializeToString(value), CultureInfo.InvariantCulture);
+			if (type == typeof(ushort))
+				return ushort.Parse(DeserializeToString(value), CultureInfo.InvariantCulture);
+			if (type == typeof(bool))
+				return bool.Parse(DeserializeToString(value));
+			if (type == typeof(decimal))
+				return decimal.Parse(DeserializeToString(value), CultureInfo.InvariantCulture);
+			if (type == typeof(double))
+				return double.Parse(DeserializeToString(value), CultureInfo.InvariantCulture);
+			if (type == typeof(char))
+				return DeserializeToString(value)[0];
+
+			return DeserializeComplexValue(type, value);
+		}
+		protected virtual object DeserializeComplexValue(Type type, byte[] value)
+		{
+			var serializer = _basicSerializers.GetOrAdd(type, t => new DataContractSerializer(t));
+			using (var ms = new MemoryStream(value))
+			{
+				return serializer.ReadObject(ms);
+			}
+		}
+		#endregion
+		private static object DeserializeToEnum(string value, Type enumType)
+		{
+			try
+			{
+				return Enum.Parse(enumType, value, true);
+			}
+			catch (Exception ex)
+			{
+				throw new SerializationException("Invalid enum value. Enum type: " + enumType.Name,ex);
+			}
+		}
+		private static byte[] SerializeString(string value)
 		{
 			return Encoding.UTF8.GetBytes(value);
+		}
+		private static string DeserializeToString(byte[] value)
+		{
+			return Encoding.UTF8.GetString(value);
 		}
 	}
 }

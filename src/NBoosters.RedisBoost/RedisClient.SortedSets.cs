@@ -6,14 +6,24 @@ namespace NBoosters.RedisBoost
 {
 	public partial class RedisClient
 	{
+		public Task<long> ZAddAsync<T>(string key, long score, T member)
+		{
+			return ZAddAsync(key, score, Serialize(member));
+		}
 		public Task<long> ZAddAsync(string key, long score, byte[] member)
 		{
 			return ZAddAsync(key, new ZAddArgs(score, member));
+		}
+
+		public Task<long> ZAddAsync<T>(string key, double score, T member)
+		{
+			return ZAddAsync(key, score, Serialize(member));
 		}
 		public Task<long> ZAddAsync(string key, double score, byte[] member)
 		{
 			return ZAddAsync(key, new ZAddArgs(score, member));
 		}
+
 		public Task<long> ZAddAsync(string key, params ZAddArgs[] args)
 		{
 			if (args.Length == 0)
@@ -29,10 +39,19 @@ namespace NBoosters.RedisBoost
 				request[i * 2 + 2] = arg.UseIntValue
 									   ? ConvertToByteArray(arg.IntScore)
 									   : ConvertToByteArray(arg.DoubleScore);
-				request[i * 2 + 3] = arg.Member;
+				request[i * 2 + 3] = arg.IsArray?(byte[])arg.Member:Serialize(arg.Member);
 			}
 
 			return IntegerResponseCommand(request);
+		}
+
+		public Task<long> ZRemAsync(string key, params object[] members)
+		{
+			return ZRemAsync(key, Serialize(members));
+		}
+		public Task<long> ZRemAsync<T>(string key, params T[] members)
+		{
+			return ZRemAsync(key, Serialize(members));
 		}
 		public Task<long> ZRemAsync(string key, params byte[][] members)
 		{
@@ -76,15 +95,29 @@ namespace NBoosters.RedisBoost
 		{
 			return IntegerResponseCommand(RedisConstants.ZCount, ConvertToByteArray(key), ConvertToByteArray(min), ConvertToByteArray(max));
 		}
-		public Task<byte[]> ZIncrByAsync(string key, long min, byte[] value)
+		public Task<double> ZIncrByAsync<T>(string key, long increment, T member)
 		{
-			return BulkResponseCommand(RedisConstants.ZIncrBy,
-				ConvertToByteArray(key), ConvertToByteArray(min), value);
+			return ZIncrByAsync(key, increment, Serialize(member));
 		}
-		public Task<byte[]> ZIncrByAsync(string key, double min, byte[] value)
+		public Task<double> ZIncrByAsync(string key, long increment, byte[] member)
+		{
+			return ZIncrByAsync(key, ConvertToByteArray(increment), member);
+		}
+
+		public Task<double> ZIncrByAsync<T>(string key, double increment, T member)
+		{
+			return ZIncrByAsync(key, increment, Serialize(member));
+		}
+
+		public Task<double> ZIncrByAsync(string key, double increment, byte[] member)
+		{
+			return ZIncrByAsync(key, ConvertToByteArray(increment), member);
+		}
+		private Task<double> ZIncrByAsync(string key, byte[] incrByValue, byte[] member)
 		{
 			return BulkResponseCommand(RedisConstants.ZIncrBy,
-				ConvertToByteArray(key), ConvertToByteArray(min), value);
+				ConvertToByteArray(key), incrByValue, member)
+				.ContinueWith(t=> Deserialize<double>(t.Result));
 		}
 		public Task<long> ZInterStoreAsync(string destinationKey, params string[] keys)
 		{
@@ -162,7 +195,7 @@ namespace NBoosters.RedisBoost
 
 			return IntegerResponseCommand(request);
 		}
-		public Task<byte[][]> ZRangeAsync(string key, long start, long stop, bool withScores = false)
+		public Task<MultiBulk> ZRangeAsync(string key, long start, long stop, bool withScores = false)
 		{
 			return withScores
 					? MultiBulkResponseCommand(RedisConstants.ZRange,
@@ -170,27 +203,27 @@ namespace NBoosters.RedisBoost
 					: MultiBulkResponseCommand(RedisConstants.ZRange,
 						ConvertToByteArray(key), ConvertToByteArray(start), ConvertToByteArray(stop));
 		}
-		public Task<byte[][]> ZRangeByScoreAsync(string key, long min, long max, bool withScores = false)
+		public Task<MultiBulk> ZRangeByScoreAsync(string key, long min, long max, bool withScores = false)
 		{
 			return ZRangeByScoreAsync(key, ConvertToByteArray(min), ConvertToByteArray(max), null, null, withScores);
 		}
-		public Task<byte[][]> ZRangeByScoreAsync(string key, long min, long max,
+		public Task<MultiBulk> ZRangeByScoreAsync(string key, long min, long max,
 			long limitOffset, long limitCount, bool withScores = false)
 		{
 			return ZRangeByScoreAsync(key, ConvertToByteArray(min), ConvertToByteArray(max),
 				limitOffset, limitCount, withScores);
 		}
-		public Task<byte[][]> ZRangeByScoreAsync(string key, double min, double max, bool withScores = false)
+		public Task<MultiBulk> ZRangeByScoreAsync(string key, double min, double max, bool withScores = false)
 		{
 			return ZRangeByScoreAsync(key, ConvertToByteArray(min), ConvertToByteArray(max), null, null, withScores);
 		}
-		public Task<byte[][]> ZRangeByScoreAsync(string key, double min, double max,
+		public Task<MultiBulk> ZRangeByScoreAsync(string key, double min, double max,
 			long limitOffset, long limitCount, bool withScores = false)
 		{
 			return ZRangeByScoreAsync(key, ConvertToByteArray(min), ConvertToByteArray(max),
 				limitOffset, limitCount, withScores);
 		}
-		private Task<byte[][]> ZRangeByScoreAsync(string key, byte[] min, byte[] max,
+		private Task<MultiBulk> ZRangeByScoreAsync(string key, byte[] min, byte[] max,
 			long? limitOffset, long? limitCount, bool withscores = false)
 		{
 			if (limitOffset.HasValue && withscores)
@@ -209,15 +242,27 @@ namespace NBoosters.RedisBoost
 
 			return MultiBulkResponseCommand(RedisConstants.ZRangeByScore, ConvertToByteArray(key), min, max);
 		}
+
+		public Task<long?> ZRankAsync<T>(string key, T member)
+		{
+			return ZRankAsync(key, Serialize(member));
+		}
+
 		public Task<long?> ZRankAsync(string key, byte[] member)
 		{
 			return IntegerOrBulkNullResponseCommand(RedisConstants.ZRank, ConvertToByteArray(key), member);
 		}
+
+		public Task<long?> ZRevRankAsync<T>(string key, T member)
+		{
+			return ZRevRankAsync(key, Serialize(member));
+		}
+
 		public Task<long?> ZRevRankAsync(string key, byte[] member)
 		{
 			return IntegerOrBulkNullResponseCommand(RedisConstants.ZRevRank, ConvertToByteArray(key), member);
 		}
-		public Task<byte[][]> ZRevRangeAsync(string key, long start, long stop, bool withscores = false)
+		public Task<MultiBulk> ZRevRangeAsync(string key, long start, long stop, bool withscores = false)
 		{
 			return withscores
 				       ? MultiBulkResponseCommand(RedisConstants.ZRevRange, ConvertToByteArray(key),
@@ -227,27 +272,27 @@ namespace NBoosters.RedisBoost
 		}
 
 
-		public Task<byte[][]> ZRevRangeByScoreAsync(string key, long min, long max, bool withScores = false)
+		public Task<MultiBulk> ZRevRangeByScoreAsync(string key, long min, long max, bool withScores = false)
 		{
 			return ZRevRangeByScoreAsync(key, ConvertToByteArray(min), ConvertToByteArray(max), null, null, withScores);
 		}
-		public Task<byte[][]> ZRevRangeByScoreAsync(string key, long min, long max,
+		public Task<MultiBulk> ZRevRangeByScoreAsync(string key, long min, long max,
 			long limitOffset, long limitCount, bool withScores = false)
 		{
 			return ZRevRangeByScoreAsync(key, ConvertToByteArray(min), ConvertToByteArray(max),
 				limitOffset, limitCount, withScores);
 		}
-		public Task<byte[][]> ZRevRangeByScoreAsync(string key, double min, double max, bool withScores = false)
+		public Task<MultiBulk> ZRevRangeByScoreAsync(string key, double min, double max, bool withScores = false)
 		{
 			return ZRevRangeByScoreAsync(key, ConvertToByteArray(min), ConvertToByteArray(max), null, null, withScores);
 		}
-		public Task<byte[][]> ZRevRangeByScoreAsync(string key, double min, double max,
+		public Task<MultiBulk> ZRevRangeByScoreAsync(string key, double min, double max,
 			long limitOffset, long limitCount, bool withScores = false)
 		{
 			return ZRevRangeByScoreAsync(key, ConvertToByteArray(min), ConvertToByteArray(max),
 				limitOffset, limitCount, withScores);
 		}
-		private Task<byte[][]> ZRevRangeByScoreAsync(string key, byte[] min, byte[] max,
+		private Task<MultiBulk> ZRevRangeByScoreAsync(string key, byte[] min, byte[] max,
 			long? limitOffset, long? limitCount, bool withscores = false)
 		{
 			if (limitOffset.HasValue && withscores)
@@ -266,9 +311,16 @@ namespace NBoosters.RedisBoost
 
 			return MultiBulkResponseCommand(RedisConstants.ZRevRangeByScore, ConvertToByteArray(key), min, max);
 		}
-		public Task<byte[]> ZScoreAsync(string key, byte[] member)
+
+		public Task<double> ZScoreAsync<T>(string key, T member)
 		{
-			return BulkResponseCommand(RedisConstants.ZScore, ConvertToByteArray(key), member);
+			return ZScoreAsync(key, Serialize(member));
+		}
+
+		public Task<double> ZScoreAsync(string key, byte[] member)
+		{
+			return BulkResponseCommand(RedisConstants.ZScore, ConvertToByteArray(key), member)
+					.ContinueWith(t=>Deserialize<double>(t.Result));
 		}
 
 		public Task<long> ZUnionStoreAsync(string destinationKey, params string[] keys)

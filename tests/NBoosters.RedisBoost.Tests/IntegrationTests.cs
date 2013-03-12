@@ -941,7 +941,7 @@ namespace NBoosters.RedisBoost.Tests
 			using (var cli = CreateClient())
 			{
 				cli.ZAddAsync("Key", new ZAddArgs(100.0, GetBytes("Value"))).Wait();
-				Assert.AreEqual("110.3", GetString(cli.ZIncrByAsync("Key", 10.3, GetBytes("Value")).Result));
+				Assert.AreEqual(110.3, cli.ZIncrByAsync("Key", 10.3, GetBytes("Value")).Result);
 			}
 		}
 		[Test]
@@ -1284,7 +1284,7 @@ namespace NBoosters.RedisBoost.Tests
 				cli.ZAddAsync("zset1", new ZAddArgs(3, GetBytes("three"))).Wait();
 				cli.ZAddAsync("zset1", new ZAddArgs(1, GetBytes("one"))).Wait();
 
-				Assert.AreEqual("3", GetString(cli.ZScoreAsync("zset1", GetBytes("three")).Result));
+				Assert.AreEqual(3, cli.ZScoreAsync("zset1", GetBytes("three")).Result);
 			}
 		}
 		[Test]
@@ -1395,12 +1395,12 @@ namespace NBoosters.RedisBoost.Tests
 				{
 					publisher.PublishAsync("channel", GetBytes("Message")).Wait();
 
-					var subResult = subscriber.ReadMessageAsync(ChannelMessageType.Message |
+					var channelMessage = subscriber.ReadMessageAsync(ChannelMessageType.Message |
 																ChannelMessageType.PMessage).Result;
 					
-					Assert.AreEqual(ChannelMessageType.Message, subResult.MessageType);
-					Assert.AreEqual("channel", subResult.Channels[0]);
-					Assert.AreEqual("Message", GetString(subResult.Value));
+					Assert.AreEqual(ChannelMessageType.Message, channelMessage.MessageType);
+					Assert.AreEqual("channel", channelMessage.Channels[0]);
+					Assert.AreEqual("Message", GetString(channelMessage.Value));
 				}
 			}
 		}

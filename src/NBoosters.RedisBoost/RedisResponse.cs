@@ -1,13 +1,17 @@
+using System;
+using System.Collections.Generic;
+using NBoosters.RedisBoost.Core.Serialization;
+
 namespace NBoosters.RedisBoost
 {
 	public abstract class RedisResponse
 	{
-		private class ErrorRedisResponse : RedisResponse
+		private class ErrorResponse : RedisResponse
 		{
 			public string Message { get; private set; }
 
-			public ErrorRedisResponse(string message)
-				: base(RedisResponseType.Error)
+			public ErrorResponse(string message, IRedisSerializer serializer)
+				: base(RedisResponseType.Error, serializer)
 			{
 				Message = message;
 			}
@@ -16,12 +20,12 @@ namespace NBoosters.RedisBoost
 				return Message;
 			}
 		}
-		private class StatusRedisResponse : RedisResponse
+		private class StatusResponse : RedisResponse
 		{
 			public string Status { get; private set; }
 
-			public StatusRedisResponse(string status)
-				: base(RedisResponseType.Status)
+			public StatusResponse(string status, IRedisSerializer serializer)
+				: base(RedisResponseType.Status, serializer)
 			{
 				Status = status;
 			}
@@ -30,12 +34,12 @@ namespace NBoosters.RedisBoost
 				return Status;
 			}
 		}
-		private class IntegerRedisResponse : RedisResponse
+		private class IntegerResponse : RedisResponse
 		{
 			public long Value { get; private set; }
 
-			public IntegerRedisResponse(long value)
-				: base(RedisResponseType.Integer)
+			public IntegerResponse(long value, IRedisSerializer serializer)
+				: base(RedisResponseType.Integer, serializer)
 			{
 				Value = value;
 			}
@@ -44,12 +48,12 @@ namespace NBoosters.RedisBoost
 				return Value.ToString();
 			}
 		}
-		private class BulkRedisResponse : RedisResponse
+		private class BulkResponse : RedisResponse
 		{
 			public byte[] Value { get; private set; }
 
-			public BulkRedisResponse(byte[] value)
-				: base(RedisResponseType.Bulk)
+			public BulkResponse(byte[] value, IRedisSerializer serializer)
+				: base(RedisResponseType.Bulk, serializer)
 			{
 				Value = value;
 			}
@@ -58,65 +62,114 @@ namespace NBoosters.RedisBoost
 				return Value.ToString();
 			}
 		}
-		private class MultiBulkRedisResponse : RedisResponse
-		{
-			public RedisResponse[] Parts { get; private set; }
 
-			public MultiBulkRedisResponse(RedisResponse[] parts)
-				: base(RedisResponseType.MultiBulk)
-			{
-				Parts = parts;
-			}
-		}
-
-		internal RedisResponse(RedisResponseType responseType)
+		internal RedisResponse(RedisResponseType responseType, IRedisSerializer serializer)
 		{
 			ResponseType = responseType;
+			Serializer = serializer;
 		}
 
 		public RedisResponseType ResponseType { get; private set; }
+		internal IRedisSerializer Serializer { get; private set; }
 
-		internal static RedisResponse CreateError(string message)
+		internal static RedisResponse CreateError(string message, IRedisSerializer serializer)
 		{
-			return new ErrorRedisResponse(message);
+			return new ErrorResponse(message, serializer);
 		}
-		internal static RedisResponse CreateStatus(string status)
+		internal static RedisResponse CreateStatus(string status, IRedisSerializer serializer)
 		{
-			return new StatusRedisResponse(status);
+			return new StatusResponse(status, serializer);
 		}
-		internal static RedisResponse CreateInteger(long value)
+		internal static RedisResponse CreateInteger(long value, IRedisSerializer serializer)
 		{
-			return new IntegerRedisResponse(value);
+			return new IntegerResponse(value, serializer);
 		}
-		internal static RedisResponse CreateBulk(byte[] value)
+		internal static RedisResponse CreateBulk(byte[] value, IRedisSerializer serializer)
 		{
-			return new BulkRedisResponse(value);
+			return new BulkResponse(value, serializer);
 		}
-		internal static RedisResponse CreateMultiBulk(RedisResponse[] value)
+		internal static RedisResponse CreateMultiBulk(RedisResponse[] value, IRedisSerializer serializer)
 		{
-			return new MultiBulkRedisResponse(value);
+			return new MultiBulk(value, serializer);
 		}
 
 		public string AsError()
 		{
-			return ((ErrorRedisResponse) this).Message;
+			return ((ErrorResponse)this).Message;
 		}
 		public string AsStatus()
 		{
-			return ((StatusRedisResponse)this).Status;
+			return ((StatusResponse)this).Status;
 		}
 		public long AsInteger()
 		{
-			return ((IntegerRedisResponse)this).Value;
+			return ((IntegerResponse)this).Value;
 		}
 		public byte[] AsBulk()
 		{
-			return ((BulkRedisResponse)this).Value;
+			return ((BulkResponse)this).Value;
 		}
-		public RedisResponse[] AsMultiBulk()
+		public MultiBulk AsMultiBulk()
 		{
-			return ((MultiBulkRedisResponse)this).Parts;
+			return (MultiBulk)this;
+		}
+		public T As<T>()
+		{
+			return (T)Serializer.Deserialize(typeof (T), this);
+		}
+		public static implicit operator byte[](RedisResponse value)
+		{
+			var serializer = value.Serializer;
+			switch (value.ResponseType)
+			{
+				case RedisResponseType.Bulk:
+					return value.AsBulk();
+				case RedisResponseType.Integer:
+					return serializer.Serialize(value.AsInteger());
+				case RedisResponseType.Status:
+					return serializer.Serialize(value.AsStatus());
+				default:
+					throw new InvalidCastException("Unable to cast RedisResponse to byte[]. Response type: "+value.ResponseType);
+			}
 		}
 	}
+	public class MultiBulk : RedisResponse, IEnumerable<RedisResponse>
+	{
+		internal RedisResponse[] Parts { get; private set; }
 
+		internal MultiBulk(RedisResponse[] parts, IRedisSerializer serializer)
+			: base(RedisResponseType.MultiBulk, serializer)
+		{
+			Parts = parts;
+		}
+		public int Length
+		{
+			get { return Parts.Length; }
+		}
+		public RedisResponse this[int index]
+		{
+			get { return Parts[index]; }
+		}
+		public static implicit operator byte[][](MultiBulk value)
+		{
+			return ToBytesArray(value.Parts, value.Serializer);
+		}
+		private static byte[][] ToBytesArray(RedisResponse[] response, IRedisSerializer serializer)
+		{
+			var result = new byte[response.Length][];
+			for (int i = 0; i < result.Length; i++)
+				result[i] = response[i];
+			return result;
+		}
+
+		public IEnumerator<RedisResponse> GetEnumerator()
+		{
+			return ((IEnumerable<RedisResponse>)Parts).GetEnumerator();
+		}
+
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+		{
+			return GetEnumerator();
+		}
+	}
 }

@@ -60,7 +60,7 @@ namespace NBoosters.RedisBoost
 		public async Task<ChannelMessage> ReadMessageAsync(ChannelMessageType messageTypeFilter)
 		{
 			ChannelMessageType messageType;
-			RedisResponse[] response;
+			MultiBulk response;
 			do
 			{
 				var reply = await ReadDirectResponse().ConfigureAwait(false);

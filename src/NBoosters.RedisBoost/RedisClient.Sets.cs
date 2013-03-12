@@ -38,7 +38,7 @@ namespace NBoosters.RedisBoost
 		{
 			return IntegerResponseCommand(RedisConstants.SCard, ConvertToByteArray(key));
 		}
-		public Task<byte[][]> SDiffAsync(params string[] keys)
+		public Task<MultiBulk> SDiffAsync(params string[] keys)
 		{
 			if (keys.Length == 0)
 				throw new ArgumentException("Invalid number of keys", "keys");
@@ -63,7 +63,7 @@ namespace NBoosters.RedisBoost
 
 			return IntegerResponseCommand(request);
 		}
-		public Task<byte[][]> SUnionAsync(params string[] keys)
+		public Task<MultiBulk> SUnionAsync(params string[] keys)
 		{
 			if (keys.Length == 0)
 				throw new ArgumentException("Invalid number of keys", "keys");
@@ -88,7 +88,7 @@ namespace NBoosters.RedisBoost
 
 			return IntegerResponseCommand(request);
 		}
-		public Task<byte[][]> SInterAsync(params string[] keys)
+		public Task<MultiBulk> SInterAsync(params string[] keys)
 		{
 			if (keys.Length == 0)
 				throw new ArgumentException("Invalid number of keys", "keys");
@@ -117,7 +117,7 @@ namespace NBoosters.RedisBoost
 		{
 			return IntegerResponseCommand(RedisConstants.SIsMember, ConvertToByteArray(key), value);
 		}
-		public Task<byte[][]> SMembersAsync(string key)
+		public Task<MultiBulk> SMembersAsync(string key)
 		{
 			return MultiBulkResponseCommand(RedisConstants.SMembers, ConvertToByteArray(key));
 		}
@@ -135,7 +135,7 @@ namespace NBoosters.RedisBoost
 		{
 			return BulkResponseCommand(RedisConstants.SRandMember, ConvertToByteArray(key));
 		}
-		public Task<byte[][]> SRandMemberAsync(string key, int count)
+		public Task<MultiBulk> SRandMemberAsync(string key, int count)
 		{
 			return MultiBulkResponseCommand(RedisConstants.SRandMember, ConvertToByteArray(key),
 				ConvertToByteArray(count));
