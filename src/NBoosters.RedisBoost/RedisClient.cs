@@ -215,7 +215,7 @@ namespace NBoosters.RedisBoost
 				return reply.AsInteger();
 			return null;
 		}
-		private async Task<byte[]> BulkResponseCommand(params byte[][] args)
+		private async Task<Bulk> BulkResponseCommand(params byte[][] args)
 		{
 			var reply = await ExecutePipelinedCommand(args).ConfigureAwait(false);
 			return reply.ResponseType != RedisResponseType.Bulk ? null : reply.AsBulk();

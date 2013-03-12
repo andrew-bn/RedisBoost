@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NBoosters.RedisBoost.Core.Serialization;
 
 namespace NBoosters.RedisBoost
@@ -48,20 +49,6 @@ namespace NBoosters.RedisBoost
 				return Value.ToString();
 			}
 		}
-		private class BulkResponse : RedisResponse
-		{
-			public byte[] Value { get; private set; }
-
-			public BulkResponse(byte[] value, IRedisSerializer serializer)
-				: base(RedisResponseType.Bulk, serializer)
-			{
-				Value = value;
-			}
-			public override string ToString()
-			{
-				return Value.ToString();
-			}
-		}
 
 		internal RedisResponse(RedisResponseType responseType, IRedisSerializer serializer)
 		{
@@ -86,7 +73,7 @@ namespace NBoosters.RedisBoost
 		}
 		internal static RedisResponse CreateBulk(byte[] value, IRedisSerializer serializer)
 		{
-			return new BulkResponse(value, serializer);
+			return new Bulk(value, serializer);
 		}
 		internal static RedisResponse CreateMultiBulk(RedisResponse[] value, IRedisSerializer serializer)
 		{
@@ -105,17 +92,18 @@ namespace NBoosters.RedisBoost
 		{
 			return ((IntegerResponse)this).Value;
 		}
-		public byte[] AsBulk()
+		public Bulk AsBulk()
 		{
-			return ((BulkResponse)this).Value;
+			return (Bulk)this;
 		}
 		public MultiBulk AsMultiBulk()
 		{
 			return (MultiBulk)this;
 		}
+
 		public T As<T>()
 		{
-			return (T)Serializer.Deserialize(typeof (T), this);
+			return (T)Serializer.Deserialize(typeof(T), this);
 		}
 		public static implicit operator byte[](RedisResponse value)
 		{
@@ -123,13 +111,13 @@ namespace NBoosters.RedisBoost
 			switch (value.ResponseType)
 			{
 				case RedisResponseType.Bulk:
-					return value.AsBulk();
+					return value.AsBulk().Value;
 				case RedisResponseType.Integer:
 					return serializer.Serialize(value.AsInteger());
 				case RedisResponseType.Status:
 					return serializer.Serialize(value.AsStatus());
 				default:
-					throw new InvalidCastException("Unable to cast RedisResponse to byte[]. Response type: "+value.ResponseType);
+					throw new InvalidCastException("Unable to cast RedisResponse to byte[]. Response type: " + value.ResponseType);
 			}
 		}
 	}
@@ -150,15 +138,23 @@ namespace NBoosters.RedisBoost
 		{
 			get { return Parts[index]; }
 		}
+		public T[] AsArray<T>()
+		{
+			return Parts.Select(p=>p.As<T>()).ToArray();
+		}
 		public static implicit operator byte[][](MultiBulk value)
 		{
-			return ToBytesArray(value.Parts, value.Serializer);
+			return ToArray<byte[]>(value.Parts);
 		}
-		private static byte[][] ToBytesArray(RedisResponse[] response, IRedisSerializer serializer)
+		private static T[] ToArray<T>(RedisResponse[] response)
 		{
-			var result = new byte[response.Length][];
+			var result = new T[response.Length];
 			for (int i = 0; i < result.Length; i++)
-				result[i] = response[i];
+			{
+				if (response[i].ResponseType != RedisResponseType.Bulk)
+					throw new InvalidCastException("MultiBulk reply contains non bulk parts. Unable to convert non bulk part to byte[]");
+				result[i] = response[i].AsBulk().As<T>();
+			}
 			return result;
 		}
 
@@ -172,4 +168,24 @@ namespace NBoosters.RedisBoost
 			return GetEnumerator();
 		}
 	}
+
+	public class Bulk : RedisResponse
+	{
+		public byte[] Value { get; private set; }
+
+		public Bulk(byte[] value, IRedisSerializer serializer)
+			: base(RedisResponseType.Bulk, serializer)
+		{
+			Value = value;
+		}
+		public int Length
+		{
+			get { return Value==null?0:Value.Length; }
+		}
+		public override string ToString()
+		{
+			return Value.ToString();
+		}
+	}
+
 }

@@ -126,7 +126,7 @@ namespace NBoosters.RedisBoost.Tests
 			{
 				var expected = CreateModel();
 				cli.SetAsync("Key", expected).Wait();
-				var result = cli.GetAsync<ModelRoot>("Key").Result;
+				var result = cli.GetAsync("Key").Result.As<ModelRoot>();
 				Assert.AreEqual(expected, result);
 			}
 		}
@@ -145,7 +145,7 @@ namespace NBoosters.RedisBoost.Tests
 			{
 				var expected = "Value";
 				cli.SetAsync("Key", expected).Wait();
-				var result = cli.GetAsync<string>("Key").Result;
+				var result = cli.GetAsync("Key").Result.As<string>();
 				Assert.AreEqual(expected, result);
 			}
 		}
@@ -156,7 +156,7 @@ namespace NBoosters.RedisBoost.Tests
 			{
 				cli.SetAsync("Key", "Value").Wait();
 				cli.AppendAsync("Key", "_appendix").Wait();
-				Assert.AreEqual("Value_appendix", cli.GetAsync<string>("Key").Result);
+				Assert.AreEqual("Value_appendix", cli.GetAsync("Key").Result.As<string>());
 			}
 		}
 		[Test]
@@ -165,7 +165,7 @@ namespace NBoosters.RedisBoost.Tests
 			using (var cli = CreateClient())
 			{
 				cli.SetAsync("key", 10.50).Wait();
-				Assert.AreEqual(10.6, cli.IncrByFloatAsync<double>("key", 0.1).Result);
+				Assert.AreEqual(10.6, cli.IncrByFloatAsync("key", 0.1).Result.As<double>());
 			}
 		}
 		[Test]
@@ -174,7 +174,7 @@ namespace NBoosters.RedisBoost.Tests
 			using (var cli = CreateClient())
 			{
 				cli.SetAsync("Key", "Value").Wait();
-				Assert.AreEqual("alu", cli.GetRangeAsync<string>("Key", 1, 3).Result);
+				Assert.AreEqual("alu", cli.GetRangeAsync("Key", 1, 3).Result.As<string>());
 			}
 		}
 		[Test]
@@ -184,7 +184,7 @@ namespace NBoosters.RedisBoost.Tests
 			{
 				cli.SetAsync("Key", "Value").Wait();
 				cli.SetRangeAsync("Key", 2, "eul").Wait();
-				Assert.AreEqual("Vaeul", cli.GetAsync<string>("Key").Result);
+				Assert.AreEqual("Vaeul", cli.GetAsync("Key").Result.As<string>());
 			}
 		}
 		[Test]
@@ -193,7 +193,7 @@ namespace NBoosters.RedisBoost.Tests
 			using (var cli = CreateClient())
 			{
 				cli.SetAsync("Key", "Value").Wait();
-				Assert.AreEqual("Value", cli.GetSetAsync("Key", "NewValue").Result);
+				Assert.AreEqual("Value", cli.GetSetAsync("Key", "NewValue").Result.As<string>());
 			}
 		}
 		[Test]
@@ -202,8 +202,8 @@ namespace NBoosters.RedisBoost.Tests
 			using (var cli = CreateClient())
 			{
 				cli.SetAsync("Key", 10.3).Wait();
-				Assert.AreEqual(10.3, cli.GetSetAsync<double>("Key", "NewValue").Result);
-				Assert.AreEqual("NewValue", cli.GetAsync<string>("Key").Result);
+				Assert.AreEqual(10.3, cli.GetSetAsync("Key", "NewValue").Result.As<double>());
+				Assert.AreEqual("NewValue", cli.GetAsync("Key").Result.As<string>());
 			}
 		}
 		[Test]
@@ -225,7 +225,7 @@ namespace NBoosters.RedisBoost.Tests
 			{
 				cli.SetAsync("Key1", "Val1").Wait();
 				cli.SetAsync("Key2", "Val2").Wait();
-				var result = cli.KeysAsync<string>("*").Result;
+				var result = cli.KeysAsync("*").Result.AsArray<string>();
 				Assert.AreEqual("Key2", result[0]);
 				Assert.AreEqual("Key1", result[1]);
 			}
@@ -302,7 +302,7 @@ namespace NBoosters.RedisBoost.Tests
 			{
 				cli.SetAsync("Key", "Value").Wait();
 				cli.SetNxAsync("Key", "NewValue").Wait();
-				Assert.AreEqual("Value", cli.GetAsync<string>("Key").Result);
+				Assert.AreEqual("Value", cli.GetAsync("Key").Result.As<string>());
 			}
 		}
 		[Test]

@@ -1655,7 +1655,7 @@ namespace NBoosters.RedisBoost.Tests
 		{
 			using (var cli = CreateClient())
 			{
-				var tasks = new List<Task<byte[]>>();
+				var tasks = new List<Task<Bulk>>();
 
 				for (int i = 0; i < 10000; i++)
 				{
@@ -1675,7 +1675,7 @@ namespace NBoosters.RedisBoost.Tests
 		{
 			using (var cli = CreateClient())
 			{
-				var tasks = new List<Task<byte[]>>();
+				var tasks = new List<Task<Bulk>>();
 
 				for (int i = 0; i < 10000; i++)
 				{
@@ -1704,7 +1704,7 @@ namespace NBoosters.RedisBoost.Tests
 			using (var cli = CreateClient())
 			{
 
-				var tasksDic = new ConcurrentDictionary<Guid, Task<byte[]>>();
+				var tasksDic = new ConcurrentDictionary<Guid, Task<Bulk>>();
 				var tasks = new List<Task>();
 				for (int i = 0; i < 10; i++)
 				{

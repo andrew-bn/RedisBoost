@@ -51,25 +51,25 @@ namespace NBoosters.RedisBoost
 			return IntegerResponseCommand(request);
 		}
 
-		public Task<byte[]> LPopAsync(string key)
+		public Task<Bulk> LPopAsync(string key)
 		{
 			return BulkResponseCommand(RedisConstants.LPop, ConvertToByteArray(key));
 		}
-		public Task<byte[]> RPopAsync(string key)
+		public Task<Bulk> RPopAsync(string key)
 		{
 			return BulkResponseCommand(RedisConstants.RPop, ConvertToByteArray(key));
 		}
-		public Task<byte[]> RPopLPushAsync(string source,string destination)
+		public Task<Bulk> RPopLPushAsync(string source, string destination)
 		{
 			return BulkResponseCommand(RedisConstants.RPopLPush, ConvertToByteArray(source),
 				ConvertToByteArray(destination));
 		}
-		public Task<byte[]> BRPopLPushAsync(string sourceKey, string destinationKey,int timeoutInSeconds)
+		public Task<Bulk> BRPopLPushAsync(string sourceKey, string destinationKey, int timeoutInSeconds)
 		{
 			return BulkResponseCommand(RedisConstants.BRPopLPush, ConvertToByteArray(sourceKey),
 				ConvertToByteArray(destinationKey),ConvertToByteArray(timeoutInSeconds));
 		}
-		public Task<byte[]> LIndexAsync(string key, int index)
+		public Task<Bulk> LIndexAsync(string key, int index)
 		{
 			return BulkResponseCommand(RedisConstants.LIndex, ConvertToByteArray(key), ConvertToByteArray(index));
 		}

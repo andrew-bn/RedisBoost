@@ -21,7 +21,7 @@ namespace NBoosters.RedisBoost
 		{
 			return StatusResponseCommand(RedisConstants.BgSave);
 		}
-		public Task<byte[]> ClientListAsync()
+		public Task<Bulk> ClientListAsync()
 		{
 			return BulkResponseCommand(RedisConstants.Client,RedisConstants.List);
 		}
@@ -29,7 +29,7 @@ namespace NBoosters.RedisBoost
 		{
 			return StatusResponseCommand(RedisConstants.Client, RedisConstants.SetName, connectionName);
 		}
-		internal Task<byte[]> ClientGetNameAsync()
+		internal Task<Bulk> ClientGetNameAsync()
 		{
 			return BulkResponseCommand(RedisConstants.Client, RedisConstants.GetName);
 		}
@@ -54,12 +54,12 @@ namespace NBoosters.RedisBoost
 			return StatusResponseCommand(RedisConstants.Client, RedisConstants.Kill,
 				ConvertToByteArray(string.Format("{0}:{1}",ip,port)));
 		}
-		public Task<byte[]> InfoAsync()
+		public Task<Bulk> InfoAsync()
 		{
 			return InfoAsync(null);
 		}
 
-		public Task<byte[]> InfoAsync(string section)
+		public Task<Bulk> InfoAsync(string section)
 		{
 			return section == null
 					? BulkResponseCommand(RedisConstants.Info)

@@ -52,12 +52,12 @@ namespace NBoosters.RedisBoost
 			return IntegerResponseCommand(request);
 		}
 
-		public Task<byte[]> HGetAsync(string key, string field)
+		public Task<Bulk> HGetAsync(string key, string field)
 		{
 			return HGetAsync(key, ConvertToByteArray(field));
 		}
 
-		public Task<byte[]> HGetAsync(string key, byte[] field)
+		public Task<Bulk> HGetAsync(string key, byte[] field)
 		{
 			return BulkResponseCommand(RedisConstants.HGet, ConvertToByteArray(key), field);
 		}
@@ -76,11 +76,11 @@ namespace NBoosters.RedisBoost
 			return IntegerResponseCommand(RedisConstants.HIncrBy, ConvertToByteArray(key),
 				field,ConvertToByteArray(increment));
 		}
-		public Task<byte[]> HIncrByFloatAsync(string key, string field, double increment)
+		public Task<Bulk> HIncrByFloatAsync(string key, string field, double increment)
 		{
 			return HIncrByFloatAsync(key, ConvertToByteArray(field), increment);
 		}
-		public Task<byte[]> HIncrByFloatAsync(string key, byte[] field, double increment)
+		public Task<Bulk> HIncrByFloatAsync(string key, byte[] field, double increment)
 		{
 			return BulkResponseCommand(RedisConstants.HIncrByFloat, ConvertToByteArray(key),
 				field, ConvertToByteArray(increment));

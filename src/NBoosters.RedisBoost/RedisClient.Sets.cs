@@ -126,12 +126,12 @@ namespace NBoosters.RedisBoost
 			return IntegerResponseCommand(RedisConstants.SMove, ConvertToByteArray(sourceKey),
 				ConvertToByteArray(destinationKey), member);
 		}
-		public Task<byte[]> SPopAsync(string key)
+		public Task<Bulk> SPopAsync(string key)
 		{
 			return BulkResponseCommand(RedisConstants.SPop, ConvertToByteArray(key));
 		}
 
-		public Task<byte[]> SRandMemberAsync(string key)
+		public Task<Bulk> SRandMemberAsync(string key)
 		{
 			return BulkResponseCommand(RedisConstants.SRandMember, ConvertToByteArray(key));
 		}

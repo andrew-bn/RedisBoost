@@ -7,11 +7,7 @@ namespace NBoosters.RedisBoost
 {
 	public partial class RedisClient
 	{
-		public Task<T> GetAsync<T>(string key)
-		{
-			return GetAsync(key).ContinueWith(t => Deserialize<T>(t.Result));
-		}
-		public Task<byte[]> GetAsync(string key)
+		public Task<Bulk> GetAsync(string key)
 		{
 			return BulkResponseCommand(RedisConstants.Get, ConvertToByteArray(key));
 		}
@@ -66,11 +62,7 @@ namespace NBoosters.RedisBoost
 				ConvertToByteArray(increment));
 		}
 
-		public Task<T> IncrByFloatAsync<T>(string key, double increment)
-		{
-			return IncrByFloatAsync(key,increment).ContinueWith(t => Deserialize<T>(t.Result));
-		}
-		public Task<byte[]> IncrByFloatAsync(string key, double increment)
+		public Task<Bulk> IncrByFloatAsync(string key, double increment)
 		{
 			return BulkResponseCommand(RedisConstants.IncrByFloat, ConvertToByteArray(key),
 				ConvertToByteArray(increment));
@@ -80,7 +72,7 @@ namespace NBoosters.RedisBoost
 		{
 			return GetRangeAsync(key, start,end).ContinueWith(t => Deserialize<T>(t.Result));
 		}
-		public Task<byte[]> GetRangeAsync(string key, int start, int end)
+		public Task<Bulk> GetRangeAsync(string key, int start, int end)
 		{
 			return BulkResponseCommand(RedisConstants.GetRange, ConvertToByteArray(key),
 				ConvertToByteArray(start),ConvertToByteArray(end));
@@ -101,15 +93,11 @@ namespace NBoosters.RedisBoost
 			return IntegerResponseCommand(RedisConstants.StrLen, ConvertToByteArray(key));
 		}
 
-		public Task<T> GetSetAsync<T>(string key, T value)
+		public Task<Bulk> GetSetAsync<T>(string key, T value)
 		{
-			return GetSetAsync(key, Serialize(value)).ContinueWith(t => Deserialize<T>(t.Result));
+			return GetSetAsync(key, Serialize(value));
 		}
-		public Task<TResult> GetSetAsync<TResult>(string key, object value)
-		{
-			return GetSetAsync(key, Serialize(value)).ContinueWith(t => Deserialize<TResult>(t.Result));
-		}
-		public Task<byte[]> GetSetAsync(string key, byte[] value)
+		public Task<Bulk> GetSetAsync(string key, byte[] value)
 		{
 			return BulkResponseCommand(RedisConstants.GetSet, ConvertToByteArray(key), value);
 		}

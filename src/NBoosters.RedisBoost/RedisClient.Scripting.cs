@@ -13,7 +13,7 @@ namespace NBoosters.RedisBoost
 		{
 			return Eval(RedisConstants.EvalSha, sha1, keys, arguments);
 		}
-		public Task<byte[]> ScriptLoadAsync(string script)
+		public Task<Bulk> ScriptLoadAsync(string script)
 		{
 			return BulkResponseCommand(RedisConstants.Script, RedisConstants.Load, ConvertToByteArray(script));
 		}
