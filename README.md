@@ -102,7 +102,7 @@ Also any Redis response could be deserialized to the type you want.
 ```csharp
 // bulk reply examples
 byte[] result = cli.GetAsync("Key").Result; //implicit conversion to byte[]
-byte[] result = cli.GetAsync("Key").Result.As<string>; //deserialization to specified type
+string result = cli.GetAsync("Key").Result.As<string>(); //deserialization to specified type
 
 // multi-bulk reply examples
 byte[][] result = cli.MGetAsync("Key", "Key2").Result; //implicit conversion to byte[][];
