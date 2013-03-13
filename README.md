@@ -88,7 +88,7 @@ Redis commands that demands data to be passed as command parameter has several o
 
 ```csharp
 cli.SetAsync("Key", new byte[]{1,2,3}).Wait();
-cli.SetAsync("Key2", "Value").Wait(); // second parameter will be serialized to byte array
+cli.SetAsync("Key2", new MyObject()).Wait(); // second parameter will be serialized to byte array
 ```
 
 **Bulk and MultiBulk responses**
@@ -102,7 +102,7 @@ Also any Redis response could be deserialized to the type you want.
 ```csharp
 // bulk reply examples
 byte[] result = cli.GetAsync("Key").Result; //implicit conversion to byte[]
-string result = cli.GetAsync("Key").Result.As<string>(); //deserialization to specified type
+byte[] result = cli.GetAsync("Key").Result.As<string>; //deserialization to specified type
 
 // multi-bulk reply examples
 byte[][] result = cli.MGetAsync("Key", "Key2").Result; //implicit conversion to byte[][];
