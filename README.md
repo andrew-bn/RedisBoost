@@ -1,13 +1,14 @@
 RedisBoost (.NET 4.5)
 ==========
 
-* Redis 2.6 commands set support
+* [Redis 2.6 commands](http://redis.io/commands) set support
+* [Serialization](#serialization) support
 * Thread-safe asynchronous architecture
-* Supports pipelining that will tremendously boost your commands performance
+* Supports [pipelining](#pipelining-support) that will tremendously boost your commands performance
 * Tightly bound to Redis api. Does not expose high level abstractions
-* Easy to use pub/sub api. Works directly on the level of Redis commands.
-* Clients pool support
-* Connection string support
+* Easy to use [pub/sub api](#pubsub-support). Works directly on the level of Redis commands.
+* [Clients pool](#clients-pool-support) support
+* [Connection string] (#connection-string-support) support
  
 Installation
 ----------
@@ -26,9 +27,92 @@ Let's get started
 * Make a connection to Redis.
 
 ```csharp
-  IRedisClient client = RedisClient.ConnectAsync("127.0.0.1").Result;
+  IRedisClient client = RedisClient.ConnectAsync("127.0.0.1", 6379).Result;
 ```
 * Now you can use IRedisClient to get an access to Redis api. To find out more about Redis visit http://redis.io/
+
+Connection string support
+----------
+You can describe your connections with connection strings.
+
+```xml
+	  <connectionStrings>
+    		<add name="Redis" connectionString="data source=10.1.2.210:6379;initial catalog=7"/>
+ 	  </connectionStrings>
+```
+
+Now use this connection string to initialize new instance of RedisClient
+
+```csharp
+var cs = ConfigurationManager.ConnectionStrings["Redis"].ConnectionString;
+var client = RedisClient.ConnectAsync(cs).Result;
+```
+
+The code above will make new connection to Redis server and perform a 'SELECT 7' command.
+
+*Currently passing password in connection string is not supported, but will be soon*
+
+Serialization
+----------
+**Redis data serializer**
+
+Each instance of RedisClient has a reference to serializer.
+As a default serializer RedisBoost uses RedisClient.DefaultSerialzier. 
+
+There is a default implementation that uses 
+System.Runtime.Serialization.DataContractSerializer to serialze complex objects.
+Primitive types, such as numeric types, strings, Guid, DateTime are first represented as strings 
+and then serialized to byte[].
+
+Also you can create your own implementation of serializer. 
+All you need is to create a class with BasicRedisSerializer as a parent and override some methods. 
+There will be an example soon.
+
+```csharp
+// creates redis client with default implementation of serializer (RedisClient.DefaultSerialzier)
+var redisClient = RedisClient.ConnectAsync("127.0.0.1",6379).Result;
+
+// you can setup your own serializer as a default
+RedisClient.DefaultSerialzier = mySerializer;
+var redisClient = RedisClient.ConnectAsync("127.0.0.1",6379).Result; // this instance will use mySerializer
+
+// or you can pass serializer while creating redis client
+var redisClient = RedisClient.ConnectAsync("127.0.0.1",6379,serializer: mySerialzier).Result; // this instance will use mySerializer
+```
+
+**Serialization of commands parameters**
+
+Redis commands that demands data to be passed as command parameter has several overloads in RedisClient.
+* First overload takes byte[] as a parameter
+* Second overload takes generic parameter, that will be serialized to byte[]
+
+```csharp
+cli.SetAsync("Key", new byte[]{1,2,3}).Wait();
+cli.SetAsync("Key2", new MyObject()).Wait(); // second parameter will be serialized to byte array
+```
+
+**Bulk and MultiBulk responses**
+
+Some Redis commands return bulk or multi-bulk responses (http://redis.io/topics/protocol). 
+In this case RedisBoost returns instanses of Bulk or MultiBulk classes.
+
+Bulk could be implicitly converted to byte[]. MultiBulk could be implicitly converted to byte[][].
+Also any Redis response could be deserialized to the type you want.
+
+```csharp
+// bulk reply examples
+byte[] result = cli.GetAsync("Key").Result; //implicit conversion to byte[]
+string result = cli.GetAsync("Key").Result.As<string>(); //deserialization to specified type
+
+// multi-bulk reply examples
+byte[][] result = cli.MGetAsync("Key", "Key2").Result; //implicit conversion to byte[][];
+string[] result = cli.MGetAsync("Key", "Key2").Result.AsArray<string>(); //deserialization to array of specified types
+
+// each part of multi-bulk reply could be treated separately
+var multiBulk = cli.MGetAsync("Key", "Key2").Result;
+byte[] firstPart = multiBulk[0];//implicit conversion to byte[]
+var secondPart = multiBulk[1].As<MyObject>();//deserialization to specified type
+```
 
 Pub/Sub support
 ----------
@@ -53,38 +137,16 @@ public void Publish_Subscribe_WithFilter()
 	{
 		using (var publisher = CreateClient())
 		{
-			publisher.PublishAsync("channel", GetBytes("Message")).Wait()
-			var channelMessage = subscriber.ReadMessageAsync(ChannelMessageType.Message |
+			publisher.PublishAsync("channel", "Some message").Wait();
+			var channelMessage = subscriber.ReadMessageAsync(ChannelMessageType.Message | 
 									 ChannelMessageType.PMessage).Result;
-			
 			Assert.AreEqual(ChannelMessageType.Message, channelMessage.MessageType);
 			Assert.AreEqual("channel", channelMessage.Channels[0]);
-			Assert.AreEqual("Message", GetString(channelMessage.Value));
+			Assert.AreEqual("Some message", channelMessage.Value.As<string>());
 		}
 	}
 }
 ```
-
-Connection string support
-----------
-You can describe your connections with connection strings.
-
-```xml
-	  <connectionStrings>
-    		<add name="Redis" connectionString="data source=10.1.2.210:6379;initial catalog=7"/>
- 	  </connectionStrings>
-```
-
-Now use this connection string to initialize new instance of RedisClient
-
-```csharp
-var cs = ConfigurationManager.ConnectionStrings["Redis"].ConnectionString;
-var client = RedisClient.ConnectAsync(cs).Result;
-```
-
-The code above will make new connection to Redis server and perform a 'SELECT 7' command.
-
-*Currently passing password in connection string is not supported, but will be soon*
 
 Clients pool support
 -----------
@@ -102,7 +164,7 @@ public void ClientsPool()
 		IRedisClient cli1, cli2;
 		using (cli1 = pool.CreateClientAsync(ConnectionString).Result)
 		{
-			cli1.SetAsync("Key", GetBytes("Value")).Wait();
+			cli1.SetAsync("Key", "Value").Wait();
 		}
 		using (cli2 = pool.CreateClientAsync(ConnectionString).Result)
 		{
@@ -144,19 +206,16 @@ public void PipelineTest()
 {
 	using (var cli = CreateClient())
 	{
-		var tasks = new List<Task<byte[]>>();
-
+		var tasks = new List<Task<Bulk>>()
 		for (int i = 0; i < 10000; i++)
 		{
-			cli.SetAsync("Key" + i, GetBytes("Value"+i));
-			tasks.Add(cli.GetAsync("Key"+i));
+			cli.SetAsync("Key" + i, "Value" + i);
+			tasks.Add(cli.GetAsync("Key" + i));
 		}
-		
 		// some other work here...
 		//...
-		
 		for (int i = 0; i < 10000; i++)
-			Assert.AreEqual("Value"+i,GetString(tasks[i].Result));
+			Assert.AreEqual("Value" + i, tasks[i].Result.As<string>());
 	}
 }
 ```
@@ -173,7 +232,3 @@ Error handling
 ----------
 * All Redis server errors are thrown RedisException and treated as not critical.
 * All socket errors are wrapped into RedisException but treated as critical. Client would be disconnected and disposed.
- 
-Serialization
-----------
-*This feature is not supported yet. High priority task*
