@@ -1597,11 +1597,11 @@ namespace NBoosters.RedisBoost.Tests
 			using (var pool = RedisClient.CreateClientsPool())
 			{
 				IRedisClient cli1, cli2;
-				using (cli1 = pool.CreateClientAsync(connectionString: ConnectionString).Result)
+				using (cli1 = pool.CreateClientAsync(ConnectionString).Result)
 				{
 					cli1.SetAsync("Key", GetBytes("Value")).Wait();
 				}
-				using (cli2 = pool.CreateClientAsync(connectionString: ConnectionString).Result)
+				using (cli2 = pool.CreateClientAsync(ConnectionString).Result)
 				{
 					cli2.GetAsync("Key").Wait();
 				}
@@ -1622,7 +1622,7 @@ namespace NBoosters.RedisBoost.Tests
 				}
 
 				Thread.Sleep(1000);
-				using (cli2 = pool.CreateClientAsync(connectionString: ConnectionString).Result)
+				using (cli2 = pool.CreateClientAsync(ConnectionString).Result)
 				{
 					cli2.GetAsync("Key").Wait();
 				}
@@ -1660,12 +1660,10 @@ namespace NBoosters.RedisBoost.Tests
 					cli.SetAsync("Key" + i, GetBytes("Value"+i));
 					tasks.Add(cli.GetAsync("Key"+i));
 				}
-
-				Debug.WriteLine("Commands were pipelined");
-
+				// some other work here...
+				//...
 				for (int i = 0; i < 10000; i++)
 					Assert.AreEqual("Value"+i,GetString(tasks[i].Result));
-
 			}
 		}
 		[Test]

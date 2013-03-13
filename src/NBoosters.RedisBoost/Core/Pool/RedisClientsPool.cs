@@ -38,7 +38,7 @@ namespace NBoosters.RedisBoost.Core.Pool
 
 		public Task<IRedisClient> CreateClientAsync(string connectionString, BasicRedisSerializer serializer = null)
 		{
-			return CreateClientAsync(new RedisConnectionStringBuilder(connectionString), serializer);
+			return CreateClientAsync(new RedisConnectionStringBuilder(connectionString),serializer);
 		}
 
 		public Task<IRedisClient> CreateClientAsync(EndPoint endPoint, int dbIndex = 0, BasicRedisSerializer serializer = null)

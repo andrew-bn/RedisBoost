@@ -87,7 +87,7 @@ namespace NBoosters.RedisBoost
 
 		#endregion
 
-		protected RedisClient(RedisConnectionStringBuilder connectionString, IRedisSerializer serializer = null)
+		protected RedisClient(RedisConnectionStringBuilder connectionString, IRedisSerializer serializer)
 		{
 			ConnectionString = connectionString.ToString();
 			_connectionStringBuilder = connectionString;

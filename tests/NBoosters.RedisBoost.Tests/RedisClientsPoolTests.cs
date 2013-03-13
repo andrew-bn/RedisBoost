@@ -133,7 +133,7 @@ namespace NBoosters.RedisBoost.Tests
 			pool.ReturnClient(_redisClient.Object);
 			Thread.Sleep(1000);
 			_redisClient.Verify(c => c.Destroy());
-			var cli = pool.CreateClientAsync(connectionString: _connectionString).Result;
+			var cli = pool.CreateClientAsync(_connectionString).Result;
 			Assert.NotNull(cli);
 		}
 
@@ -206,7 +206,7 @@ namespace NBoosters.RedisBoost.Tests
 		{
 			var pool = CreatePool();
 			pool.Dispose();
-			pool.CreateClientAsync(connectionString: _connectionString).Wait();
+			pool.CreateClientAsync(_connectionString).Wait();
 		}
 		private RedisClientsPool CreatePool(int timeout = 1000,int maxPoolSize = 2, int quitTimeout = 5000)
 		{

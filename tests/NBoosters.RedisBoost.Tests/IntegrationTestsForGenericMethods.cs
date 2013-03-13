@@ -126,6 +126,7 @@ namespace NBoosters.RedisBoost.Tests
 			{
 				var expected = CreateModel();
 				cli.SetAsync("Key", expected).Wait();
+				byte[] res = cli.GetAsync("Key").Result;
 				var result = cli.GetAsync("Key").Result.As<ModelRoot>();
 				Assert.AreEqual(expected, result);
 			}
@@ -473,20 +474,54 @@ namespace NBoosters.RedisBoost.Tests
 		[Test]
 		public void Publish_Subscribe_WithFilter()
 		{
-			var mes = CreateModel();
 			using (var subscriber = CreateClient().SubscribeAsync("channel").Result)
 			{
 				using (var publisher = CreateClient())
 				{
-					publisher.PublishAsync("channel", mes).Wait();
+					publisher.PublishAsync("channel", "Some message").Wait();
 
 					var channelMessage = subscriber.ReadMessageAsync(ChannelMessageType.Message |
-																ChannelMessageType.PMessage).Result;
+																	 ChannelMessageType.PMessage).Result;
 
 					Assert.AreEqual(ChannelMessageType.Message, channelMessage.MessageType);
 					Assert.AreEqual("channel", channelMessage.Channels[0]);
-					Assert.AreEqual(mes, channelMessage.Value.As<ModelRoot>());
+					Assert.AreEqual("Some message", channelMessage.Value.As<string>());
 				}
+			}
+		}
+		[Test]
+		public void ClientsPool()
+		{
+			using (var pool = RedisClient.CreateClientsPool())
+			{
+				IRedisClient cli1, cli2;
+				using (cli1 = pool.CreateClientAsync(ConnectionString).Result)
+				{
+					cli1.SetAsync("Key", "Value").Wait();
+				}
+				using (cli2 = pool.CreateClientAsync(ConnectionString).Result)
+				{
+					cli2.GetAsync("Key").Wait();
+				}
+				Assert.AreEqual(cli1, cli2);
+			}
+		}
+		[Test]
+		public void PipelineTest()
+		{
+			using (var cli = CreateClient())
+			{
+				var tasks = new List<Task<Bulk>>();
+
+				for (int i = 0; i < 10000; i++)
+				{
+					cli.SetAsync("Key" + i, "Value" + i);
+					tasks.Add(cli.GetAsync("Key" + i));
+				}
+				// some other work here...
+				//...
+				for (int i = 0; i < 10000; i++)
+					Assert.AreEqual("Value" + i, tasks[i].Result.As<string>());
 			}
 		}
 		[Test]
