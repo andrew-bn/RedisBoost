@@ -1,14 +1,14 @@
 RedisBoost (.NET 4.5)
 ==========
 
-* Redis 2.6 commands set support
-* Serialization support
+* [Redis 2.6 commands](http://redis.io/commands) set support
+* [Serialization](#serialization) support
 * Thread-safe asynchronous architecture
-* Supports pipelining that will tremendously boost your commands performance
+* Supports [pipelining](#pipelining-support) that will tremendously boost your commands performance
 * Tightly bound to Redis api. Does not expose high level abstractions
-* Easy to use pub/sub api. Works directly on the level of Redis commands.
-* Clients pool support
-* Connection string support
+* Easy to use [pub/sub api](#pubsub-support). Works directly on the level of Redis commands.
+* [Clients pool](#clients-pool-support) support
+* [Connection string] (#connection-string-support) support
  
 Installation
 ----------
