@@ -3,10 +3,11 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using NBoosters.RedisBoost.Core.Serialization;
 
 namespace NBoosters.RedisBoost.Core.Pool
 {
-	internal sealed class RedisClientsPool : IRedisClientsPool, IDisposable
+	internal sealed class RedisClientsPool : IRedisClientsPool
 	{
 		private const int INACTIVITY_TIMEOUT = 1000 * 60; // 1 min
 		private const int DESTROY_TIMEOUT = 10 * 1000;// 10 sec
@@ -15,7 +16,7 @@ namespace NBoosters.RedisBoost.Core.Pool
 		private readonly int _maxPoolSize;
 		private readonly int _inactivityTimeout;
 		private readonly int _destroyTimeout;
-		private readonly Func<RedisConnectionStringBuilder, IPooledRedisClient> _redisClientsFactory;
+		private readonly Func<RedisConnectionStringBuilder, BasicRedisSerializer, IPooledRedisClient> _redisClientsFactory;
 		private readonly Timer _timer;
 
 		public RedisClientsPool(int maxPoolSize = MAX_POOL_SIZE, 
@@ -26,31 +27,31 @@ namespace NBoosters.RedisBoost.Core.Pool
 			_inactivityTimeout = inactivityTimeout;
 			_destroyTimeout = destroyTimeout;
 			_timer = new Timer(TimerCallback, null, inactivityTimeout, int.MaxValue);
-			_redisClientsFactory = sb => new PooledRedisClient(this, sb);
+			_redisClientsFactory = (sb,s)=> new PooledRedisClient(this, sb, s);
 		}
-		internal RedisClientsPool(int maxPoolSize, int inactivityTimeout, int destroyTimeout, Func<RedisConnectionStringBuilder, IPooledRedisClient> redisClientsFactory)
+		internal RedisClientsPool(int maxPoolSize, int inactivityTimeout, int destroyTimeout, Func<RedisConnectionStringBuilder,BasicRedisSerializer, IPooledRedisClient> redisClientsFactory)
 			: this(maxPoolSize, inactivityTimeout, destroyTimeout)
 		{
 			_redisClientsFactory = redisClientsFactory;
 		}
 		private readonly ConcurrentDictionary<string, ConcurrentQueue<PoolItem>> _pools = new ConcurrentDictionary<string, ConcurrentQueue<PoolItem>>();
 
-		public Task<IRedisClient> CreateClientAsync(string connectionString)
+		public Task<IRedisClient> CreateClientAsync(string connectionString, BasicRedisSerializer serializer = null)
 		{
-			return CreateClientAsync(new RedisConnectionStringBuilder(connectionString));
+			return CreateClientAsync(new RedisConnectionStringBuilder(connectionString), serializer);
 		}
 
-		public Task<IRedisClient> CreateClientAsync(EndPoint endPoint, int dbIndex = 0)
+		public Task<IRedisClient> CreateClientAsync(EndPoint endPoint, int dbIndex = 0, BasicRedisSerializer serializer = null)
 		{
-			return CreateClientAsync(new RedisConnectionStringBuilder(endPoint, dbIndex));
+			return CreateClientAsync(new RedisConnectionStringBuilder(endPoint, dbIndex),serializer);
 		}
 
-		public Task<IRedisClient> CreateClientAsync(string host, int port = RedisConstants.DefaultPort, int dbIndex = 0)
+		public Task<IRedisClient> CreateClientAsync(string host, int port, int dbIndex = 0, BasicRedisSerializer serializer = null)
 		{
-			return CreateClientAsync(new RedisConnectionStringBuilder(host, port, dbIndex));
+			return CreateClientAsync(new RedisConnectionStringBuilder(host, port, dbIndex),serializer);
 		}
 
-		internal Task<IRedisClient> CreateClientAsync(RedisConnectionStringBuilder connectionString)
+		internal Task<IRedisClient> CreateClientAsync(RedisConnectionStringBuilder connectionString, BasicRedisSerializer serializer = null)
 		{
 			ThrowIfDisposed();
 
@@ -63,7 +64,7 @@ namespace NBoosters.RedisBoost.Core.Pool
 				tcs.SetResult(item.Client);
 			else
 			{
-				CreateAndPrepareClient(connectionString)
+				CreateAndPrepareClient(connectionString, serializer)
 					.ContinueWith(t =>
 						{
 							if (t.IsFaulted)
@@ -74,9 +75,9 @@ namespace NBoosters.RedisBoost.Core.Pool
 			return tcs.Task;
 		}
 
-		private async Task<IRedisClient> CreateAndPrepareClient(RedisConnectionStringBuilder connectionString)
+		private async Task<IRedisClient> CreateAndPrepareClient(RedisConnectionStringBuilder connectionString, BasicRedisSerializer serializer)
 		{
-			var client = _redisClientsFactory(connectionString);
+			var client = _redisClientsFactory(connectionString, serializer);
 			await client.PrepareClientConnection().ConfigureAwait(false);
 			return client;
 		}

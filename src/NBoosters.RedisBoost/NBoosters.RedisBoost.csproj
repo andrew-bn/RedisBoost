@@ -43,6 +43,7 @@
   <ItemGroup>
     <Compile Include="Aggregation.cs" />
     <Compile Include="BitOpType.cs" />
+    <Compile Include="Bulk.cs" />
     <Compile Include="ChannelMessage.cs" />
     <Compile Include="ChannelMessageType.cs" />
     <Compile Include="Core\IPrepareSupportRedisClient.cs" />
@@ -57,6 +58,7 @@
     <Compile Include="Core\Serialization\IRedisSerializer.cs" />
     <Compile Include="IRedisClientsPool.cs" />
     <Compile Include="IRedisSubscription.cs" />
+    <Compile Include="MultiBulk.cs" />
     <Compile Include="Subcommand.cs" />
     <Compile Include="RedisClient.Connection.cs">
       <DependentUpon>RedisClient.cs</DependentUpon>

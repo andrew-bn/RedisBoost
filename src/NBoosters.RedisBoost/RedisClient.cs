@@ -56,23 +56,23 @@ namespace NBoosters.RedisBoost
 			return new RedisClientsPool(maxPoolsSize, inactivityTimeout);
 		}
 
-		public static async Task<IRedisClient> ConnectAsync(EndPoint endPoint, int dbIndex = 0)
+		public static async Task<IRedisClient> ConnectAsync(EndPoint endPoint, int dbIndex = 0, BasicRedisSerializer serializer = null)
 		{
-			var result = new RedisClient(new RedisConnectionStringBuilder(endPoint, dbIndex));
+			var result = new RedisClient(new RedisConnectionStringBuilder(endPoint, dbIndex), serializer);
 			await ((IPrepareSupportRedisClient)result).PrepareClientConnection().ConfigureAwait(false);
 			return result;
 		}
 
-		public static async Task<IRedisClient> ConnectAsync(string host, int port = RedisConstants.DefaultPort, int dbIndex = 0)
+		public static async Task<IRedisClient> ConnectAsync(string host, int port, int dbIndex = 0, BasicRedisSerializer serializer = null)
 		{
-			var result = new RedisClient(new RedisConnectionStringBuilder(host, port, dbIndex));
+			var result = new RedisClient(new RedisConnectionStringBuilder(host, port, dbIndex),serializer);
 			await ((IPrepareSupportRedisClient)result).PrepareClientConnection().ConfigureAwait(false);
 			return result;
 		}
 
-		public static async Task<IRedisClient> ConnectAsync(string connectionString)
+		public static async Task<IRedisClient> ConnectAsync(string connectionString, BasicRedisSerializer serializer = null)
 		{
-			var result = new RedisClient(new RedisConnectionStringBuilder(connectionString));
+			var result = new RedisClient(new RedisConnectionStringBuilder(connectionString), serializer);
 			await ((IPrepareSupportRedisClient)result).PrepareClientConnection().ConfigureAwait(false);
 			return result;
 		}

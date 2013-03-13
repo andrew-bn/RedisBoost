@@ -1597,11 +1597,11 @@ namespace NBoosters.RedisBoost.Tests
 			using (var pool = RedisClient.CreateClientsPool())
 			{
 				IRedisClient cli1, cli2;
-				using (cli1 = pool.CreateClientAsync(ConnectionString).Result)
+				using (cli1 = pool.CreateClientAsync(connectionString: ConnectionString).Result)
 				{
 					cli1.SetAsync("Key", GetBytes("Value")).Wait();
 				}
-				using (cli2 = pool.CreateClientAsync(ConnectionString).Result)
+				using (cli2 = pool.CreateClientAsync(connectionString: ConnectionString).Result)
 				{
 					cli2.GetAsync("Key").Wait();
 				}
@@ -1616,13 +1616,13 @@ namespace NBoosters.RedisBoost.Tests
 			{
 				IRedisClient cli1;
 				IRedisClient cli2;
-				using (cli1 = pool.CreateClientAsync(ConnectionString).Result)
+				using (cli1 = pool.CreateClientAsync(connectionString: ConnectionString).Result)
 				{
 					cli1.SetAsync("Key", GetBytes("Value")).Wait();
 				}
 
 				Thread.Sleep(1000);
-				using (cli2 = pool.CreateClientAsync(ConnectionString).Result)
+				using (cli2 = pool.CreateClientAsync(connectionString: ConnectionString).Result)
 				{
 					cli2.GetAsync("Key").Wait();
 				}

@@ -8,6 +8,7 @@ using Moq;
 using NBoosters.RedisBoost;
 using NBoosters.RedisBoost.Core;
 using NBoosters.RedisBoost.Core.Pool;
+using NBoosters.RedisBoost.Core.Serialization;
 using NUnit.Framework;
 
 namespace NBoosters.RedisBoost.Tests
@@ -16,7 +17,7 @@ namespace NBoosters.RedisBoost.Tests
 	public class RedisClientsPoolTests
 	{
 		private Mock<IPooledRedisClient> _redisClient;
-		private Func<RedisConnectionStringBuilder, IPooledRedisClient> _clientsFactory;
+		private Func<RedisConnectionStringBuilder, BasicRedisSerializer, IPooledRedisClient> _clientsFactory;
 		private string _connectionString;
 		[SetUp]
 		public void Setup()
@@ -31,7 +32,7 @@ namespace NBoosters.RedisBoost.Tests
 			_redisClient.Setup(c => c.ConnectionString)
 			            .Returns(_connectionString);
 			_redisClient.Setup(c => c.State).Returns(RedisClient.ClientState.Connect);
-			_clientsFactory = sb => _redisClient.Object;
+			_clientsFactory = (sb,s) => _redisClient.Object;
 			
 		}
 		[Test]
@@ -39,7 +40,7 @@ namespace NBoosters.RedisBoost.Tests
 		{
 			var connectionStringBuilder = new RedisConnectionStringBuilder(_connectionString);
 			var factoryWasCalled = false;
-			_clientsFactory = sb =>
+			_clientsFactory = (sb,s)=>
 				{
 					factoryWasCalled = sb == connectionStringBuilder;
 					return _redisClient.Object;
@@ -54,7 +55,7 @@ namespace NBoosters.RedisBoost.Tests
 		public void CreateClient_PoolIsEmtpy_FactryThrowsException()
 		{
 			var connectionStringBuilder = new RedisConnectionStringBuilder(_connectionString);
-			_clientsFactory = sb => { throw new Exception("some exception"); };
+			_clientsFactory = (sb,s) => { throw new Exception("some exception"); };
 			//act
 			CreatePool().CreateClientAsync(connectionStringBuilder).Wait();
 		}
@@ -70,7 +71,7 @@ namespace NBoosters.RedisBoost.Tests
 		public void CreateClient_Twice_CallsFactoryToCreateClient()
 		{
 			var factoryWasCalled = 0;
-			_clientsFactory = sb =>
+			_clientsFactory = (sb,s) =>
 			{
 				factoryWasCalled ++;
 				return _redisClient.Object;
@@ -132,7 +133,7 @@ namespace NBoosters.RedisBoost.Tests
 			pool.ReturnClient(_redisClient.Object);
 			Thread.Sleep(1000);
 			_redisClient.Verify(c => c.Destroy());
-			var cli = pool.CreateClientAsync(_connectionString).Result;
+			var cli = pool.CreateClientAsync(connectionString: _connectionString).Result;
 			Assert.NotNull(cli);
 		}
 
@@ -205,7 +206,7 @@ namespace NBoosters.RedisBoost.Tests
 		{
 			var pool = CreatePool();
 			pool.Dispose();
-			pool.CreateClientAsync(_connectionString).Wait();
+			pool.CreateClientAsync(connectionString: _connectionString).Wait();
 		}
 		private RedisClientsPool CreatePool(int timeout = 1000,int maxPoolSize = 2, int quitTimeout = 5000)
 		{
