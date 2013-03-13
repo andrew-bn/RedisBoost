@@ -6,6 +6,11 @@ namespace NBoosters.RedisBoost
 {
 	public partial class RedisClient
 	{
+		public Task<long> PublishAsync<T>(string channel, T message)
+		{
+			return PublishAsync(channel, Serialize(message));
+		}
+
 		public Task<long> PublishAsync(string channel, byte[] message)
 		{
 			return IntegerResponseCommand(RedisConstants.Publish, ConvertToByteArray(channel), message);
@@ -88,12 +93,7 @@ namespace NBoosters.RedisBoost
 
 			var lastReply = response[response.Length - 1];
 
-			if (lastReply.ResponseType == RedisResponseType.Bulk)
-				return new ChannelMessage(messageType, lastReply.AsBulk(), channels);
-			if (lastReply.ResponseType == RedisResponseType.Integer)
-				return new ChannelMessage(messageType, ConvertToByteArray(lastReply.AsInteger()), channels);
-
-			throw new RedisException("Unexpected response");
+			return new ChannelMessage(messageType, lastReply, channels);
 		}
 		Task IRedisSubscription.QuitAsync()
 		{

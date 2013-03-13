@@ -407,6 +407,105 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreEqual(3, cli.ZScoreAsync("zset1", "three").Result);
 			}
 		}
+		[Test]
+		public void SAdd()
+		{
+			using (var cli = CreateClient())
+			{
+				Assert.AreEqual(2, cli.SAddAsync("Key", CreateModel(),"Val2").Result);
+			}
+		}
+		[Test]
+		public void SRem()
+		{
+			using (var cli = CreateClient())
+			{
+				var model = CreateModel();
+				Assert.AreEqual(2, cli.SAddAsync("Key", model, "Val2").Result);
+				Assert.AreEqual(1, cli.SRemAsync("Key", model).Result);
+				Assert.AreEqual(1, cli.SCardAsync("Key").Result);
+			}
+		}
+		[Test]
+		public void SIsMember()
+		{
+			using (var cli = CreateClient())
+			{
+				var model = CreateModel();
+				Assert.AreEqual(2, cli.SAddAsync("Key", model, "Val2").Result);
+				Assert.AreEqual(1, cli.SIsMemberAsync("Key", model).Result);
+			}
+		}
+		[Test]
+		public void LRem()
+		{
+			using (var cli = CreateClient())
+			{
+				var model = CreateModel();
+				cli.RPushAsync("Key", model).Wait();
+				cli.RPushAsync("Key", model).Wait();
+				cli.RPushAsync("Key", "foo").Wait();
+				cli.RPushAsync("Key", model).Wait();
+
+				Assert.AreEqual(2, cli.LRemAsync("Key", -2, model).Result);
+				Assert.AreEqual(2, cli.LLenAsync("Key").Result);
+			}
+		}
+		[Test]
+		public void RPushX()
+		{
+			using (var cli = CreateClient())
+			{
+				cli.RPushXAsync("Key", "Value1").Wait();
+				Assert.AreEqual(0, cli.LLenAsync("Key").Result);
+			}
+		}
+		[Test]
+		public void Echo()
+		{
+			using (var cli = CreateClient())
+			{
+				var mes = CreateModel();
+				var resp = cli.EchoAsync(mes).Result;
+				Assert.AreEqual(mes, resp.As<ModelRoot>());
+			}
+		}
+		[Test]
+		public void Publish_Subscribe_WithFilter()
+		{
+			var mes = CreateModel();
+			using (var subscriber = CreateClient().SubscribeAsync("channel").Result)
+			{
+				using (var publisher = CreateClient())
+				{
+					publisher.PublishAsync("channel", mes).Wait();
+
+					var channelMessage = subscriber.ReadMessageAsync(ChannelMessageType.Message |
+																ChannelMessageType.PMessage).Result;
+
+					Assert.AreEqual(ChannelMessageType.Message, channelMessage.MessageType);
+					Assert.AreEqual("channel", channelMessage.Channels[0]);
+					Assert.AreEqual(mes, channelMessage.Value.As<ModelRoot>());
+				}
+			}
+		}
+		[Test]
+		public void Eval()
+		{
+			using (var cli = CreateClient())
+			{
+				var second = CreateModel();
+				var result = cli.EvalAsync("return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
+											new[] { "key1", "key2" }, "first", second).Result;
+
+				Assert.AreEqual(RedisResponseType.MultiBulk, result.ResponseType);
+				var mb = result.AsMultiBulk();
+				Assert.AreEqual("key1", mb[0].As<string>());
+				Assert.AreEqual("key2", mb[1].As<string>());
+				Assert.AreEqual("first", mb[2].As<string>());
+				Assert.AreEqual(second, mb[3].As<ModelRoot>());
+			}
+		}
 		private string ConnectionString
 		{
 			get { return ConfigurationManager.ConnectionStrings["Redis"].ConnectionString; }

@@ -9,6 +9,12 @@ namespace NBoosters.RedisBoost
 		{
 			return StatusResponseCommand(RedisConstants.Auth, ConvertToByteArray(password));
 		}
+
+		public Task<Bulk> EchoAsync<T>(T message)
+		{
+			return EchoAsync(Serialize(message));
+		}
+
 		public Task<Bulk> EchoAsync(byte[] message)
 		{
 			return BulkResponseCommand(RedisConstants.Echo, message);

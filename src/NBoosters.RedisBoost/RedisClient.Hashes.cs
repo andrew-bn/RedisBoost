@@ -6,27 +6,27 @@ namespace NBoosters.RedisBoost
 {
 	public partial class RedisClient
 	{
-		public Task<long> HSetAsync(string key, string field, byte[] value)
+		public Task<long> HSetAsync<TFld,TVal>(string key, TFld field, TVal value)
 		{
-			return HSetAsync(key, ConvertToByteArray(field), value);
+			return HSetAsync(key, Serialize(field), Serialize(value));
 		}
 
 		public Task<long> HSetAsync(string key, byte[] field, byte[] value)
 		{
 			return IntegerResponseCommand(RedisConstants.HSet, ConvertToByteArray(key),field,value);
 		}
-		public Task<long> HSetNxAsync(string key, string field, byte[] value)
+		public Task<long> HSetNxAsync<TFld, TVal>(string key, TFld field, TVal value)
 		{
-			return HSetNxAsync(key, ConvertToByteArray(field), value);
+			return HSetNxAsync(key, Serialize(field), Serialize(value));
 		}
 
 		public Task<long> HSetNxAsync(string key, byte[] field, byte[] value)
 		{
 			return IntegerResponseCommand(RedisConstants.HSetNx, ConvertToByteArray(key), field, value);
 		}
-		public Task<long> HExistsAsync(string key, string field)
+		public Task<long> HExistsAsync<TFld>(string key, TFld field)
 		{
-			return HExistsAsync(key, ConvertToByteArray(field));
+			return HExistsAsync(key, Serialize(field));
 		}
 
 		public Task<long> HExistsAsync(string key, byte[] field)
@@ -34,9 +34,13 @@ namespace NBoosters.RedisBoost
 			return IntegerResponseCommand(RedisConstants.HExists, ConvertToByteArray(key), field);
 		}
 
-		public Task<long> HDelAsync(string key, params string[] fields)
+		public Task<long> HDelAsync(string key, params object[] fields)
 		{
-			return HDelAsync(key, fields.Select(ConvertToByteArray).ToArray());
+			return HDelAsync(key, Serialize(fields));
+		}
+		public Task<long> HDelAsync<TFld>(string key, params TFld[] fields)
+		{
+			return HDelAsync(key, Serialize(fields));
 		}
 
 		public Task<long> HDelAsync(string key, params byte[][] fields)
@@ -52,9 +56,9 @@ namespace NBoosters.RedisBoost
 			return IntegerResponseCommand(request);
 		}
 
-		public Task<Bulk> HGetAsync(string key, string field)
+		public Task<Bulk> HGetAsync<TFld>(string key, TFld field)
 		{
-			return HGetAsync(key, ConvertToByteArray(field));
+			return HGetAsync(key, Serialize(field));
 		}
 
 		public Task<Bulk> HGetAsync(string key, byte[] field)
@@ -67,18 +71,18 @@ namespace NBoosters.RedisBoost
 			return MultiBulkResponseCommand(RedisConstants.HGetAll, ConvertToByteArray(key));
 		}
 
-		public Task<long> HIncrByAsync(string key, string field, int increment)
+		public Task<long> HIncrByAsync<TFld>(string key, TFld field, int increment)
 		{
-			return HIncrByAsync(key, ConvertToByteArray(field), increment);
+			return HIncrByAsync(key, Serialize(field), increment);
 		}
 		public Task<long> HIncrByAsync(string key, byte[] field, int increment)
 		{
 			return IntegerResponseCommand(RedisConstants.HIncrBy, ConvertToByteArray(key),
 				field,ConvertToByteArray(increment));
 		}
-		public Task<Bulk> HIncrByFloatAsync(string key, string field, double increment)
+		public Task<Bulk> HIncrByFloatAsync<TFld>(string key, TFld field, double increment)
 		{
-			return HIncrByFloatAsync(key, ConvertToByteArray(field), increment);
+			return HIncrByFloatAsync(key, Serialize(field), increment);
 		}
 		public Task<Bulk> HIncrByFloatAsync(string key, byte[] field, double increment)
 		{
@@ -99,9 +103,9 @@ namespace NBoosters.RedisBoost
 			return IntegerResponseCommand(RedisConstants.HLen, ConvertToByteArray(key));
 		}
 
-		public Task<MultiBulk> HMGetAsync(string key, params string[] fields)
+		public Task<MultiBulk> HMGetAsync<TFld>(string key, params TFld[] fields)
 		{
-			return HMGetAsync(key, fields.Select(ConvertToByteArray).ToArray());
+			return HMGetAsync(key, Serialize(fields));
 		}
 
 		public Task<MultiBulk> HMGetAsync(string key, params byte[][] fields)

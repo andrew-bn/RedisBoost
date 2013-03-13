@@ -5,10 +5,20 @@ namespace NBoosters.RedisBoost
 {
 	public partial class RedisClient
 	{
+		public Task<RedisResponse> EvalAsync(string script, string[] keys, params object[] arguments)
+		{
+			return EvalAsync(script, keys, Serialize(arguments));
+		}
 		public Task<RedisResponse> EvalAsync(string script, string[] keys, params byte[][] arguments)
 		{
 			return Eval(RedisConstants.Eval, ConvertToByteArray(script), keys, arguments);
 		}
+
+		public Task<RedisResponse> EvalShaAsync(byte[] sha1, string[] keys, params object[] arguments)
+		{
+			return EvalShaAsync(sha1, keys, Serialize(arguments));
+		}
+
 		public Task<RedisResponse> EvalShaAsync(byte[] sha1, string[] keys, params byte[][] arguments)
 		{
 			return Eval(RedisConstants.EvalSha, sha1, keys, arguments);

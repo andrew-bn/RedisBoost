@@ -17,6 +17,17 @@ namespace NBoosters.RedisBoost
 
 			return MultiBulkResponseCommand(request);
 		}
+
+		public Task<long> LPushAsync(string key, params object[] values)
+		{
+			return LPushAsync(key, Serialize(values));
+		}
+
+		public Task<long> LPushAsync<T>(string key, params T[] values)
+		{
+			return LPushAsync(key, Serialize(values));
+		}
+
 		public Task<long> LPushAsync(string key, params byte[][] values)
 		{
 			var request = new byte[values.Length + 2][];
@@ -40,6 +51,16 @@ namespace NBoosters.RedisBoost
 
 			return MultiBulkResponseCommand(request);
 		}
+
+		public Task<long> RPushAsync(string key, params object[] values)
+		{
+			return RPushAsync(key, Serialize(values));
+		}
+		public Task<long> RPushAsync<T>(string key, params T[] values)
+		{
+			return RPushAsync(key, Serialize(values));
+		}
+
 		public Task<long> RPushAsync(string key, params byte[][] values)
 		{
 			var request = new byte[values.Length + 2][];
@@ -73,6 +94,12 @@ namespace NBoosters.RedisBoost
 		{
 			return BulkResponseCommand(RedisConstants.LIndex, ConvertToByteArray(key), ConvertToByteArray(index));
 		}
+
+		public Task<long> LInsertAsync<TPivot,TValue>(string key, TPivot pivot, TValue value, bool before = true)
+		{
+			return LInsertAsync(key, Serialize(pivot), Serialize(value), before);
+		}
+
 		public Task<long> LInsertAsync(string key, byte[] pivot, byte[] value, bool before = true)
 		{
 			return IntegerResponseCommand(RedisConstants.LInsert,
@@ -83,30 +110,55 @@ namespace NBoosters.RedisBoost
 		{
 			return IntegerResponseCommand(RedisConstants.LLen, ConvertToByteArray(key));
 		}
-		public Task<long> LPushXAsync(string key, byte[] values)
+
+		public Task<long> LPushXAsync<T>(string key, T value)
 		{
-			return IntegerResponseCommand(RedisConstants.LPushX, ConvertToByteArray(key), values);
+			return LPushXAsync(key, Serialize(value));
+		}
+
+		public Task<long> LPushXAsync(string key, byte[] value)
+		{
+			return IntegerResponseCommand(RedisConstants.LPushX, ConvertToByteArray(key), value);
 		}
 		public Task<MultiBulk> LRangeAsync(string key, int start, int stop)
 		{
 			return MultiBulkResponseCommand(RedisConstants.LRange,
 				ConvertToByteArray(key), ConvertToByteArray(start), ConvertToByteArray(stop));
 		}
+
+		public Task<long> LRemAsync<T>(string key, int count, T value)
+		{
+			return LRemAsync(key, count, Serialize(value));
+		}
+
 		public Task<long> LRemAsync(string key, int count, byte[] value)
 		{
 			return IntegerResponseCommand(RedisConstants.LRem,
 				ConvertToByteArray(key), ConvertToByteArray(count), value);
 		}
+
+		public Task<string> LSetAsync<T>(string key, int index, T value)
+		{
+			return LSetAsync(key, index, Serialize(value));
+		}
+
 		public Task<string> LSetAsync(string key, int index, byte[] value)
 		{
 			return StatusResponseCommand(RedisConstants.LSet,
 				ConvertToByteArray(key), ConvertToByteArray(index), value);
 		}
+
 		public Task<string> LTrimAsync(string key, int start, int stop)
 		{
 			return StatusResponseCommand(RedisConstants.LTrim,
 				ConvertToByteArray(key), ConvertToByteArray(start), ConvertToByteArray(stop));
 		}
+
+		public Task<long> RPushXAsync<T>(string key, T values)
+		{
+			return RPushXAsync(key, Serialize(values));
+		}
+
 		public Task<long> RPushXAsync(string key, byte[] values)
 		{
 			return IntegerResponseCommand(RedisConstants.RPushX, ConvertToByteArray(key), values);

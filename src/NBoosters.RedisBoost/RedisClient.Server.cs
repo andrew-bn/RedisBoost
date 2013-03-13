@@ -41,6 +41,12 @@ namespace NBoosters.RedisBoost
 		{
 			return ExecutePipelinedCommand(RedisConstants.Config,RedisConstants.Get,ConvertToByteArray(parameter));
 		}
+
+		public Task<string> ConfigSetAsync<T>(string parameter, T value)
+		{
+			return ConfigSetAsync(parameter, Serialize(value));
+		}
+
 		public Task<string> ConfigSetAsync(string parameter,byte[] value)
 		{
 			return StatusResponseCommand(RedisConstants.Config, RedisConstants.Set, ConvertToByteArray(parameter), value);

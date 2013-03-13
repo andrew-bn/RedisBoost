@@ -6,31 +6,51 @@ namespace NBoosters.RedisBoost
 {
 	public partial class RedisClient
 	{
-		public Task<long> SAddAsync(string key, params byte[][] member)
+		public Task<long> SAddAsync<T>(string key, params T[] members)
 		{
-			if (member.Length == 0)
-				throw new ArgumentException("Invalid members count", "member");
+			return SAddAsync(key, Serialize(members));
+		}
+		public Task<long> SAddAsync(string key, params object[] members)
+		{
+			return SAddAsync(key, Serialize(members));
+		}
 
-			var request = new byte[2 + member.Length][];
+		public Task<long> SAddAsync(string key, params byte[][] members)
+		{
+			if (members.Length == 0)
+				throw new ArgumentException("Invalid members count", "members");
+
+			var request = new byte[2 + members.Length][];
 			request[0] = RedisConstants.SAdd;
 			request[1] = ConvertToByteArray(key);
 
-			for (int i = 0; i < member.Length; i++)
-				request[i + 2] = member[i];
+			for (int i = 0; i < members.Length; i++)
+				request[i + 2] = members[i];
 
 			return IntegerResponseCommand(request);
 		}
-		public Task<long> SRemAsync(string key, params byte[][] member)
-		{
-			if (member.Length == 0)
-				throw new ArgumentException("Invalid members count","member");
 
-			var request = new byte[2 + member.Length][];
+		public Task<long> SRemAsync<T>(string key, params T[] members)
+		{
+			return SRemAsync(key, Serialize(members));
+		}
+
+		public Task<long> SRemAsync(string key, params object[] members)
+		{
+			return SRemAsync(key, Serialize(members));
+		}
+
+		public Task<long> SRemAsync(string key, params byte[][] members)
+		{
+			if (members.Length == 0)
+				throw new ArgumentException("Invalid members count","members");
+
+			var request = new byte[2 + members.Length][];
 			request[0] = RedisConstants.SRem;
 			request[1] = ConvertToByteArray(key);
 
-			for (int i = 0; i < member.Length; i++)
-				request[i + 2] = member[i];
+			for (int i = 0; i < members.Length; i++)
+				request[i + 2] = members[i];
 
 			return IntegerResponseCommand(request);
 		}
@@ -113,6 +133,12 @@ namespace NBoosters.RedisBoost
 
 			return IntegerResponseCommand(request);
 		}
+
+		public Task<long> SIsMemberAsync<T>(string key, T value)
+		{
+			return SIsMemberAsync(key, Serialize(value));
+		}
+
 		public Task<long> SIsMemberAsync(string key, byte[] value)
 		{
 			return IntegerResponseCommand(RedisConstants.SIsMember, ConvertToByteArray(key), value);
@@ -121,6 +147,12 @@ namespace NBoosters.RedisBoost
 		{
 			return MultiBulkResponseCommand(RedisConstants.SMembers, ConvertToByteArray(key));
 		}
+
+		public Task<long> SMoveAsync<T>(string sourceKey, string destinationKey, T member)
+		{
+			return SMoveAsync(sourceKey, destinationKey, Serialize(member));
+		}
+
 		public Task<long> SMoveAsync(string sourceKey, string destinationKey, byte[] member)
 		{
 			return IntegerResponseCommand(RedisConstants.SMove, ConvertToByteArray(sourceKey),

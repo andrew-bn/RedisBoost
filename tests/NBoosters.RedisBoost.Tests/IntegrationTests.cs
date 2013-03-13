@@ -662,8 +662,6 @@ namespace NBoosters.RedisBoost.Tests
 			using (var cli = CreateClient())
 			{
 				cli.RPushXAsync("Key", GetBytes("Value1")).Wait();
-
-
 				Assert.AreEqual(0, cli.LLenAsync("Key").Result);
 			}
 		}
