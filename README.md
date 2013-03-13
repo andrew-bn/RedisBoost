@@ -1,7 +1,7 @@
 RedisBoost (.NET 4.5)
 ==========
 
-* [Redis 2.6 commands](http://redis.io/commands) set support
+* [Redis 2.6 commands set](http://redis.io/commands) support
 * [Serialization](#serialization) support
 * Thread-safe asynchronous architecture
 * Supports [pipelining](#pipelining-support) that will tremendously boost your commands performance
@@ -60,7 +60,8 @@ Each instance of RedisClient has a reference to serializer.
 As a default serializer RedisBoost uses RedisClient.DefaultSerialzier. 
 
 There is a default implementation that uses 
-System.Runtime.Serialization.DataContractSerializer to serialze complex objects.
+[System.Runtime.Serialization.DataContractSerializer](http://msdn.microsoft.com/en-us/library/system.runtime.serialization.datacontractserializer.aspx)
+to serialze complex objects.
 Primitive types, such as numeric types, strings, Guid, DateTime are first represented as strings 
 and then serialized to byte[].
 
