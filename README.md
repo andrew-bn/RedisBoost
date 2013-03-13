@@ -164,7 +164,7 @@ public void ClientsPool()
 		IRedisClient cli1, cli2;
 		using (cli1 = pool.CreateClientAsync(ConnectionString).Result)
 		{
-			cli1.SetAsync("Key", GetBytes("Value")).Wait();
+			cli1.SetAsync("Key", "Value").Wait();
 		}
 		using (cli2 = pool.CreateClientAsync(ConnectionString).Result)
 		{
