@@ -101,79 +101,98 @@ namespace NBoosters.RedisBoost.Core
 			return true;
 		}
 
-		public async Task<byte[]> ReadBlockLine(int length)
+		public void ReadBlockLine(int length, Action<Exception, byte[]> callBack)
 		{
 			var result = new byte[length];
 			var offset = 0;
-			while (offset < length)
+			Action<Exception> body = null;
+			body = ex =>
 			{
-				if (_readBufferOffset >= _readBufferSize)
-					await ReadDataFromSocket().ConfigureAwait(false);
+				if (ex != null)
+				{
+					callBack(ex, null);
+					return;
+				}
+				while (offset < length)
+				{
+					if (_readBufferOffset >= _readBufferSize)
+					{
+						ReadDataFromSocket(body);
+						return;
+					}
 
-				var bytesToCopy = length - offset;
+					var bytesToCopy = length - offset;
 
-				if (_readBufferSize - _readBufferOffset < bytesToCopy)
-					bytesToCopy = _readBufferSize - _readBufferOffset;
+					if (_readBufferSize - _readBufferOffset < bytesToCopy)
+						bytesToCopy = _readBufferSize - _readBufferOffset;
 
-				Array.Copy(_readBuffer, _readBufferOffset, result, offset, bytesToCopy);
-				_readBufferOffset += bytesToCopy;
-				offset += bytesToCopy;
-			}
-			_readBufferOffset += 2;
-			return result;
+					Array.Copy(_readBuffer, _readBufferOffset, result, offset, bytesToCopy);
+					_readBufferOffset += bytesToCopy;
+					offset += bytesToCopy;
+				}
+				_readBufferOffset += 2;
+				callBack(null, result);
+			};
+
+			body(null);
 		}
-
-		public async Task<RedisLine> ReadLine()
+		public void ReadLine(Action<Exception, RedisLine> callBack)
 		{
 			var sb = new StringBuilder();
 			var result = new RedisLine();
 
-			while (true)
+			Action<Exception> body = null;
+			body = ex =>
 			{
-				if (_readBufferOffset >= _readBufferSize)
-					await ReadDataFromSocket().ConfigureAwait(false);
-
-				if (_readBuffer[_readBufferOffset] == '\r')
+				if (ex != null)
 				{
-					_readBufferOffset += 2;
-					break;
+					callBack(ex, result);
+					return;
 				}
+				while (true)
+				{
+					if (_readBufferOffset >= _readBufferSize)
+					{
+						ReadDataFromSocket(body);
+						return;
+					}
+					if (_readBuffer[_readBufferOffset] == '\r')
+					{
+						_readBufferOffset += 2;
+						result.Line = sb.ToString();
+						callBack(null, result);
+						return;
+					}
 
-				if (result.FirstChar == 0)
-					result.FirstChar = _readBuffer[_readBufferOffset];
-				else
-					sb.Append((char)_readBuffer[_readBufferOffset]);
+					if (result.FirstChar == 0)
+						result.FirstChar = _readBuffer[_readBufferOffset];
+					else
+						sb.Append((char)_readBuffer[_readBufferOffset]);
 
-				++_readBufferOffset;
-			}
+					++_readBufferOffset;
+				}
+			};
 
-			result.Line = sb.ToString();
-			return result;
+			body(null);
 		}
-
 		private void WriteNewLineToBuffer()
 		{
 			_writeBuffer[_writeBufferOffset++] = RedisConstants.NewLine[0];
 			_writeBuffer[_writeBufferOffset++] = RedisConstants.NewLine[1];
 		}
-		public Task Flush()
+		public void Flush(Action<Exception> callBack)
 		{
-			var tcs = new TaskCompletionSource<bool>();
 			_writeArgs.SetBuffer(_writeBuffer, 0, _writeBufferOffset);
 			_socket.SendAllAsync(_writeArgs,(ex,a)=>
 							  {
 								  _writeArgs.SetBuffer(null, 0, 0);
 								  _writeBufferOffset = 0;
-								  if (ex!=null)
-									  tcs.SetException(ex);
-								  else tcs.SetResult(true);
+								  callBack(ex);
 							  });
-			return tcs.Task;
 		}
 
-		private Task ReadDataFromSocket()
-		{
-			var tcs = new TaskCompletionSource<bool>();
+		private void ReadDataFromSocket(Action<Exception> callBack)
+		{			
 			_readBufferOffset = _readBufferOffset - _readBufferSize;
 			_readBufferSize = 0;
 			_readArgs.SetBuffer(_readBuffer, 0, _readBuffer.Length);
@@ -181,11 +200,8 @@ namespace NBoosters.RedisBoost.Core
 					{
 						_readArgs.SetBuffer(null, 0, 0);
 						_readBufferSize = _readArgs.BytesTransferred;
-						if (ex != null)
-							tcs.SetException(ex);
-						else tcs.SetResult(true);
+						callBack(ex);
 					});
-			return tcs.Task;
 		}
 
 		public Task Connect(EndPoint endPoint)
