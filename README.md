@@ -71,14 +71,14 @@ There will be an example soon.
 
 ```csharp
 // creates redis client with default implementation of serializer (RedisClient.DefaultSerialzier)
-var redisClient = RedisClient.ConnectAsync("127.0.0.1",6379).Result;
+var redisClient = await RedisClient.ConnectAsync("127.0.0.1",6379);
 
 // you can setup your own serializer as a default
 RedisClient.DefaultSerialzier = mySerializer;
-var redisClient = RedisClient.ConnectAsync("127.0.0.1",6379).Result; // this instance will use mySerializer
+var redisClient = await RedisClient.ConnectAsync("127.0.0.1",6379); // this instance will use mySerializer
 
 // or you can pass serializer while creating redis client
-var redisClient = RedisClient.ConnectAsync("127.0.0.1",6379,serializer: mySerialzier).Result; // this instance will use mySerializer
+var redisClient = await RedisClient.ConnectAsync("127.0.0.1",6379,serializer: mySerialzier); // this instance will use mySerializer
 ```
 
 **Serialization of commands parameters**
