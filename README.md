@@ -27,7 +27,7 @@ Let's get started
 * Make a connection to Redis.
 
 ```csharp
-  IRedisClient client = RedisClient.ConnectAsync("127.0.0.1", 6379).Result;
+  IRedisClient client = await RedisClient.ConnectAsync("127.0.0.1", 6379);
 ```
 * Now you can use IRedisClient to get an access to Redis api. To find out more about Redis visit http://redis.io/
 
