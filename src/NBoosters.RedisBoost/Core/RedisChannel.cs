@@ -37,20 +37,13 @@ namespace NBoosters.RedisBoost.Core
 		private volatile int _partIndex;
 		private ArraySegment<byte> _arraySegment;
 		private volatile Action<Exception> _sendCallBack;
-		public Task SendAsync(byte[][] request)
+		public void SendAsync(byte[][] request, Action<Exception> callback)
 		{
-			var tcs = new TaskCompletionSource<bool>();
-			_sendCallBack = ex =>
-				{
-					if (ex!=null)
-						tcs.SetException(ex);
-					else tcs.SetResult(true);
-				};
+			_sendCallBack = callback;
 			_sendRequest = request;
 			_sendState = 0;
 			_partIndex = 0;
 			SendDataTask(null);
-			return tcs.Task;
 		}
 
 		private void SendDataTask(Exception ex)
@@ -119,22 +112,13 @@ namespace NBoosters.RedisBoost.Core
 		private volatile int _receiveMultiBulkPartsLeft;
 		private volatile RedisResponse[] _multiBulkParts;
 
-		public Task<RedisResponse> ReadResponseAsync()
+		public void ReadResponseAsync(Action<Exception, RedisResponse> callBack)
 		{
-			var tcs = new TaskCompletionSource<RedisResponse>();
-			
-			_receiveCallBack = (ex, r) =>
-				{
-					if (ex!=null)
-						tcs.SetException(ex);
-					else tcs.SetResult(r);
-				};
+			_receiveCallBack = callBack;
 			_receiveMultiBulkPartsLeft = 0;
 			_multiBulkParts = null;
 
 			ReadResponseTask(FinishResponseReading);
-
-			return tcs.Task;
 		}
 		private void ReadResponseTask(Action<Exception, RedisResponse> callBack)
 		{
@@ -211,25 +195,18 @@ namespace NBoosters.RedisBoost.Core
 			else continuation(new RedisException("Invalid reply type"), null);
 		}
 		#endregion
-		public Task Flush()
+		public void Flush(Action<Exception> callBack)
 		{
-			var tcs = new TaskCompletionSource<bool>();
-			_redisStream.Flush(ex =>
-				{
-					if (ex != null)
-						tcs.SetException(ex);
-					else tcs.SetResult(true);
-				});
-			return tcs.Task;
+			_redisStream.Flush(callBack);
 		}
-		public Task ConnectAsync(EndPoint endPoint)
+		public void ConnectAsync(EndPoint endPoint, Action<Exception> callBack)
 		{
-			return _redisStream.Connect(endPoint);
+			_redisStream.Connect(endPoint, callBack);
 		}
 
-		public Task DisconnectAsync()
+		public void DisconnectAsync(Action<Exception> callBack)
 		{
-			return _redisStream.Disconnect();
+			_redisStream.Disconnect(callBack);
 		}
 
 		public void Dispose()

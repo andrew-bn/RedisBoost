@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
+using NBoosters.RedisBoost.Core.Misk;
 
 namespace NBoosters.RedisBoost
 {
@@ -117,7 +118,7 @@ namespace NBoosters.RedisBoost
 		{
 			return BulkResponseCommand(RedisConstants.ZIncrBy,
 				ConvertToByteArray(key), incrByValue, member)
-				.ContinueWith(t=> Deserialize<double>(t.Result));
+				.ContinueWithIfNoError(t => Deserialize<double>(t.Result));
 		}
 		public Task<long> ZInterStoreAsync(string destinationKey, params string[] keys)
 		{
@@ -320,7 +321,7 @@ namespace NBoosters.RedisBoost
 		public Task<double> ZScoreAsync(string key, byte[] member)
 		{
 			return BulkResponseCommand(RedisConstants.ZScore, ConvertToByteArray(key), member)
-					.ContinueWith(t=>Deserialize<double>(t.Result));
+					.ContinueWithIfNoError(t => Deserialize<double>(t.Result));
 		}
 
 		public Task<long> ZUnionStoreAsync(string destinationKey, params string[] keys)

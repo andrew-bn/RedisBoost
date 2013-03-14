@@ -9,9 +9,10 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>NBoosters.RedisBoost</RootNamespace>
     <AssemblyName>NBoosters.RedisBoost</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\</SolutionDir>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -47,6 +48,7 @@
     <Compile Include="ChannelMessage.cs" />
     <Compile Include="ChannelMessageType.cs" />
     <Compile Include="Core\IPrepareSupportRedisClient.cs" />
+    <Compile Include="Core\Misk\Extensions.cs" />
     <Compile Include="Core\Pipeline\IRedisPipeline.cs" />
     <Compile Include="Core\Pipeline\PipelineItem.cs" />
     <Compile Include="Core\Pipeline\RedisPipeline.cs" />

@@ -23,21 +23,18 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 			_channel = channel;
 		}
 
-		public Task<RedisResponse> ExecuteCommandAsync(params byte[][] args)
+		public void ExecuteCommandAsync(byte[][] args,Action<Exception, RedisResponse> callBack)
 		{
-			var item = new PipelineItem(args, new TaskCompletionSource<RedisResponse>());
-
+			var item = new PipelineItem(args,callBack);
 			if (_pipelineException != null)
-				item.TaskCompletionSource.SetException(_pipelineException);
+				item.CallBack(_pipelineException, null);
 			else if (_pipelineIsClosed != 0)
-				item.TaskCompletionSource.SetException(new RedisException("Pipeline is closed"));
+				item.CallBack(new RedisException("Pipeline is closed"), null);
 			else
 			{
 				_requestsQueue.Enqueue(item);
 				TryStartSendProcess();
 			}
-
-			return item.TaskCompletionSource.Task;
 		}
 
 		private void TryStartSendProcess()
@@ -55,15 +52,15 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 			if (_requestsQueue.TryDequeue(out item))
 			{
 				if (_pipelineException==null)
-					_channel.SendAsync(item.Request).ContinueWith(ItemSendProcessDone, item);
+					_channel.SendAsync(item.Request,ex=>ItemSendProcessDone(ex,item));
 				else
 				{
-					item.TaskCompletionSource.SetException(_pipelineException);
+					item.CallBack(_pipelineException,null);
 					goto ContinueSending;
 				}
 			}
 			else if (!_channel.BufferIsEmpty && _pipelineException == null)
-				_channel.Flush().ContinueWith(BufferFlushProcessDone);
+				_channel.Flush(BufferFlushProcessDone);
 			else
 			{
 				Interlocked.Exchange(ref _sendIsRunning, 0);
@@ -73,22 +70,21 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 			}
 		}
 
-		private void BufferFlushProcessDone(Task task)
+		private void BufferFlushProcessDone(Exception exception)
 		{
-			if (task.IsFaulted)
-				_pipelineException = task.Exception;
+			if (exception!=null)
+				_pipelineException = exception;
 
 			RunSendProcess();
 		}
-		private void ItemSendProcessDone(Task task, object state)
+		private void ItemSendProcessDone(Exception ex, PipelineItem item)
 		{
-			var item = (PipelineItem)state;
 
-			if (task.IsFaulted)
-				_pipelineException = task.Exception;
+			if (ex!=null)
+				_pipelineException = ex;
 
 			if (_pipelineException != null)
-				item.TaskCompletionSource.SetException(_pipelineException);
+				item.CallBack(_pipelineException,null);
 			else
 			{
 				_responsesQueue.Enqueue(item);
@@ -112,10 +108,10 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 			if (_responsesQueue.TryDequeue(out item))
 			{
 				if (_pipelineException == null)
-					_channel.ReadResponseAsync().ContinueWith(ItemReceiveProcessDone, item);
+					_channel.ReadResponseAsync((ex,r)=>ItemReceiveProcessDone(ex,r,item));
 				else
 				{
-					item.TaskCompletionSource.SetException(_pipelineException);
+					item.CallBack(_pipelineException,null);
 					goto ContinueReceiving;
 				}
 			}
@@ -127,17 +123,15 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 			}
 		}
 
-		private void ItemReceiveProcessDone(Task<RedisResponse> task, object state)
+		private void ItemReceiveProcessDone(Exception ex, RedisResponse response, PipelineItem item)
 		{
-			var item = (PipelineItem)state;
-
-			if (task.IsFaulted)
-				_pipelineException = task.Exception;
+			if (ex!=null)
+				_pipelineException = ex;
 
 			if (_pipelineException != null)
-				item.TaskCompletionSource.SetException(_pipelineException);
+				item.CallBack(_pipelineException, null);
 			else
-				item.TaskCompletionSource.SetResult(task.Result);
+				item.CallBack(null, response);
 
 			RunReceiveProcess();
 		}

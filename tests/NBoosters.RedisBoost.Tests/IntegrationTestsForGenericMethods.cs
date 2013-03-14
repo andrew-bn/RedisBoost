@@ -541,6 +541,59 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreEqual(second, mb[3].As<ModelRoot>());
 			}
 		}
+		[Test]
+		public void SDiff()
+		{
+			using (var cli = CreateClient())
+			{
+				cli.SAddAsync("Key", "a").Wait();
+				cli.SAddAsync("Key", "b").Wait();
+				cli.SAddAsync("Key", "c").Wait();
+
+				cli.SAddAsync("Key2","c").Wait();
+				cli.SAddAsync("Key2","d").Wait();
+				cli.SAddAsync("Key2","e").Wait();
+
+				var result = cli.SDiffAsync("Key", "Key2").Result.AsArray<string>();
+				Assert.AreEqual(2,result.Length);
+				Assert.Contains("a", result);
+				Assert.Contains("b", result);
+			}
+		}
+		[Test]
+		public void SUnion()
+		{
+			using (var cli = CreateClient())
+			{
+				cli.SAddAsync("Key", "a").Wait();
+				cli.SAddAsync("Key", "b").Wait();
+				cli.SAddAsync("Key", "c").Wait();
+
+				cli.SAddAsync("Key2","b").Wait();
+				cli.SAddAsync("Key2","c").Wait();
+				cli.SAddAsync("Key2","d").Wait();
+
+				var result = cli.SUnionAsync("Key", "Key2").Result.AsArray<string>();
+				Assert.AreEqual(4,result.Length);
+				Assert.Contains("a", result);
+				Assert.Contains("c", result);
+				Assert.Contains("b", result);
+				Assert.Contains("d", result);
+			}
+		}
+		[Test]
+		public void SMembers()
+		{
+			using (var cli = CreateClient())
+			{
+				cli.SAddAsync("Key", "a").Wait();
+				cli.SAddAsync("Key", "b").Wait();
+				var result = cli.SMembersAsync("Key").Result.AsArray<string>();
+				Assert.AreEqual(2,result.Length);
+				Assert.Contains("a", result);
+				Assert.Contains("b", result);
+			}
+		}
 		private string ConnectionString
 		{
 			get { return ConfigurationManager.ConnectionStrings["Redis"].ConnectionString; }

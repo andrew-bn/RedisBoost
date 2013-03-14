@@ -56,33 +56,34 @@ namespace NBoosters.RedisBoost
 			return new RedisClientsPool(maxPoolsSize, inactivityTimeout);
 		}
 
-		public static async Task<IRedisClient> ConnectAsync(EndPoint endPoint, int dbIndex = 0, BasicRedisSerializer serializer = null)
+		public static Task<IRedisClient> ConnectAsync(EndPoint endPoint, int dbIndex = 0, BasicRedisSerializer serializer = null)
 		{
 			var result = new RedisClient(new RedisConnectionStringBuilder(endPoint, dbIndex), serializer);
-			await ((IPrepareSupportRedisClient)result).PrepareClientConnection().ConfigureAwait(false);
-			return result;
+			return ((IPrepareSupportRedisClient)result).PrepareClientConnection();
 		}
 
-		public static async Task<IRedisClient> ConnectAsync(string host, int port, int dbIndex = 0, BasicRedisSerializer serializer = null)
+		public static Task<IRedisClient> ConnectAsync(string host, int port, int dbIndex = 0, BasicRedisSerializer serializer = null)
 		{
-			var result = new RedisClient(new RedisConnectionStringBuilder(host, port, dbIndex),serializer);
-			await ((IPrepareSupportRedisClient)result).PrepareClientConnection().ConfigureAwait(false);
-			return result;
+			var result = new RedisClient(new RedisConnectionStringBuilder(host, port, dbIndex), serializer);
+			return ((IPrepareSupportRedisClient)result).PrepareClientConnection();
 		}
 
-		public static async Task<IRedisClient> ConnectAsync(string connectionString, BasicRedisSerializer serializer = null)
+		public static Task<IRedisClient> ConnectAsync(string connectionString, BasicRedisSerializer serializer = null)
 		{
 			var result = new RedisClient(new RedisConnectionStringBuilder(connectionString), serializer);
-			await ((IPrepareSupportRedisClient)result).PrepareClientConnection().ConfigureAwait(false);
-			return result;
+			return ((IPrepareSupportRedisClient) result).PrepareClientConnection();
 		}
 
-		async Task IPrepareSupportRedisClient.PrepareClientConnection()
+		Task<IRedisClient> IPrepareSupportRedisClient.PrepareClientConnection()
 		{
-			await ConnectAsync().ConfigureAwait(false);
 			var dbIndex = _connectionStringBuilder.DbIndex;
-			if (dbIndex != 0)
-				await SelectAsync(dbIndex).ConfigureAwait(false);
+			var connectTask = ConnectAsync();
+			return dbIndex == 0 
+						? connectTask.ContinueWithIfNoError(t=>(IRedisClient)this)
+						: connectTask.ContinueWithIfNoError(
+										t =>SelectAsync(dbIndex).ContinueWithIfNoError(
+												tsk =>(IRedisClient)this))
+									  .Unwrap();
 		}
 
 		#endregion
@@ -106,7 +107,7 @@ namespace NBoosters.RedisBoost
 			_redisDataAnalizer = _redisChannel.RedisDataAnalizer;
 
 			_redisPipeline = new RedisPipeline(_redisChannel);
-		
+
 		}
 
 		#region converters
@@ -125,7 +126,7 @@ namespace NBoosters.RedisBoost
 		}
 		private T Deserialize<T>(byte[] value)
 		{
-			return (T)Serializer.Deserialize(typeof(T),value);
+			return (T)Serializer.Deserialize(typeof(T), value);
 		}
 		private static byte[] ConvertToByteArray(BitOpType bitOp)
 		{
@@ -189,124 +190,149 @@ namespace NBoosters.RedisBoost
 		}
 		#endregion
 		#region read response
-		private async Task<MultiBulk> MultiBulkResponseCommand(params byte[][] args)
+		private Task<MultiBulk> MultiBulkResponseCommand(params byte[][] args)
 		{
-			var reply = await ExecutePipelinedCommand(args).ConfigureAwait(false);
-			return reply.AsMultiBulk();
+			return ExecutePipelinedCommand(args).ContinueWithIfNoError(t=>t.Result.AsMultiBulk());
 		}
-		private async Task<string> StatusResponseCommand(params byte[][] args)
+		private Task<string> StatusResponseCommand(params byte[][] args)
 		{
-			var reply = await ExecutePipelinedCommand(args).ConfigureAwait(false);
-			if (reply.ResponseType != RedisResponseType.Status)
-				return string.Empty;
-			return reply.AsStatus();
+			return ExecutePipelinedCommand(args).ContinueWithIfNoError(
+				t =>
+					{
+						var reply = t.Result;
+						if (reply.ResponseType != RedisResponseType.Status)
+							return string.Empty;
+						return reply.AsStatus();
+					});
 		}
-		private async Task<long> IntegerResponseCommand(params byte[][] args)
+		private Task<long> IntegerResponseCommand(params byte[][] args)
 		{
-			var reply = await ExecutePipelinedCommand(args).ConfigureAwait(false);
-			if (reply.ResponseType != RedisResponseType.Integer)
-				return default(long);
-			return reply.AsInteger();
+			return ExecutePipelinedCommand(args).ContinueWithIfNoError(t =>
+				{
+					var reply = t.Result;
+					if (reply.ResponseType != RedisResponseType.Integer)
+						return default(long);
+					return reply.AsInteger();
+				});
+			
 		}
-		private async Task<long?> IntegerOrBulkNullResponseCommand(params byte[][] args)
+		private Task<long?> IntegerOrBulkNullResponseCommand(params byte[][] args)
 		{
-			var reply = await ExecutePipelinedCommand(args).ConfigureAwait(false);
-			if (reply.ResponseType == RedisResponseType.Integer)
-				return reply.AsInteger();
-			return null;
+			return ExecutePipelinedCommand(args).ContinueWithIfNoError(
+				t =>
+					{
+						var reply = t.Result;
+						if (reply.ResponseType == RedisResponseType.Integer)
+							return reply.AsInteger();
+						return (long?)null;
+					});
+
 		}
-		private async Task<Bulk> BulkResponseCommand(params byte[][] args)
+		private Task<Bulk> BulkResponseCommand(params byte[][] args)
 		{
-			var reply = await ExecutePipelinedCommand(args).ConfigureAwait(false);
-			return reply.ResponseType != RedisResponseType.Bulk ? null : reply.AsBulk();
+			return ExecutePipelinedCommand(args).ContinueWithIfNoError(
+				t =>
+					{
+						var reply = t.Result;
+						return reply.ResponseType != RedisResponseType.Bulk ? null : reply.AsBulk();
+					});
+			
 		}
-		
+
 		#endregion
 		#region commands execution
 		private void ClosePipeline()
 		{
 			_redisPipeline.ClosePipeline();
 		}
-
-		private async Task<RedisResponse> ExecutePipelinedCommand(params byte[][] args)
+		private void ProcessRedisResponse(TaskCompletionSource<RedisResponse> tcs, Exception ex, RedisResponse response)
 		{
-			try
-			{
-				var reply = await _redisPipeline.ExecuteCommandAsync(args).ConfigureAwait(false);
-				if (reply.ResponseType == RedisResponseType.Error)
-					throw new RedisException(reply.AsError());
-				return reply;
-			}
-			catch (Exception ex)
+			if (ex != null)
 			{
 				DisposeIfFatalError(ex);
 				if (!(ex is RedisException))
-					throw new RedisException(ex.Message, ex);
-				throw;
+					ex = new RedisException(ex.Message, ex);
+				tcs.SetException(ex);
 			}
+			else if (response.ResponseType == RedisResponseType.Error)
+				tcs.SetException(new RedisException(response.AsError()));
+			else
+				tcs.SetResult(response);
+		}
+		private Task<RedisResponse> ExecutePipelinedCommand(params byte[][] args)
+		{
+			var tcs = new TaskCompletionSource<RedisResponse>();
+			_redisPipeline.ExecuteCommandAsync(args, (ex, r) => ProcessRedisResponse(tcs,ex,r));
+			return tcs.Task;
 		}
 
-		private async Task SendDirectReqeust(params byte[][] args)
+		private Task SendDirectReqeust(params byte[][] args)
 		{
-			try
-			{
-				await _redisChannel.SendAsync(args).ConfigureAwait(false);
-				if (!_redisChannel.BufferIsEmpty)
-					await _redisChannel.Flush().ConfigureAwait(false);
-			}
-			catch (Exception ex)
-			{
-				DisposeIfFatalError(ex);
-				if (!(ex is RedisException))
-					throw new RedisException(ex.Message, ex);
-				throw;
-			}
+			var tcs = new TaskCompletionSource<bool>();
+			_redisChannel.SendAsync(args,
+				ex =>
+				{
+					if (!_redisChannel.BufferIsEmpty)
+						_redisChannel.Flush(err =>
+							{
+								if (err != null)
+								{
+									DisposeIfFatalError(ex);
+									if (!(ex is RedisException))
+										err = new RedisException(ex.Message, ex);
+									tcs.SetException(err);
+								}
+								else tcs.SetResult(true);
+							});
+				});
+
+			return tcs.Task;
 		}
-		public async Task<RedisResponse> ReadDirectResponse()
+		public Task<RedisResponse> ReadDirectResponse()
 		{
-			try
-			{
-				var reply = await _redisChannel.ReadResponseAsync().ConfigureAwait(false);
-				if (reply.ResponseType == RedisResponseType.Error)
-					throw new RedisException(reply.AsError());
-				return reply;
-			}
-			catch (Exception ex)
-			{
-				DisposeIfFatalError(ex);
-				if (!(ex is RedisException))
-					throw new RedisException(ex.Message, ex);
-				throw;
-			}
+			var tcs = new TaskCompletionSource<RedisResponse>();
+			_redisChannel.ReadResponseAsync((ex, r) => ProcessRedisResponse(tcs,ex,r));
+			return tcs.Task;
 		}
 
 		#endregion
 		#region connection
-		public async Task ConnectAsync()
+		public Task ConnectAsync()
 		{
-			try
-			{
-				await _redisChannel.ConnectAsync(_connectionStringBuilder.EndPoint).ConfigureAwait(false);
-				_state = ClientState.Connect;
-			}
-			catch (Exception ex)
-			{
-				DisposeIfFatalError(ex);
-				throw new RedisException(ex.Message, ex);
-			}
+			var tcs = new TaskCompletionSource<bool>();
+			_redisChannel.ConnectAsync(_connectionStringBuilder.EndPoint,
+			    ex =>
+				    {
+					   if (ex != null)
+					   {
+						   DisposeIfFatalError(ex);
+						   tcs.SetException(new RedisException(ex.Message, ex));
+					   }
+					   else
+					   {
+						   tcs.SetResult(true);
+						   _state = ClientState.Connect;
+					   }
+				    });
+			return tcs.Task;
 		}
 		public Task DisconnectAsync()
 		{
-			try
-			{
-				_state = ClientState.Disconnect;
-				return _redisChannel.DisconnectAsync();
-			}
-			catch (Exception ex)
-			{
-				DisposeIfFatalError(ex);
-				throw new RedisException(ex.Message, ex);
-			}
+			var tcs = new TaskCompletionSource<bool>();
+			_redisChannel.DisconnectAsync(ex =>
+				{
+					if (ex != null)
+					{
+						DisposeIfFatalError(ex);
+						tcs.SetException(new RedisException(ex.Message, ex));
+					}
+					else
+					{
+						_state = ClientState.Disconnect;
+						tcs.SetResult(true);
+					}
+				});
+			return tcs.Task;
 		}
 
 		#endregion
@@ -322,8 +348,8 @@ namespace NBoosters.RedisBoost
 		protected virtual void Dispose(bool disposing)
 		{
 			if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
-					return;
-			
+				return;
+
 			if (disposing)
 			{
 				try

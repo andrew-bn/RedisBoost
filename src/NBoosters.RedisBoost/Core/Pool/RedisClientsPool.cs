@@ -4,6 +4,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core.Serialization;
+using NBoosters.RedisBoost.Core.Misk;
 
 namespace NBoosters.RedisBoost.Core.Pool
 {
@@ -68,18 +69,17 @@ namespace NBoosters.RedisBoost.Core.Pool
 					.ContinueWith(t =>
 						{
 							if (t.IsFaulted)
-								tcs.SetException(t.Exception);
+								tcs.SetException(t.Exception.UnwrapAggregation());
 							else tcs.SetResult(t.Result);
 						});
 			}
 			return tcs.Task;
 		}
 
-		private async Task<IRedisClient> CreateAndPrepareClient(RedisConnectionStringBuilder connectionString, BasicRedisSerializer serializer)
+		private Task<IRedisClient> CreateAndPrepareClient(RedisConnectionStringBuilder connectionString, BasicRedisSerializer serializer)
 		{
 			var client = _redisClientsFactory(connectionString, serializer);
-			await client.PrepareClientConnection().ConfigureAwait(false);
-			return client;
+			return client.PrepareClientConnection();
 		}
 
 		internal void ReturnClient(IPooledRedisClient pooledRedisClient)

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
+using NBoosters.RedisBoost.Core.Misk;
 
 namespace NBoosters.RedisBoost
 {
@@ -75,12 +76,16 @@ namespace NBoosters.RedisBoost
 			return StatusResponseCommand(RedisConstants.Type, ConvertToByteArray(key));
 		}
 
-		public async Task<string> RandomKeyAsync()
+		public Task<string> RandomKeyAsync()
 		{
-			var result = await BulkResponseCommand(RedisConstants.RandomKey).ConfigureAwait(false);
-			return result != null && result.Length > 0
-					   ? ConvertToString(result)
-					   : String.Empty;
+			return BulkResponseCommand(RedisConstants.RandomKey)
+				.ContinueWithIfNoError(t =>
+					{
+						var result = t.Result;
+						return result != null && result.Length > 0
+							       ? ConvertToString(result)
+							       : String.Empty;
+					});
 		}
 		public Task<string> RenameAsync(string key, string newKey)
 		{

@@ -6,15 +6,15 @@ using System.Threading.Tasks;
 
 namespace NBoosters.RedisBoost.Core.Pipeline
 {
-	internal class PipelineItem
+	internal struct PipelineItem
 	{
-		public PipelineItem(byte[][] request, TaskCompletionSource<RedisResponse> tcs)
+		public PipelineItem(byte[][] request, Action<Exception, RedisResponse> callBack)
 		{
-			TaskCompletionSource = tcs;
+			CallBack = callBack;
 			Request = request;
 		}
 
-		public byte[][] Request { get; private set; }
-		public TaskCompletionSource<RedisResponse> TaskCompletionSource { get; private set; }
+		public byte[][] Request;
+		public Action<Exception, RedisResponse> CallBack;
 	}
 }

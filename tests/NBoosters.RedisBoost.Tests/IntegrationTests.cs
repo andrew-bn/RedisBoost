@@ -732,24 +732,7 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreEqual(2, cli.SCardAsync("Key").Result);
 			}
 		}
-		[Test]
-		public void SDiff()
-		{
-			using (var cli = CreateClient())
-			{
-				cli.SAddAsync("Key", GetBytes("a")).Wait();
-				cli.SAddAsync("Key", GetBytes("b")).Wait();
-				cli.SAddAsync("Key", GetBytes("c")).Wait();
-
-				cli.SAddAsync("Key2", GetBytes("c")).Wait();
-				cli.SAddAsync("Key2", GetBytes("d")).Wait();
-				cli.SAddAsync("Key2", GetBytes("e")).Wait();
-
-				var result = cli.SDiffAsync("Key", "Key2").Result;
-				Assert.AreEqual("a", GetString(result[0]));
-				Assert.AreEqual("b", GetString(result[1]));
-			}
-		}
+	
 
 		[Test]
 		public void SDiffStore()
@@ -768,26 +751,7 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreEqual(2, cli.SCardAsync("New").Result);
 			}
 		}
-		[Test]
-		public void SUnion()
-		{
-			using (var cli = CreateClient())
-			{
-				cli.SAddAsync("Key", GetBytes("a")).Wait();
-				cli.SAddAsync("Key", GetBytes("b")).Wait();
-				cli.SAddAsync("Key", GetBytes("c")).Wait();
-
-				cli.SAddAsync("Key2", GetBytes("b")).Wait();
-				cli.SAddAsync("Key2", GetBytes("c")).Wait();
-				cli.SAddAsync("Key2", GetBytes("d")).Wait();
-
-				var result = cli.SUnionAsync("Key", "Key2").Result;
-				Assert.AreEqual("a", GetString(result[0]));
-				Assert.AreEqual("c", GetString(result[1]));
-				Assert.AreEqual("b", GetString(result[2]));
-				Assert.AreEqual("d", GetString(result[3]));
-			}
-		}
+		
 		[Test]
 		public void SUnionStore()
 		{
@@ -848,18 +812,7 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreEqual(1, cli.SIsMemberAsync("Key", GetBytes("a")).Result);
 			}
 		}
-		[Test]
-		public void SMembers()
-		{
-			using (var cli = CreateClient())
-			{
-				cli.SAddAsync("Key", GetBytes("a")).Wait();
-				cli.SAddAsync("Key", GetBytes("b")).Wait();
-				var result = cli.SMembersAsync("Key").Result;
-				Assert.AreEqual("a", GetString(result[0]));
-				Assert.AreEqual("b", GetString(result[1]));
-			}
-		}
+		
 		[Test]
 		public void SMove()
 		{
@@ -1680,14 +1633,16 @@ namespace NBoosters.RedisBoost.Tests
 					if (i == 4999)
 						cli.SubscribeAsync("channel").Wait();
 				}
-
+				
 				for (int i = 0; i < 5000; i++)
 				{
+					SpinWait.SpinUntil(()=>tasks[i].IsCompleted);
 					Assert.IsFalse(tasks[i].IsFaulted);
 					Assert.AreEqual("Value" + i, GetString(tasks[i].Result));
 				}
 				for (int i = 5000; i < 10000; i++)
 				{
+					SpinWait.SpinUntil(()=>tasks[i].IsCompleted);
 					Assert.IsTrue(tasks[i].IsFaulted);
 				}
 			}

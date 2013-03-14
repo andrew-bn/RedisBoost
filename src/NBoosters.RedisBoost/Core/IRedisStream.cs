@@ -18,7 +18,7 @@ namespace NBoosters.RedisBoost.Core
 		bool WriteCountLine(byte startSimbol, int argsCount);
 		void ReadBlockLine(int length, Action<Exception, byte[]> callBack);
 		void ReadLine(Action<Exception, RedisLine> callBack);
-		Task Connect(EndPoint endPoint);
-		Task Disconnect();
+		void Connect(EndPoint endPoint, Action<Exception> callBack);
+		void Disconnect(Action<Exception> callBack);
 	}
 }

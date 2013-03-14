@@ -183,7 +183,7 @@ namespace NBoosters.RedisBoost.Core
 		public void Flush(Action<Exception> callBack)
 		{
 			_writeArgs.SetBuffer(_writeBuffer, 0, _writeBufferOffset);
-			_socket.SendAllAsync(_writeArgs,(ex,a)=>
+			_socket.SendAllAsync(_writeArgs,ex=>
 							  {
 								  _writeArgs.SetBuffer(null, 0, 0);
 								  _writeBufferOffset = 0;
@@ -196,7 +196,7 @@ namespace NBoosters.RedisBoost.Core
 			_readBufferOffset = _readBufferOffset - _readBufferSize;
 			_readBufferSize = 0;
 			_readArgs.SetBuffer(_readBuffer, 0, _readBuffer.Length);
-			_socket.ReceiveAsyncAsync(_readArgs,(ex,a)=>
+			_socket.ReceiveAsyncAsync(_readArgs,ex=>
 					{
 						_readArgs.SetBuffer(null, 0, 0);
 						_readBufferSize = _readArgs.BytesTransferred;
@@ -204,29 +204,15 @@ namespace NBoosters.RedisBoost.Core
 					});
 		}
 
-		public Task Connect(EndPoint endPoint)
+		public void Connect(EndPoint endPoint, Action<Exception> callBack)
 		{
-			var tcs = new TaskCompletionSource<bool>();
 			_notIoArgs.RemoteEndPoint = endPoint;
-			_socket.ConnectAsyncAsync(_notIoArgs,(ex, a) =>
-				{
-					if (ex != null)
-						tcs.SetException(ex);
-					else tcs.SetResult(true);
-				});
-			return tcs.Task;
+			_socket.ConnectAsyncAsync(_notIoArgs, callBack);
 		}
 
-		public Task Disconnect()
+		public void Disconnect(Action<Exception> callBack)
 		{
-			var tcs = new TaskCompletionSource<bool>();
-			_socket.DisconnectAsyncAsync(_notIoArgs, (ex, a) =>
-				{
-					if (ex != null)
-						tcs.SetException(ex);
-					else tcs.SetResult(true);
-				});
-			return tcs.Task;
+			_socket.DisconnectAsyncAsync(_notIoArgs, callBack);
 		}
 
 		public void DisposeAndReuse()

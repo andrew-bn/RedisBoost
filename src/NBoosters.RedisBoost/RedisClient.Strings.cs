@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
+using NBoosters.RedisBoost.Core.Misk;
 
 namespace NBoosters.RedisBoost
 {
@@ -70,7 +71,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<T> GetRangeAsync<T>(string key, int start, int end)
 		{
-			return GetRangeAsync(key, start,end).ContinueWith(t => Deserialize<T>(t.Result));
+			return GetRangeAsync(key, start, end).ContinueWithIfNoError(t => Deserialize<T>(t.Result));
 		}
 		public Task<Bulk> GetRangeAsync(string key, int start, int end)
 		{

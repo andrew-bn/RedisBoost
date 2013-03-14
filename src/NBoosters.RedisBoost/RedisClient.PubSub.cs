@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
+using NBoosters.RedisBoost.Core.Misk;
 
 namespace NBoosters.RedisBoost
 {
@@ -43,7 +44,7 @@ namespace NBoosters.RedisBoost
 		{
 			return SubscriptionCommandAsync(RedisConstants.PUnsubscribe, channels);
 		}
-		private async Task<IRedisSubscription> SubscriptionCommandAsync(byte[] commandName, string[] channels)
+		private Task<IRedisSubscription> SubscriptionCommandAsync(byte[] commandName, string[] channels)
 		{
 			_state = ClientState.Subscription;
 
@@ -53,8 +54,7 @@ namespace NBoosters.RedisBoost
 			for (int i = 0; i < channels.Length; i++)
 				request[1 + i] = ConvertToByteArray(channels[i]);
 
-			await SendDirectReqeust(request).ConfigureAwait(false);
-			return this;
+			return SendDirectReqeust(request).ContinueWithIfNoError(t => (IRedisSubscription)this);
 		}
 
 		public Task<ChannelMessage> ReadMessageAsync()
@@ -62,29 +62,49 @@ namespace NBoosters.RedisBoost
 			return ReadMessageAsync(ChannelMessageType.Any);
 		}
 
-		public async Task<ChannelMessage> ReadMessageAsync(ChannelMessageType messageTypeFilter)
+		public  Task<ChannelMessage> ReadMessageAsync(ChannelMessageType messageTypeFilter)
 		{
+			var tcs = new TaskCompletionSource<ChannelMessage>();
+			ReadDirectResponse().ContinueWithIfNoError(t => ReadMessageContinuation(t, messageTypeFilter, tcs));
+			return tcs.Task;
+		}
+		private void ReadMessageContinuation(Task<RedisResponse> readTask, ChannelMessageType messageTypeFilter, TaskCompletionSource<ChannelMessage> tcs )
+		{
+			if (readTask.IsFaulted)
+			{
+				tcs.SetException(readTask.Exception.UnwrapAggregation());
+				return;
+			}
+
 			ChannelMessageType messageType;
 			MultiBulk response;
-			do
+
+			var reply = readTask.Result;
+
+			if (reply.ResponseType == RedisResponseType.Status && _state != ClientState.Connect)
 			{
-				var reply = await ReadDirectResponse().ConfigureAwait(false);
-				
-				if (reply.ResponseType == RedisResponseType.Status && _state != ClientState.Connect)
-					return new ChannelMessage(ChannelMessageType.Quit, null, null);
+				tcs.SetResult(new ChannelMessage(ChannelMessageType.Quit, null, null));
+				return;
+			}
 
-				if (reply.ResponseType != RedisResponseType.MultiBulk)
-					throw new RedisException("Invalid channel response. Expected MultiBulk, but was " + reply.ResponseType);
-				
-				response = reply.AsMultiBulk();
-				
-				var messageTypeName = ConvertToString(response[0].AsBulk());
+			if (reply.ResponseType != RedisResponseType.MultiBulk)
+			{
+				tcs.SetException(new RedisException("Invalid channel response. Expected MultiBulk, but was " + reply.ResponseType));
+				return;
+			}
+			response = reply.AsMultiBulk();
 
-				if (!Enum.TryParse(messageTypeName, true, out messageType))
-					messageType = ChannelMessageType.Any;
+			var messageTypeName = ConvertToString(response[0].AsBulk());
 
-			} while (!messageTypeFilter.HasFlag(messageType) &&
-					 !messageTypeFilter.HasFlag(ChannelMessageType.Any));
+			if (!Enum.TryParse(messageTypeName, true, out messageType))
+				messageType = ChannelMessageType.Any;
+
+			if (!messageTypeFilter.HasFlag(messageType) &&
+			    !messageTypeFilter.HasFlag(ChannelMessageType.Any))
+			{
+				ReadDirectResponse().ContinueWithIfNoError(t => ReadMessageContinuation(t, messageTypeFilter, tcs));
+				return;
+			}
 
 			var channels = new string[response.Length - 2];
 
@@ -93,8 +113,9 @@ namespace NBoosters.RedisBoost
 
 			var lastReply = response[response.Length - 1];
 
-			return new ChannelMessage(messageType, lastReply, channels);
+			tcs.SetResult(new ChannelMessage(messageType, lastReply, channels));
 		}
+
 		Task IRedisSubscription.QuitAsync()
 		{
 			_state = ClientState.Quit;
