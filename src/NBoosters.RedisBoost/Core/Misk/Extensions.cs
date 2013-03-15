@@ -6,15 +6,14 @@ using System.Threading.Tasks;
 
 namespace NBoosters.RedisBoost.Core.Misk
 {
-	public static class Extensions
+	internal static class Extensions
 	{
 		public static Task ContinueWithIfNoError<T>(this T task, Action<T> action)
 			where T:Task
 		{
 			return task.ContinueWith(t =>
 				{
-					if (task.IsFaulted)
-						throw task.Exception.UnwrapAggregation();
+					if (task.IsFaulted) throw task.Exception.UnwrapAggregation();
 					action(task);
 				});
 			
@@ -24,8 +23,7 @@ namespace NBoosters.RedisBoost.Core.Misk
 		{
 			return task.ContinueWith(t =>
 			{
-				if (task.IsFaulted)
-					throw task.Exception.UnwrapAggregation();
+				if (task.IsFaulted) throw task.Exception.UnwrapAggregation();
 				return func(task);
 			});
 		}
