@@ -52,7 +52,7 @@ namespace NBoosters.RedisBoost.Core.Pool
 			return CreateClientAsync(new RedisConnectionStringBuilder(host, port, dbIndex),serializer);
 		}
 
-		internal Task<IRedisClient> CreateClientAsync(RedisConnectionStringBuilder connectionString, BasicRedisSerializer serializer = null)
+		public Task<IRedisClient> CreateClientAsync(RedisConnectionStringBuilder connectionString, BasicRedisSerializer serializer = null)
 		{
 			ThrowIfDisposed();
 

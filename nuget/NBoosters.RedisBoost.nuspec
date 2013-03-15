@@ -2,15 +2,18 @@
 <package >
   <metadata>
     <id>NBoosters.RedisBoost</id>
-    <version>1.5.0</version>
+    <version>1.5.1</version>
     <title>NBoosters.RedisBoost</title>
     <authors>NBoosters</authors>
     <owners>NBoosters</owners>
     <projectUrl>https://github.com/NBooster/RedisBoost</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>Asynchronous Redis client</description>
+    <description>.NET 4.0 thread-safe asynchronous Redis client. 
+      Supports pipelining, Redis channels, has built-in serializer and clients pool, 
+      can be used along with async/await pattern.
+    </description>
     <copyright>NBoosters</copyright>
-    <tags>boost nbooster redis async</tags>
+    <tags>boost nbooster redis client async</tags>
   </metadata>
   <files>
     <file src="..\src\NBoosters.RedisBoost\bin\Release\NBoosters.RedisBoost.dll" target="lib\net40\" />
