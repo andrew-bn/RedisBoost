@@ -1,4 +1,4 @@
-RedisBoost (.NET 4.5)
+RedisBoost (.NET 4.0)
 ==========
 
 * [Redis 2.6 commands set](http://redis.io/commands) support
