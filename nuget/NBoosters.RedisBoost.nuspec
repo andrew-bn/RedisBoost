@@ -2,18 +2,16 @@
 <package >
   <metadata>
     <id>NBoosters.RedisBoost</id>
-    <version>1.5.1</version>
+    <version>1.5.2</version>
     <title>NBoosters.RedisBoost</title>
-    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
-    <authors>NBoosters</authors>
-    <owners>NBoosters</owners>
+    <licenseUrl>https://raw.github.com/NBooster/RedisBoost/master/LICENSE</licenseUrl>
+    <authors>Andrey Bulygin</authors>
+    <owners>Andrey Bulygin</owners>
     <projectUrl>https://github.com/NBooster/RedisBoost</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>.NET 4.0 thread-safe asynchronous Redis client. 
-      Supports pipelining, Redis channels, has built-in serializer and clients pool, 
-      can be used along with async/await pattern.
+    <description>.NET 4.0 thread-safe asynchronous Redis client. Supports pipelining, Redis channels, has built-in serializer and clients pool. Can be used along with async/await pattern.
     </description>
-    <copyright>NBoosters</copyright>
+    <copyright>Andrey Bulygin</copyright>
     <tags>boost nbooster redis client async</tags>
   </metadata>
   <files>
