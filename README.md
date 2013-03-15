@@ -14,7 +14,7 @@ Installation
 ----------
 You can install RedisBoost via NuGet:
 
-![Install-Pacakage NBoosters.RedisBoost](https://raw.github.com/NBooster/RedisBoost/master/images/nuget.png)
+![Install-Pacakage NBoosters.RedisBoost](https://raw.github.com/andrew-bn/RedisBoost/master/images/nuget.png)
 
 Let's get started
 ----------
