@@ -4,6 +4,7 @@
     <id>NBoosters.RedisBoost</id>
     <version>1.5.1</version>
     <title>NBoosters.RedisBoost</title>
+    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
     <authors>NBoosters</authors>
     <owners>NBoosters</owners>
     <projectUrl>https://github.com/NBooster/RedisBoost</projectUrl>
