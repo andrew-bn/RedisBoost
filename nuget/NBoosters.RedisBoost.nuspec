@@ -2,9 +2,9 @@
 <package >
   <metadata>
     <id>NBoosters.RedisBoost</id>
-    <version>1.5.2</version>
+    <version>1.5.3</version>
     <title>NBoosters.RedisBoost</title>
-    <licenseUrl>https://raw.github.com/NBooster/RedisBoost/master/LICENSE</licenseUrl>
+    <licenseUrl>https://raw.github.com/andrew-bn/RedisBoost/master/LICENSE</licenseUrl>
     <authors>Andrey Bulygin</authors>
     <owners>Andrey Bulygin</owners>
     <projectUrl>https://github.com/NBooster/RedisBoost</projectUrl>
