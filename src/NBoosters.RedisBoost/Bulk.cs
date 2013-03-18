@@ -23,7 +23,10 @@ namespace NBoosters.RedisBoost
 	public class Bulk : RedisResponse
 	{
 		public byte[] Value { get; private set; }
-
+		public bool IsNull
+		{
+			get { return Value == null; }
+		}
 		internal Bulk(byte[] value, IRedisSerializer serializer)
 			: base(RedisResponseType.Bulk, serializer)
 		{
@@ -31,11 +34,16 @@ namespace NBoosters.RedisBoost
 		}
 		public int Length
 		{
-			get { return Value==null?0:Value.Length; }
+			get
+			{
+				ThrowIfBulkNull();
+				return Value.Length;
+			}
 		}
-		public override string ToString()
+		private void ThrowIfBulkNull()
 		{
-			return Value.ToString();
+			if (IsNull)
+				throw new RedisException("This is NULL bulk reply");
 		}
 	}
 }

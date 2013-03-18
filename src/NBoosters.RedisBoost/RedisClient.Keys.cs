@@ -99,9 +99,9 @@ namespace NBoosters.RedisBoost
 				.ContinueWithIfNoError(t =>
 					{
 						var result = t.Result;
-						return result != null && result.Length > 0
-							       ? ConvertToString(result)
-							       : String.Empty;
+						return (result == null || result.IsNull)
+								? String.Empty
+								: ConvertToString(result);
 					});
 		}
 		public Task<string> RenameAsync(string key, string newKey)
