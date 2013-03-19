@@ -136,7 +136,6 @@ returns Task object you can easily organize Event-based Asynchronous Pattern or 
 
 ReadMessageAsync has a useful overload which allows you to filter messages you are interested in.
 
-Long story short, let's see an example:
 
 ```csharp
 [Test]
