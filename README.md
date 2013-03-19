@@ -97,7 +97,11 @@ cli.SetAsync("Key2", new MyObject()).Wait(); // second parameter will be seriali
 Some Redis commands return bulk or multi-bulk responses (http://redis.io/topics/protocol). 
 In this case RedisBoost returns instanses of Bulk or MultiBulk classes.
 
-Bulk could be implicitly converted to byte[]. MultiBulk could be implicitly converted to byte[][].
+Bulk could be implicitly converted to byte[]. MultiBulk could be implicitly converted to byte[][]. 
+Both classes have IsNull property to check whether response is bulk (multi-bulk) null. 
+If you try to implicitly convert null response to byte[] or byte[][] null will be returned, and any other operation
+would generate RedisException.
+
 Also any Redis response could be deserialized to the type you want.
 
 ```csharp
