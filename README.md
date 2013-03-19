@@ -128,8 +128,8 @@ from the other channels and to receive messages from subscribed channels.
 Keep in mind that you are working now not with high abstraction but on the lowest level. 
 To read more about what messages could be sent to your channel visit http://redis.io/topics/pubsub page.
 To receive these messages you can call IRedisSubscription.ReadMessageAsync() that will return message from channel.
-There can be different strategies to receive and process channel massages and IRedisSubscription.ReadMessageAsync()
-return Task object, so you can easily organize Event-based Asynchronous Pattern or use async/await feature.
+There can be different strategies to receive and process channel massages and because of IRedisSubscription.ReadMessageAsync()
+returns Task object you can easily organize Event-based Asynchronous Pattern or use async/await feature.
 There can be present not only messages that were published by other clients but also other types of messages, so you 
 can arrange work with cannel and manage them the way you need. 
 Also you can filter only messages you are interested in.
