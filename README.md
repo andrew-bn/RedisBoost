@@ -97,7 +97,11 @@ cli.SetAsync("Key2", new MyObject()).Wait(); // second parameter will be seriali
 Some Redis commands return bulk or multi-bulk responses (http://redis.io/topics/protocol). 
 In this case RedisBoost returns instanses of Bulk or MultiBulk classes.
 
-Bulk could be implicitly converted to byte[]. MultiBulk could be implicitly converted to byte[][].
+Bulk could be implicitly converted to byte[]. MultiBulk could be implicitly converted to byte[][]. 
+Both classes have IsNull property to check whether response is bulk (multi-bulk) null. 
+If you try to implicitly convert null response to byte[] or byte[][] null will be returned, and any other operation
+would generate RedisException.
+
 Also any Redis response could be deserialized to the type you want.
 
 ```csharp
@@ -120,15 +124,18 @@ Pub/Sub support
 To start working with Redis channels all you should do is to call IRedisClient.SubscribeAsync(params string[] channels) 
 or IRedisClient.PSubscribeAsync(params string[] channels) method. 
 These methods will return IRedisSubscription interface that allows you to subscribe or unsubscribe 
-from the other channels and to receive messages from subscribed channels.
-Keep in mind that you are working now not with high abstraction but on the lowest level. 
-To read more about what messages could be sent to your channel visit http://redis.io/topics/pubsub page.
-To receive these messages you can call IRedisSubscription.ReadMessageAsync() that will return message from channel.
-There can be present not only messages that were published by other clients but also other types of messages, so you 
-can arrange work with cannel and manage them the way you need. 
-Also you can filter only messages you are intrested in.
+from the other channels and to receive messages from subscribed channels. 
 
-Long story short, let's see an example:
+To receive messages you can call IRedisSubscription.ReadMessageAsync() that will return message from channel.
+Keep in mind that you are working now not with high abstraction,
+so from channel could be read not only messages that were published by other clients but also other types 
+of messages, so you can arrange work with cannel and manage them the way you need. 
+To read more about what messages could be sent to your channel visit http://redis.io/topics/pubsub page.
+Also there can be different strategies to receive and process channel massages and because of IRedisSubscription.ReadMessageAsync()
+returns Task object you can easily organize Event-based Asynchronous Pattern or use async/await feature.
+
+ReadMessageAsync has a useful overload which allows you to filter messages you are interested in.
+
 
 ```csharp
 [Test]
