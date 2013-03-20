@@ -62,6 +62,7 @@
     <Compile Include="Extensions\ExtensionBase.cs" />
     <Compile Include="Extensions\ExtensionsFactory.cs" />
     <Compile Include="Extensions\IExtensionsFactory.cs" />
+    <Compile Include="Extensions\IPubSubClientsPool.cs" />
     <Compile Include="Extensions\ManualResetEvent\IManualResetEvent.cs" />
     <Compile Include="Extensions\ManualResetEvent\RedisManualResetEvent.cs" />
     <Compile Include="Extensions\PubSubClientsPool.cs" />

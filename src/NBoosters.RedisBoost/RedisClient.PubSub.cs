@@ -77,50 +77,51 @@ namespace NBoosters.RedisBoost
 
 		public Task<ChannelMessage> ReadMessageAsync()
 		{
-			return ReadMessageAsync(ChannelMessageType.Any);
+			return TryReadMessageAsync(null);
 		}
-
-		public  Task<ChannelMessage> ReadMessageAsync(ChannelMessageType messageTypeFilter)
+		public Task<ChannelMessage> ReadMessageAsync(ChannelMessageType messageTypeFilter)
+		{
+			return TryReadMessageAsync(messageTypeFilter)
+				.ContinueWithIfNoError(t =>
+					{
+						if (t.Result.MessageType == ChannelMessageType.Unknown)
+							throw new RedisException("Unexpected message received");
+						return t.Result;
+					});
+		}
+		public Task<ChannelMessage> TryReadMessageAsync(ChannelMessageType? messageTypeFilter)
 		{
 			var tcs = new TaskCompletionSource<ChannelMessage>();
-			ReadDirectResponse().ContinueWithIfNoError(t => ReadMessageContinuation(t, messageTypeFilter, tcs));
+			ReadDirectResponse().ContinueWith(t => ReadMessageContinuation(t, messageTypeFilter, tcs));
 			return tcs.Task;
 		}
-		private void ReadMessageContinuation(Task<RedisResponse> readTask, ChannelMessageType messageTypeFilter, TaskCompletionSource<ChannelMessage> tcs )
+		private void ReadMessageContinuation(Task<RedisResponse> readTask, ChannelMessageType? messageTypeFilter, TaskCompletionSource<ChannelMessage> tcs)
 		{
 			if (readTask.IsFaulted)
 			{
-				tcs.SetException(readTask.Exception.UnwrapAggregation());
+				tcs.SetResult(new ChannelMessage(ChannelMessageType.Unknown, 
+					RedisResponse.CreateError(readTask.Exception.UnwrapAggregation().Message, Serializer), new string[0]));
 				return;
 			}
-
+			if (readTask.Result.ResponseType != RedisResponseType.MultiBulk)
+			{
+				tcs.SetResult(new ChannelMessage(ChannelMessageType.Unknown, readTask.Result, new string[0]));
+				return;
+			}
+			
 			ChannelMessageType messageType;
-			MultiBulk response;
-
-			var reply = readTask.Result;
-
-			if (reply.ResponseType == RedisResponseType.Status && _state != ClientState.Connect)
+			var response = readTask.Result.AsMultiBulk();
+			if (response.Length < 3 || //1 - message type, 2.. - channel, ..3 - message
+				response[0].ResponseType != RedisResponseType.Bulk ||
+				!Enum.TryParse(ConvertToString(response[0].AsBulk()), true, out messageType)) 
 			{
-				tcs.SetResult(new ChannelMessage(ChannelMessageType.Quit, null, null));
+				tcs.SetResult(new ChannelMessage(ChannelMessageType.Unknown, readTask.Result, new string[0]));
 				return;
 			}
 
-			if (reply.ResponseType != RedisResponseType.MultiBulk)
+			if (messageTypeFilter.HasValue && !messageTypeFilter.Value.HasFlag(messageType))
 			{
-				tcs.SetException(new RedisException("Invalid channel response. Expected MultiBulk, but was " + reply.ResponseType));
-				return;
-			}
-			response = reply.AsMultiBulk();
-
-			var messageTypeName = ConvertToString(response[0].AsBulk());
-
-			if (!Enum.TryParse(messageTypeName, true, out messageType))
-				messageType = ChannelMessageType.Any;
-
-			if (!messageTypeFilter.HasFlag(messageType) &&
-			    !messageTypeFilter.HasFlag(ChannelMessageType.Any))
-			{
-				ReadDirectResponse().ContinueWithIfNoError(t => ReadMessageContinuation(t, messageTypeFilter, tcs));
+				ReadDirectResponse().ContinueWith(t => ReadMessageContinuation(t, messageTypeFilter, tcs));
 				return;
 			}
 

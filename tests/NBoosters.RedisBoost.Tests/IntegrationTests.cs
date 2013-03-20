@@ -1320,7 +1320,33 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreEqual("1", GetString(subResult.Value));
 			}
 		}
-
+		[Test]
+		[ExpectedException(typeof(AggregateException))]
+		public void Subscribe_WithFilter_ReadMessagesAfterChannelClosing()
+		{
+			using (var cli1 = CreateClient())
+			{
+				var c1 = cli1.SubscribeAsync("channel").Result;
+				c1.ReadMessageAsync().Wait();//read subscribe message
+				var readTask = c1.ReadMessageAsync(ChannelMessageType.Message);
+				c1.Dispose();
+				readTask.Wait();
+			}
+		}
+		[Test]
+		public void Subscribe_NoFilter_ReadMessagesAfterChannelClosing()
+		{
+			using (var cli1 = CreateClient())
+			{
+				var c1 = cli1.SubscribeAsync("channel").Result;
+				c1.ReadMessageAsync().Wait();//read subscribe message
+				var readTask = c1.ReadMessageAsync();
+				c1.Dispose();
+				var subResult = readTask.Result;
+				Assert.AreEqual(ChannelMessageType.Unknown, subResult.MessageType);
+				Assert.AreEqual(RedisResponseType.Error, subResult.Value.ResponseType);
+			}
+		}
 		[Test]
 		public void Unsubscribe()
 		{
@@ -1381,13 +1407,28 @@ namespace NBoosters.RedisBoost.Tests
 			}
 		}
 		[Test]
-		public void Subscribe_Quit()
+		[ExpectedException(typeof(AggregateException))]
+		public void Subscribe_Quit_WithFilter_ExceptionExpected()
 		{
 			using (var cli1 = CreateClient().SubscribeAsync("channel").Result)
 			{
 				cli1.QuitAsync().Wait();
 				var result = cli1.ReadMessageAsync(ChannelMessageType.Message).Result;
-				Assert.AreEqual(ChannelMessageType.Quit, result.MessageType);
+				Assert.AreEqual(ChannelMessageType.Unknown, result.MessageType);
+				Assert.AreEqual(RedisResponseType.Status, result.Value.ResponseType);
+			}
+		}
+
+		[Test]
+		public void Subscribe_Quit_NoFilter_ValidResponse()
+		{
+			using (var cli1 = CreateClient().SubscribeAsync("channel").Result)
+			{
+				cli1.ReadMessageAsync().Wait();//read subscribe message;
+				cli1.QuitAsync().Wait();
+				var result = cli1.ReadMessageAsync().Result;
+				Assert.AreEqual(ChannelMessageType.Unknown, result.MessageType);
+				Assert.AreEqual(RedisResponseType.Status, result.Value.ResponseType);
 			}
 		}
 		#endregion

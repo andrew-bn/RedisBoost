@@ -16,10 +16,38 @@
  */
 #endregion
 
+using System;
+using NBoosters.RedisBoost.Core.Misk;
+using NBoosters.RedisBoost.Core.Pool;
+using NBoosters.RedisBoost.Core.Serialization;
+
 namespace NBoosters.RedisBoost.Extensions
 {
-	internal class PubSubClientsPool//: RedisClientsPool
+	internal class PubSubClientsPool : IPubSubClientsPool
 	{
-
+		private class PubSubPool : RedisClientsPool
+		{
+			protected override void DestroyClient(IPooledRedisClient client)
+			{
+				((IRedisSubscription)client).QuitAsync().Wait();
+				client.Destroy();
+			}
+			protected override bool DestroyClientCondition(IPooledRedisClient pooledRedisClient)
+			{
+				if (pooledRedisClient.State == RedisClient.ClientState.Subscription)
+					return false;
+				return base.DestroyClientCondition(pooledRedisClient);
+			}
+		}
+		private readonly IRedisClientsPool _clientsPool;
+		public PubSubClientsPool()
+		{
+			_clientsPool = new PubSubPool();
+		}
+		
+		public IRedisSubscription GetClient(RedisConnectionStringBuilder connectionString)
+		{
+			return (IRedisSubscription)_clientsPool.CreateClientAsync(connectionString).Result;
+		}
 	}
 }

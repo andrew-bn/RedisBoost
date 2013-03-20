@@ -16,20 +16,26 @@
  */
 #endregion
 
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using NBoosters.RedisBoost.Core.Misk;
 using NBoosters.RedisBoost.Core.Serialization;
 
 namespace NBoosters.RedisBoost.Extensions.ManualResetEvent
 {
-	internal class RedisManualResetEvent:ExtensionBase, IManualResetEvent
+	internal class RedisManualResetEvent : ExtensionBase, IManualResetEvent
 	{
-		static byte[] PULSE_MESSAGE = new byte[]{1};
+		static byte[] PULSE_MESSAGE = new byte[] { 1 };
 		private readonly string _eventName;
-		private readonly IRedisClientsPool _pubSubPool;
+		private readonly IPubSubClientsPool _pubSubPool;
+		private volatile TaskCompletionSource<bool> _taskCompletion;
+		private int _taskResultWasSet = 0;
 
-		public RedisManualResetEvent(string eventName, 
-			IRedisClientsPool pool, IRedisClientsPool pubSubPool, 
+		public RedisManualResetEvent(string eventName,
+			IRedisClientsPool pool, IPubSubClientsPool pubSubPool,
 			RedisConnectionStringBuilder connectionStringBuilder, BasicRedisSerializer serializer)
-			:base(pool,connectionStringBuilder,serializer)
+			: base(pool, connectionStringBuilder, serializer)
 		{
 			_eventName = eventName;
 			_pubSubPool = pubSubPool;
@@ -58,51 +64,120 @@ namespace NBoosters.RedisBoost.Extensions.ManualResetEvent
 				});
 		}
 
-		public System.Threading.Tasks.Task WaitOneAsync()
+		public Task WaitOneAsync()
 		{
 			return WaitOneAsync(-1);
 		}
 
-		public System.Threading.Tasks.Task<bool> WaitOneAsync(int millisecondsTimeout)
+		public Task<bool> WaitOneAsync(int millisecondsTimeout)
 		{
+			Interlocked.Exchange(ref _taskResultWasSet, 0);
+
+			_taskCompletion = new TaskCompletionSource<bool>();
+			StartTimer(millisecondsTimeout);
 			var pubSub = GetPubSubClient();
-			pubSub.SubscribeAsync(_eventName).Wait();
-			pubSub.ReadMessageAsync().Wait(); // read publish notification
 
-			while (true)
+			if (!OpenChannel(pubSub))
+				return _taskCompletion.Task;
+
+			bool isSignaledState;
+			if (!TryCheckIsSignaledState(out isSignaledState))
+				return _taskCompletion.Task;
+
+			if (isSignaledState)
 			{
-				if (IsSignaledState())
-				{
-					pubSub.UnsubscribeAsync(_eventName).Wait();
-					pubSub.ReadMessageAsync().Wait(); // read unsubscribe notification
-					return null; // return true here
-				}
+				if (CloseChannel(pubSub))
+					SetTaskResult(true);
+			}
+			else
+			{
+				pubSub.ReadMessageAsync()
+					.ContinueWithIfNoError(_taskCompletion,
+						t =>
+						{
+							if (t.Result.MessageType == ChannelMessageType.Message && CloseChannel(pubSub))
+								SetTaskResult(true);
+							else SetTaskResult(false);
+						});
+			}
+			return _taskCompletion.Task;
+		}
+		private void SetTaskResult(Exception ex)
+		{
+			if (Interlocked.CompareExchange(ref _taskResultWasSet, 1, 0) == 0)
+				_taskCompletion.SetException(ex);
+		}
+		private void SetTaskResult(bool result)
+		{
+			if (Interlocked.CompareExchange(ref _taskResultWasSet, 1, 0) == 0)
+				_taskCompletion.SetResult(result);
+		}
+		private void StartTimer(int millisecondsTimeout)
+		{
+			if (millisecondsTimeout <= 0) return;
 
-				// wait for pulse
-				if (!pubSub.ReadMessageAsync(ChannelMessageType.Message).Wait(millisecondsTimeout))
+			Timer timer = null;
+			timer = new Timer(s =>
 				{
-					pubSub.UnsubscribeAsync(_eventName).Wait();
-					pubSub.ReadMessageAsync().Wait(); // read unsubscribe notification
-					return null; // return false here - timeout occured
-				}
+					timer.Dispose();
+					SetTaskResult(false);
+				});
+		}
+
+		private bool CloseChannel(IRedisSubscription subscription)
+		{
+			try
+			{
+				subscription.UnsubscribeAsync(_eventName).Wait();
+				subscription.ReadMessageAsync().Wait();
+				return true;
+			}
+			catch (Exception ex)
+			{
+				SetTaskResult(ex);
+				return false;
 			}
 		}
 
-		private bool IsSignaledState()
+		private bool OpenChannel(IRedisSubscription subscription)
 		{
-			return ExecuteFunc(() =>
+			try
+			{
+				subscription.SubscribeAsync(_eventName).Wait();
+				subscription.ReadMessageAsync().Wait();
+				return true;
+			}
+			catch (Exception ex)
+			{
+				SetTaskResult(ex.UnwrapAggregation());
+				return false;
+			}
+		}
+
+		private bool TryCheckIsSignaledState(out bool isSignaledState)
+		{
+			isSignaledState = false;
+			try
+			{
+				using (var cli = GetClient())
 				{
-					using (var cli = GetClient())
-					{
-						var state = cli.GetAsync(_eventName).Result;
-						return state.Value == null || state.As<int>() == 1; // signaled state
-					}
-				});
+					var state = cli.GetAsync(_eventName).Result;
+					isSignaledState = state.Value == null || state.As<int>() == 1; // signaled state
+				}
+
+				return true;
+			}
+			catch (Exception ex)
+			{
+				SetTaskResult(ex.UnwrapAggregation());
+				return false;
+			}
+
 		}
 
 		private IRedisSubscription GetPubSubClient()
 		{
-			return null;
+			return _pubSubPool.GetClient(ConnectionStringBuilder);
 		}
 	}
 }

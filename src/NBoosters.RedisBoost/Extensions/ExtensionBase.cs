@@ -25,19 +25,19 @@ namespace NBoosters.RedisBoost.Extensions
 	internal abstract class ExtensionBase
 	{
 		private readonly IRedisClientsPool _pool;
-		private readonly RedisConnectionStringBuilder _connectionStringBuilder;
+		protected RedisConnectionStringBuilder ConnectionStringBuilder { get; private set; }
 		private readonly BasicRedisSerializer _serializer;
 
 		protected ExtensionBase(IRedisClientsPool pool, RedisConnectionStringBuilder connectionStringBuilder, BasicRedisSerializer serializer)
 		{
 			_pool = pool;
-			_connectionStringBuilder = connectionStringBuilder;
+			ConnectionStringBuilder = connectionStringBuilder;
 			_serializer = serializer;
 		}
 
 		protected IRedisClient GetClient()
 		{
-			return _pool.CreateClientAsync(_connectionStringBuilder, _serializer).Result;
+			return _pool.CreateClientAsync(ConnectionStringBuilder, _serializer).Result;
 		}
 		protected static T ExecuteFunc<T>(Func<T> action)
 		{

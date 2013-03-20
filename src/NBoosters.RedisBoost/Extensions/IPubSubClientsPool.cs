@@ -16,19 +16,10 @@
  */
 #endregion
 
-using System;
-
-namespace NBoosters.RedisBoost
+namespace NBoosters.RedisBoost.Extensions
 {
-	[Flags]
-	public enum ChannelMessageType
+	internal interface IPubSubClientsPool
 	{
-		Unknown = 0,
-		Subscribe = 1,
-		PSubscribe = 2,
-		Unsubscribe = 4,
-		PUnsubscribe = 8,
-		Message = 16,
-		PMessage = 32,
+		IRedisSubscription GetClient(RedisConnectionStringBuilder connectionString);
 	}
 }
