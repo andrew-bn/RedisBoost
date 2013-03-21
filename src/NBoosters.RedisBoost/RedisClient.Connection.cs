@@ -37,15 +37,18 @@ namespace NBoosters.RedisBoost
 		{
 			return BulkResponseCommand(RedisConstants.Echo, message);
 		}
+
 		public Task<string> PingAsync()
 		{
 			return StatusResponseCommand(RedisConstants.Ping);
 		}
+
 		public Task<string> QuitAsync()
 		{
 			_state = ClientState.Quit;
 			return StatusResponseCommand(RedisConstants.Quit);
 		}
+
 		public Task<string> SelectAsync(int index)
 		{
 			return StatusResponseCommand(RedisConstants.Select, ConvertToByteArray(index));

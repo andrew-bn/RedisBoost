@@ -27,6 +27,7 @@ namespace NBoosters.RedisBoost
 		{
 			return EvalAsync(script, keys, Serialize(arguments));
 		}
+
 		public Task<RedisResponse> EvalAsync(string script, string[] keys, params byte[][] arguments)
 		{
 			return Eval(RedisConstants.Eval, ConvertToByteArray(script), keys, arguments);
@@ -41,19 +42,15 @@ namespace NBoosters.RedisBoost
 		{
 			return Eval(RedisConstants.EvalSha, sha1, keys, arguments);
 		}
+
 		public Task<Bulk> ScriptLoadAsync(string script)
 		{
 			return BulkResponseCommand(RedisConstants.Script, RedisConstants.Load, ConvertToByteArray(script));
 		}
+
 		public Task<MultiBulk> ScriptExistsAsync(params byte[][] sha1)
 		{
-			var request = new byte[2 + sha1.Length][];
-			request[0] = RedisConstants.Script;
-			request[1] = RedisConstants.Exists;
-
-			for (int i = 0; i < sha1.Length; i++)
-				request[2 + i] = sha1[i];
-
+			var request = ComposeRequest(RedisConstants.Script, RedisConstants.Exists, sha1);
 			return MultiBulkResponseCommand(request);
 		}
 		public Task<string> ScriptFlushAsync()

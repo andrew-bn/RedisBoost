@@ -29,10 +29,12 @@ namespace NBoosters.RedisBoost
 		{
 			return MultiBulkResponseCommand(RedisConstants.Keys, ConvertToByteArray(pattern));
 		}
+
 		public Task<long> DelAsync(string key)
 		{
 			return IntegerResponseCommand(RedisConstants.Del, ConvertToByteArray(key));
 		}
+
 		public Task<string> MigrateAsync(string host,int port, string key, int destinationDb, int timeout)
 		{
 			return StatusResponseCommand(RedisConstants.Migrate, 
@@ -40,6 +42,7 @@ namespace NBoosters.RedisBoost
 										 ConvertToByteArray(key), ConvertToByteArray(destinationDb),
 										 ConvertToByteArray(timeout));
 		}
+
 		public Task<Bulk> DumpAsync(string key)
 		{
 			return BulkResponseCommand(RedisConstants.Dump, ConvertToByteArray(key));
@@ -66,13 +69,13 @@ namespace NBoosters.RedisBoost
 			return IntegerResponseCommand(RedisConstants.PExpire, ConvertToByteArray(key), ConvertToByteArray(milliseconds));
 		}
 
-		
 		public Task<long> ExpireAtAsync(string key, DateTime timestamp)
 		{
 			var seconds = (int)(timestamp - RedisConstants.InitialUnixTime).TotalSeconds;
 			return IntegerResponseCommand(RedisConstants.ExpireAt, ConvertToByteArray(key), 
 				ConvertToByteArray(seconds));
 		}
+
 		public Task<long> PersistAsync(string key)
 		{
 			return IntegerResponseCommand(RedisConstants.Persist, ConvertToByteArray(key));
@@ -104,31 +107,39 @@ namespace NBoosters.RedisBoost
 								: ConvertToString(result);
 					});
 		}
+
 		public Task<string> RenameAsync(string key, string newKey)
 		{
 			return StatusResponseCommand(RedisConstants.Rename, ConvertToByteArray(key), ConvertToByteArray(newKey));
 		}
+
 		public Task<long> RenameNxAsync(string key, string newKey)
 		{
 			return IntegerResponseCommand(RedisConstants.RenameNx, ConvertToByteArray(key), ConvertToByteArray(newKey));
 		}
+
 		public Task<long> MoveAsync(string key, int db)
 		{
 			return IntegerResponseCommand(RedisConstants.Move, ConvertToByteArray(key), ConvertToByteArray(db));
 		}
+
 		public Task<RedisResponse> ObjectAsync(Subcommand subcommand, params string[] args)
 		{
-			var request = new byte[2+args.Length][];
-			request[0] = RedisConstants.Object;
-			request[1] = ConvertToByteArray(subcommand);
-			for (int i = 0; i < args.Length; i++)
-				request[2 + i] = ConvertToByteArray(args[i]);
-
+			var request = ComposeRequest(RedisConstants.Object, ConvertToByteArray(subcommand), args);
 			return ExecutePipelinedCommand(request);
 		}
+
 		public Task<RedisResponse> SortAsync(string key, string by = null, long? limitOffset = null,
 								 long? limitCount = null, bool? asc = null, bool alpha = false, string destination = null,
 								 string[] getPatterns = null)
+		{
+			var request = ComposeRequest(key, by, limitOffset, limitCount, asc, alpha, destination, getPatterns);
+			return ExecutePipelinedCommand(request);
+		}
+
+		#region request composing
+		private byte[][] ComposeRequest(string key, string by, long? limitOffset, long? limitCount, bool? asc, bool alpha,
+		                                string destination, string[] getPatterns)
 		{
 			var paramsCount = 2;
 			paramsCount += by != null ? 2 : 0;
@@ -170,8 +181,8 @@ namespace NBoosters.RedisBoost
 				request[++index] = RedisConstants.Store;
 				request[++index] = ConvertToByteArray(destination);
 			}
-
-			return ExecutePipelinedCommand(request);
+			return request;
 		}
+		#endregion
 	}
 }

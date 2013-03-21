@@ -18,6 +18,7 @@
 
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -127,7 +128,73 @@ namespace NBoosters.RedisBoost
 			_redisPipeline = new RedisPipeline(_redisChannel);
 
 		}
+		#region request composers
+		private byte[][] ComposeRequest(byte[] commandName, byte[] arg1, MSetArgs[] args)
+		{
+			if (args.Length == 0)
+				throw new ArgumentException("Invalid args count", "args");
 
+			var request = new byte[args.Length * 2 + 2][];
+			request[0] = commandName;
+			request[1] = arg1;
+			for (int i = 0; i < args.Length; i++)
+			{
+				var arg = args[i];
+				request[i * 2 + 2] = ConvertToByteArray(arg.KeyOrField);
+				request[i * 2 + 3] = arg.IsArray ? (byte[])arg.Value : Serialize(arg.Value);
+			}
+			return request;
+		}
+
+		private byte[][] ComposeRequest(byte[] commandName, byte[] arg1, string[] args)
+		{
+			return ComposeRequest(commandName, arg1, args.Select(ConvertToByteArray).ToArray());
+		}
+
+		private byte[][] ComposeRequest(byte[] commandName, byte[] arg1, byte[][] args)
+		{
+			if (args.Length == 0)
+				throw new ArgumentException("Invalid args count", "args");
+
+			var request = new byte[args.Length + 2][];
+			request[0] = commandName;
+			request[1] = arg1;
+			for (int i = 0; i < args.Length; i++)
+				request[i + 2] = args[i];
+
+			return request;
+		}
+		private byte[][] ComposeRequest(byte[] commandName, byte[] arg1, byte[] arg2, string[] args)
+		{
+			if (args.Length == 0)
+				throw new ArgumentException("Invalid args count", "args");
+
+			var request = new byte[args.Length + 3][];
+			request[0] = commandName;
+			request[1] = arg1;
+			request[2] = arg2;
+
+			for (int i = 0; i < args.Length; i++)
+				request[i + 3] = ConvertToByteArray(args[i]);
+
+			return request;
+		}
+		private byte[][] ComposeRequest(byte[] commandName, string[] args, byte[] lastArg = null)
+		{
+			if (args.Length == 0)
+				throw new ArgumentException("Invalid args count", "args");
+
+			var request = new byte[args.Length + ((lastArg!=null)?2:1)][];
+			request[0] = commandName;
+
+			for (int i = 0; i < args.Length; i++)
+				request[i + 1] = ConvertToByteArray(args[i]);
+
+			if (lastArg != null)
+				request[request.Length - 1] = lastArg;
+			return request;
+		}
+		#endregion
 		#region converters
 
 		private byte[] Serialize<T>(T value)
@@ -354,7 +421,7 @@ namespace NBoosters.RedisBoost
 		}
 
 		#endregion
-
+		#region disposing
 		private void DisposeIfFatalError(Exception ex)
 		{
 			if (ex is RedisException) return;
@@ -385,5 +452,6 @@ namespace NBoosters.RedisBoost
 		{
 			Dispose(true);
 		}
+		#endregion
 	}
 }

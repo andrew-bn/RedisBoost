@@ -35,43 +35,42 @@ namespace NBoosters.RedisBoost
 			return IntegerResponseCommand(RedisConstants.Publish, ConvertToByteArray(channel), message);
 		}
 
-
 		public Task<IRedisSubscription> SubscribeAsync(params string[] channels)
 		{
 			ClosePipeline();
 			return SubscriptionCommandAsync(RedisConstants.Subscribe, channels);
 		}
+
 		public Task<IRedisSubscription> PSubscribeAsync(params string[] pattern)
 		{
 			ClosePipeline();
 			return SubscriptionCommandAsync(RedisConstants.PSubscribe, pattern);
 		}
+
 		Task IRedisSubscription.SubscribeAsync(params string[] channels)
 		{
 			return SubscriptionCommandAsync(RedisConstants.Subscribe, channels);
 		}
+
 		Task IRedisSubscription.PSubscribeAsync(params string[] pattern)
 		{
 			return SubscriptionCommandAsync(RedisConstants.PSubscribe, pattern);
 		}
+
 		public Task UnsubscribeAsync(params string[] channels)
 		{
 			return SubscriptionCommandAsync(RedisConstants.Unsubscribe, channels);
 		}
+
 		public Task PUnsubscribeAsync(params string[] channels)
 		{
 			return SubscriptionCommandAsync(RedisConstants.PUnsubscribe, channels);
 		}
+
 		private Task<IRedisSubscription> SubscriptionCommandAsync(byte[] commandName, string[] channels)
 		{
 			_state = ClientState.Subscription;
-
-			var request = new byte[1 + channels.Length][];
-			request[0] = commandName;
-
-			for (int i = 0; i < channels.Length; i++)
-				request[1 + i] = ConvertToByteArray(channels[i]);
-
+			var request = ComposeRequest(commandName, channels);
 			return SendDirectReqeust(request).ContinueWithIfNoError(t => (IRedisSubscription)this);
 		}
 
@@ -79,6 +78,7 @@ namespace NBoosters.RedisBoost
 		{
 			return TryReadMessageAsync(null);
 		}
+
 		public Task<ChannelMessage> ReadMessageAsync(ChannelMessageType messageTypeFilter)
 		{
 			return TryReadMessageAsync(messageTypeFilter)
@@ -89,12 +89,14 @@ namespace NBoosters.RedisBoost
 						return t.Result;
 					});
 		}
+
 		public Task<ChannelMessage> TryReadMessageAsync(ChannelMessageType? messageTypeFilter)
 		{
 			var tcs = new TaskCompletionSource<ChannelMessage>();
 			ReadDirectResponse().ContinueWith(t => ReadMessageContinuation(t, messageTypeFilter, tcs));
 			return tcs.Task;
 		}
+
 		private void ReadMessageContinuation(Task<RedisResponse> readTask, ChannelMessageType? messageTypeFilter, TaskCompletionSource<ChannelMessage> tcs)
 		{
 			if (readTask.IsFaulted)
