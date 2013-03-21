@@ -19,7 +19,7 @@ Release Notes
 
 1.1.0
 --------------
-- initial vertion. Supports almost whole Redis 2.6 command set.
+- initial version. Supports almost whole Redis 2.6 command set.
 
 
 
