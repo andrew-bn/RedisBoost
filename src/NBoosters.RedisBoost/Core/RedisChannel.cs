@@ -53,30 +53,27 @@ namespace NBoosters.RedisBoost.Core
 		private volatile byte[][] _sendRequest;
 		private volatile int _partIndex;
 		private ArraySegment<byte> _arraySegment;
-		private volatile Action<Exception> _sendCallBack;
-		public void SendAsync(byte[][] request, Action<Exception> callback)
+		private volatile AsyncOperationDelegate<Exception> _sendCallBack;
+
+		public bool SendAsync(byte[][] request, AsyncOperationDelegate<Exception> callback)
 		{
 			_sendCallBack = callback;
 			_sendRequest = request;
 			_sendState = 0;
 			_partIndex = 0;
-			SendDataTask(null);
+			return SendDataTask(true, null);
 		}
 
-		private void SendDataTask(Exception ex)
+		private bool SendDataTask(bool sync, Exception ex)
 		{
 			if (ex != null)
-			{
-				_sendCallBack(ex);
-				return;
-			}
+				return sync && _sendCallBack(sync, ex);
+			
 			if (_sendState == 0)
 			{
 				if (!_redisStream.WriteArgumentsCountLine(_sendRequest.Length))
-				{
-					_redisStream.Flush(SendDataTask);
-					return;
-				}
+					return sync && _redisStream.Flush(SendDataTask);
+				
 				_sendState = 1;
 			}
 
@@ -87,10 +84,8 @@ namespace NBoosters.RedisBoost.Core
 					if (_sendState == 1)
 					{
 						if (!_redisStream.WriteDataSizeLine(_sendRequest[_partIndex].Length))
-						{
-							_redisStream.Flush(SendDataTask);
-							return;
-						}
+							return sync && _redisStream.Flush(SendDataTask);
+						
 						_sendState = 2;
 						_arraySegment = new ArraySegment<byte>(_sendRequest[_partIndex], 0, _sendRequest[_partIndex].Length);
 					}
@@ -101,10 +96,8 @@ namespace NBoosters.RedisBoost.Core
 						{
 							_arraySegment = _redisStream.WriteData(_arraySegment);
 							if (_arraySegment.Count > 0)
-							{
-								_redisStream.Flush(SendDataTask);
-								return;
-							}
+								return sync && _redisStream.Flush(SendDataTask);
+
 							_sendState = 3;
 							break;
 						}
@@ -112,15 +105,14 @@ namespace NBoosters.RedisBoost.Core
 					if (_sendState == 3)
 					{
 						if (!_redisStream.WriteNewLine())
-						{
-							_redisStream.Flush(SendDataTask);
-							return;
-						}
+							return sync && _redisStream.Flush(SendDataTask);
+
 						_sendState = 1;
 					}
 				}
-				_sendCallBack(null);
+				return sync && _sendCallBack(sync, null);
 			}
+			return sync;
 		}
 		#endregion
 		#region Receive Data Task
@@ -137,7 +129,7 @@ namespace NBoosters.RedisBoost.Core
 
 			ReadResponseTask(FinishResponseReading);
 		}
-		private void ReadResponseTask(Action<Exception, RedisResponse> callBack)
+		private void ReadResponseTask(AsyncOperationDelegate<Exception, RedisResponse> callBack)
 		{
 			_redisStream.ReadLine((ex, line) => ProcessRedisLine(ex, line, callBack));
 		}
@@ -217,7 +209,7 @@ namespace NBoosters.RedisBoost.Core
 			else continuation(new RedisException("Invalid reply type"), null);
 		}
 		#endregion
-		public void Flush(Action<Exception> callBack)
+		public void Flush(AsyncOperationDelegate<Exception> callBack)
 		{
 			_redisStream.Flush(callBack);
 		}

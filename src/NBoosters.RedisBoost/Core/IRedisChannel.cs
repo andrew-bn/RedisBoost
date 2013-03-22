@@ -27,11 +27,11 @@ namespace NBoosters.RedisBoost.Core
 	{
 		IRedisDataAnalizer RedisDataAnalizer { get; }
 		void EngageWith(Socket socket, IRedisSerializer serializer);
-		void SendAsync(byte[][] request, Action<Exception> callback);
+		bool SendAsync(byte[][] request, AsyncOperationDelegate<Exception> callback);
 		void ReadResponseAsync(Action<Exception,RedisResponse> callBack);
 		void ConnectAsync(EndPoint endPoint, Action<Exception> callBack);
 		void DisconnectAsync(Action<Exception> callBack);
-		void Flush(Action<Exception> callBack);
+		void Flush(AsyncOperationDelegate<Exception> callBack);
 
 		bool BufferIsEmpty { get; }
 	}

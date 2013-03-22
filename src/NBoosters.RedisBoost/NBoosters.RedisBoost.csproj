@@ -47,6 +47,7 @@
     <Compile Include="Bulk.cs" />
     <Compile Include="ChannelMessage.cs" />
     <Compile Include="ChannelMessageType.cs" />
+    <Compile Include="Core\AsyncOperationDelegate.cs" />
     <Compile Include="Core\IPrepareSupportRedisClient.cs" />
     <Compile Include="Core\Misk\Extensions.cs" />
     <Compile Include="Core\Pipeline\IRedisPipeline.cs" />

@@ -118,25 +118,20 @@ namespace NBoosters.RedisBoost.Core
 			return true;
 		}
 
-		public void ReadBlockLine(int length, Action<Exception, byte[]> callBack)
+		public bool ReadBlockLine(int length, AsyncOperationDelegate<Exception, byte[]> callBack)
 		{
 			var result = new byte[length];
 			var offset = 0;
-			Action<Exception> body = null;
-			body = ex =>
+			AsyncOperationDelegate<Exception> body = null;
+			body = (s,ex) =>
 			{
 				if (ex != null)
-				{
-					callBack(ex, null);
-					return;
-				}
+					return s && callBack(s, ex, null);
+				
 				while (offset < length)
 				{
 					if (_readBufferOffset >= _readBufferSize)
-					{
-						ReadDataFromSocket(body);
-						return;
-					}
+						return s && ReadDataFromSocket(body);
 
 					var bytesToCopy = length - offset;
 
@@ -148,37 +143,32 @@ namespace NBoosters.RedisBoost.Core
 					offset += bytesToCopy;
 				}
 				_readBufferOffset += 2;
-				callBack(null, result);
+				return s && callBack(s, null, result);
 			};
 
-			body(null);
+			return body(true, null);
 		}
-		public void ReadLine(Action<Exception, RedisLine> callBack)
+		public bool ReadLine(AsyncOperationDelegate<Exception, RedisLine> callBack)
 		{
 			var sb = new StringBuilder();
 			var result = new RedisLine();
 
-			Action<Exception> body = null;
-			body = ex =>
+			AsyncOperationDelegate<Exception> body = null;
+			body = (s,ex) =>
 			{
 				if (ex != null)
-				{
-					callBack(ex, result);
-					return;
-				}
+					return s && callBack(s, ex, result);
+				
 				while (true)
 				{
 					if (_readBufferOffset >= _readBufferSize)
-					{
-						ReadDataFromSocket(body);
-						return;
-					}
+						return s && ReadDataFromSocket(body);
+					
 					if (_readBuffer[_readBufferOffset] == '\r')
 					{
 						_readBufferOffset += 2;
 						result.Line = sb.ToString();
-						callBack(null, result);
-						return;
+						return s && callBack(s, null, result);
 					}
 
 					if (result.FirstChar == 0)
@@ -190,46 +180,46 @@ namespace NBoosters.RedisBoost.Core
 				}
 			};
 
-			body(null);
+			return body(true, null);
 		}
 		private void WriteNewLineToBuffer()
 		{
 			_writeBuffer[_writeBufferOffset++] = RedisConstants.NewLine[0];
 			_writeBuffer[_writeBufferOffset++] = RedisConstants.NewLine[1];
 		}
-		public void Flush(Action<Exception> callBack)
+		public bool Flush(AsyncOperationDelegate<Exception> callBack)
 		{
 			_writeArgs.SetBuffer(_writeBuffer, 0, _writeBufferOffset);
-			_socket.SendAllAsync(_writeArgs,ex=>
+			return _socket.SendAllAsync(_writeArgs, (s, ex) =>
 							  {
 								  _writeArgs.SetBuffer(null, 0, 0);
 								  _writeBufferOffset = 0;
-								  callBack(ex);
+								  return s && callBack(s, ex);
 							  });
 		}
 
-		private void ReadDataFromSocket(Action<Exception> callBack)
+		private bool ReadDataFromSocket(AsyncOperationDelegate<Exception> callBack)
 		{			
 			_readBufferOffset = _readBufferOffset - _readBufferSize;
 			_readBufferSize = 0;
 			_readArgs.SetBuffer(_readBuffer, 0, _readBuffer.Length);
-			_socket.ReceiveAsyncAsync(_readArgs,ex=>
+			return _socket.ReceiveAsyncAsync(_readArgs, (s, ex) =>
 					{
 						_readArgs.SetBuffer(null, 0, 0);
 						_readBufferSize = _readArgs.BytesTransferred;
-						callBack(ex);
+						return s && callBack(s, ex);
 					});
 		}
 
-		public void Connect(EndPoint endPoint, Action<Exception> callBack)
+		public bool Connect(EndPoint endPoint, AsyncOperationDelegate<Exception> callBack)
 		{
 			_notIoArgs.RemoteEndPoint = endPoint;
-			_socket.ConnectAsyncAsync(_notIoArgs, callBack);
+			return _socket.ConnectAsyncAsync(_notIoArgs, callBack);
 		}
 
-		public void Disconnect(Action<Exception> callBack)
+		public bool Disconnect(AsyncOperationDelegate<Exception> callBack)
 		{
-			_socket.DisconnectAsyncAsync(_notIoArgs, callBack);
+			return _socket.DisconnectAsyncAsync(_notIoArgs, callBack);
 		}
 
 		public void DisposeAndReuse()

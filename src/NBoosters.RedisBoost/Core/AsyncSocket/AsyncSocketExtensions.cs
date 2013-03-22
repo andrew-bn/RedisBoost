@@ -36,61 +36,60 @@ namespace NBoosters.RedisBoost.Core.AsyncSocket
 						: null;
 		}
 
-		public static void SendAllAsync(this Socket socket, SocketAsyncEventArgs args, Action<Exception> callBack)
+		public static bool SendAllAsync(this Socket socket, SocketAsyncEventArgs args, AsyncOperationDelegate<Exception> callBack)
 		{
-			SendAllAsync(socket, args, null, 0, callBack);
+			return SendAllAsync(socket, true, args, null, 0, callBack);
 		}
-		private static void SendAllAsync(this Socket socket, SocketAsyncEventArgs args, Exception exception, int sent, Action<Exception> callBack)
+		private static bool SendAllAsync(this Socket socket, bool sync, SocketAsyncEventArgs args, Exception exception, int sent, AsyncOperationDelegate<Exception> callBack)
 		{
 			if (sent >= args.Count || exception != null)
-			{
-				callBack(exception);
-				return;
-			}
+				return sync && callBack(sync,exception);
+			
 
 			int sendSize = args.Count - sent;
 			if (sendSize > socket.SendBufferSize)
 				sendSize = socket.SendBufferSize;
 
 			args.SetBuffer( args.Offset + sent, sendSize);
-			socket.SendAsyncAsync(args, ex => SendAllAsync(socket,args,ex,sent+args.BytesTransferred,callBack));
+			return socket.SendAsyncAsync(args, (s,ex) => sync && SendAllAsync(socket, s, args,ex,sent+args.BytesTransferred,callBack));
 		}
-		public static void SendAsyncAsync(this Socket socket, SocketAsyncEventArgs args, Action<Exception> callBack)
+		public static bool SendAsyncAsync(this Socket socket, SocketAsyncEventArgs args, AsyncOperationDelegate<Exception> callBack)
 		{
 			args.UserToken = callBack;
 			args.Completed += AsyncOpCallBack;
-			if (!socket.SendAsync(args))
-				AsyncOpCallBack(socket, args);
+			return !socket.SendAsync(args) && AsyncOpCallBack(true, socket, args);
 		}
-		public static void ReceiveAsyncAsync(this Socket socket, SocketAsyncEventArgs args, Action<Exception> callBack)
+		public static bool ReceiveAsyncAsync(this Socket socket, SocketAsyncEventArgs args, AsyncOperationDelegate<Exception> callBack)
 		{
 			args.UserToken = callBack;
 			args.Completed += AsyncOpCallBack;
-			if (!socket.ReceiveAsync(args))
-				AsyncOpCallBack(socket, args);
+			return !socket.ReceiveAsync(args) && AsyncOpCallBack(true, socket, args);
 		}
-		public static void ConnectAsyncAsync(this Socket socket, SocketAsyncEventArgs args,Action<Exception> callBack)
+		public static bool ConnectAsyncAsync(this Socket socket, SocketAsyncEventArgs args, AsyncOperationDelegate<Exception> callBack)
 		{
 			args.UserToken = callBack;
 			args.Completed += AsyncOpCallBack;
-			if (!socket.ConnectAsync(args))
-				AsyncOpCallBack(socket, args);
+			return !socket.ConnectAsync(args) && AsyncOpCallBack(true, socket, args);
 		}
-		public static void DisconnectAsyncAsync(this Socket socket, SocketAsyncEventArgs args, Action<Exception> callBack)
+		public static bool DisconnectAsyncAsync(this Socket socket, SocketAsyncEventArgs args, AsyncOperationDelegate<Exception> callBack)
 		{
 			args.UserToken = callBack;
 			args.Completed += AsyncOpCallBack;
-			if (!socket.DisconnectAsync(args))
-				AsyncOpCallBack(socket, args);
+			return !socket.DisconnectAsync(args) && AsyncOpCallBack(true, socket, args);
 		}
 		private static void AsyncOpCallBack(object sender, SocketAsyncEventArgs eventArgs)
 		{
+			AsyncOpCallBack(false,sender,eventArgs);
+		}
+		private static bool AsyncOpCallBack(bool sync, object sender, SocketAsyncEventArgs eventArgs)
+		{
 			eventArgs.Completed -= AsyncOpCallBack;
-			var callBack = (Action<Exception>)eventArgs.UserToken;
+
+			var callBack = (AsyncOperationDelegate<Exception>)eventArgs.UserToken;
 			eventArgs.UserToken = null;
 
 			var ex = GetExceptionIfError(eventArgs);
-			callBack(ex);
+			return sync && callBack(sync, ex);
 		}
 	}
 }
