@@ -48,6 +48,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BasicRedisSerializerTests.cs" />
+    <Compile Include="ExtensionsTests\ManualResetEventTests.cs" />
+    <Compile Include="ExtensionsTests\RedisQueueIntegrationTests.cs" />
     <Compile Include="IntegrationTestsForGenericMethods.cs" />
     <Compile Include="IntegrationTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
