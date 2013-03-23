@@ -127,13 +127,13 @@ namespace NBoosters.RedisBoost.Core
 			_receiveMultiBulkPartsLeft = 0;
 			_multiBulkParts = null;
 
-			return ReadResponseTask(FinishResponseReading);
+			return ReadResponseFromStream(true);
 		}
-		private bool ReadResponseTask(AsyncOperationDelegate<Exception, RedisResponse> callBack)
+		private bool ReadResponseFromStream(bool sync)
 		{
-			return _redisStream.ReadLine((s, ex, line) => ProcessRedisLine(s, ex, line, callBack));
+			return _redisStream.ReadLine((s,e,l)=>ProcessRedisLine(s&&sync,e,l));
 		}
-		private bool FinishResponseReading(bool sync, Exception ex, RedisResponse response)
+		private bool ProcessRedisResponse(bool sync, Exception ex, RedisResponse response)
 		{
 			if (ex != null)
 				return _receiveCallBack(sync, ex, null) && sync;
@@ -148,49 +148,49 @@ namespace NBoosters.RedisBoost.Core
 
 			return _receiveMultiBulkPartsLeft <= 0
 					   ? _receiveCallBack(sync, null, RedisResponse.CreateMultiBulk(_multiBulkParts, _serializer)) && sync
-					   : ReadResponseTask((s,e,r)=>FinishResponseReading(s&&sync,e,r)) && sync;
+					   : ReadResponseFromStream(sync) && sync;
 		}
-		private bool ProcessRedisBulk(bool sync, Exception ex, byte[] data, AsyncOperationDelegate<Exception, RedisResponse> continuation)
+		private bool ProcessRedisBulkLine(bool sync, Exception ex, byte[] data)
 		{
 			return ex != null
-				       ? continuation(sync, ex, null) && sync
-				       : continuation(sync, null, RedisResponse.CreateBulk(data, _serializer)) && sync;
+					   ? ProcessRedisResponse(sync, ex, null) && sync
+					   : ProcessRedisResponse(sync, null, RedisResponse.CreateBulk(data, _serializer)) && sync;
 		}
 
-		private bool ProcessRedisLine(bool sync, Exception ex, RedisLine line, AsyncOperationDelegate<Exception, RedisResponse> continuation)
+		private bool ProcessRedisLine(bool sync, Exception ex, RedisLine line)
 		{
 			if (ex != null)
-				return continuation(sync, ex, null) && sync;
+				return ProcessRedisResponse(sync, ex, null) && sync;
 
 			if (_redisDataAnalizer.IsErrorReply(line.FirstChar))
-				return continuation(sync, null, RedisResponse.CreateError(line.Line, _serializer)) && sync;
+				return ProcessRedisResponse(sync, null, RedisResponse.CreateError(line.Line, _serializer)) && sync;
 			if (_redisDataAnalizer.IsStatusReply(line.FirstChar))
-				return continuation(sync, null, RedisResponse.CreateStatus(line.Line, _serializer)) && sync;
+				return ProcessRedisResponse(sync, null, RedisResponse.CreateStatus(line.Line, _serializer)) && sync;
 			if (_redisDataAnalizer.IsIntReply(line.FirstChar))
-				return continuation(sync, null, RedisResponse.CreateInteger(_redisDataAnalizer.ConvertToLong(line.Line), _serializer)) && sync;
+				return ProcessRedisResponse(sync, null, RedisResponse.CreateInteger(_redisDataAnalizer.ConvertToLong(line.Line), _serializer)) && sync;
 			if (_redisDataAnalizer.IsBulkReply(line.FirstChar))
 			{
 				var length = _redisDataAnalizer.ConvertToInt(line.Line);
 				//check nil reply
 				return length == -1
-					       ? continuation(sync, null, RedisResponse.CreateBulk(null, _serializer)) && sync
-					       : _redisStream.ReadBlockLine(length, (s, err, data) => ProcessRedisBulk(s && sync, err, data, continuation)) && sync;
+						   ? ProcessRedisResponse(sync, null, RedisResponse.CreateBulk(null, _serializer)) && sync
+					       : _redisStream.ReadBlockLine(length, (s, err, data) => ProcessRedisBulkLine(s && sync, err, data)) && sync;
 			}
 			if (_redisDataAnalizer.IsMultiBulkReply(line.FirstChar))
 			{
 				_receiveMultiBulkPartsLeft = _redisDataAnalizer.ConvertToInt(line.Line);
 
 				if (_receiveMultiBulkPartsLeft == -1) // multi-bulk nill
-					return continuation(sync, null, RedisResponse.CreateMultiBulk(null, _serializer)) && sync;
+					return ProcessRedisResponse(sync, null, RedisResponse.CreateMultiBulk(null, _serializer)) && sync;
 
 				_multiBulkParts = new RedisResponse[_receiveMultiBulkPartsLeft];
 
 				if (_receiveMultiBulkPartsLeft == 0)
-					return continuation(sync, null, RedisResponse.CreateMultiBulk(_multiBulkParts, _serializer)) && sync;
+					return ProcessRedisResponse(sync, null, RedisResponse.CreateMultiBulk(_multiBulkParts, _serializer)) && sync;
 
-				return ReadResponseTask((s,err,data) => FinishResponseReading(s && sync, err, data)) && sync;
+				return ReadResponseFromStream(sync) && sync;
 			}
-			return continuation(sync, new RedisException("Invalid reply type"), null) && sync;
+			return ProcessRedisResponse(sync, new RedisException("Invalid reply type"), null) && sync;
 		}
 		#endregion
 		public bool Flush(AsyncOperationDelegate<Exception> callBack)
