@@ -67,7 +67,7 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 			ContinueSending:
 
 			if (_requestsQueue.TryDequeue(out item))
-			{
+			{ 
 				if (_pipelineException==null)
 					_channel.SendAsync(item.Request,ex=>ItemSendProcessDone(ex,item));
 				else
