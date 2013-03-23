@@ -355,10 +355,11 @@ namespace NBoosters.RedisBoost
 		{
 			var tcs = new TaskCompletionSource<bool>();
 			_redisChannel.SendAsync(args,
-				ex =>
+				(s,ex) =>
 				{
 					if (!_redisChannel.BufferIsEmpty)
-						_redisChannel.Flush(err =>
+					{
+						return _redisChannel.Flush((snk, err) =>
 							{
 								if (err != null)
 								{
@@ -368,7 +369,10 @@ namespace NBoosters.RedisBoost
 									tcs.SetException(err);
 								}
 								else tcs.SetResult(true);
-							});
+								return snk;
+							}) && s;
+					}
+					return s;
 				});
 
 			return tcs.Task;
@@ -376,7 +380,11 @@ namespace NBoosters.RedisBoost
 		public Task<RedisResponse> ReadDirectResponse()
 		{
 			var tcs = new TaskCompletionSource<RedisResponse>();
-			_redisChannel.ReadResponseAsync((ex, r) => ProcessRedisResponse(tcs,ex,r));
+			_redisChannel.ReadResponseAsync((s, ex, r) =>
+				{
+					ProcessRedisResponse(tcs, ex, r);
+					return s;
+				});
 			return tcs.Task;
 		}
 
@@ -386,7 +394,7 @@ namespace NBoosters.RedisBoost
 		{
 			var tcs = new TaskCompletionSource<bool>();
 			_redisChannel.ConnectAsync(_connectionStringBuilder.EndPoint,
-			    ex =>
+			    (snk,ex) =>
 				    {
 					   if (ex != null)
 					   {
@@ -398,13 +406,14 @@ namespace NBoosters.RedisBoost
 						   tcs.SetResult(true);
 						   _state = ClientState.Connect;
 					   }
+					    return snk;
 				    });
 			return tcs.Task;
 		}
 		public Task DisconnectAsync()
 		{
 			var tcs = new TaskCompletionSource<bool>();
-			_redisChannel.DisconnectAsync(ex =>
+			_redisChannel.DisconnectAsync((s,ex) =>
 				{
 					if (ex != null)
 					{
@@ -416,6 +425,7 @@ namespace NBoosters.RedisBoost
 						_state = ClientState.Disconnect;
 						tcs.SetResult(true);
 					}
+					return s;
 				});
 			return tcs.Task;
 		}

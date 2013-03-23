@@ -43,7 +43,7 @@ namespace NBoosters.RedisBoost.Core.AsyncSocket
 		private static bool SendAllAsync(this Socket socket, bool sync, SocketAsyncEventArgs args, Exception exception, int sent, AsyncOperationDelegate<Exception> callBack)
 		{
 			if (sent >= args.Count || exception != null)
-				return sync && callBack(sync,exception);
+				return callBack(sync,exception) && sync;
 			
 
 			int sendSize = args.Count - sent;
@@ -51,7 +51,7 @@ namespace NBoosters.RedisBoost.Core.AsyncSocket
 				sendSize = socket.SendBufferSize;
 
 			args.SetBuffer( args.Offset + sent, sendSize);
-			return socket.SendAsyncAsync(args, (s,ex) => sync && SendAllAsync(socket, s, args,ex,sent+args.BytesTransferred,callBack));
+			return socket.SendAsyncAsync(args, (s,ex) => SendAllAsync(socket, s, args,ex,sent+args.BytesTransferred,callBack)) && sync;
 		}
 		public static bool SendAsyncAsync(this Socket socket, SocketAsyncEventArgs args, AsyncOperationDelegate<Exception> callBack)
 		{
@@ -89,7 +89,7 @@ namespace NBoosters.RedisBoost.Core.AsyncSocket
 			eventArgs.UserToken = null;
 
 			var ex = GetExceptionIfError(eventArgs);
-			return sync && callBack(sync, ex);
+			return callBack(sync, ex) && sync;
 		}
 	}
 }

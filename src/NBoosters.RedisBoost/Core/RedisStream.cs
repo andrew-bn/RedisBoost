@@ -123,15 +123,15 @@ namespace NBoosters.RedisBoost.Core
 			var result = new byte[length];
 			var offset = 0;
 			AsyncOperationDelegate<Exception> body = null;
-			body = (s,ex) =>
+			body = (s, ex) =>
 			{
 				if (ex != null)
-					return s && callBack(s, ex, null);
-				
+					return callBack(s, ex, null) && s;
+
 				while (offset < length)
 				{
 					if (_readBufferOffset >= _readBufferSize)
-						return s && ReadDataFromSocket(body);
+						return ReadDataFromSocket(body) && s;
 
 					var bytesToCopy = length - offset;
 
@@ -143,7 +143,7 @@ namespace NBoosters.RedisBoost.Core
 					offset += bytesToCopy;
 				}
 				_readBufferOffset += 2;
-				return s && callBack(s, null, result);
+				return callBack(s, null, result) && s;
 			};
 
 			return body(true, null);
@@ -154,21 +154,21 @@ namespace NBoosters.RedisBoost.Core
 			var result = new RedisLine();
 
 			AsyncOperationDelegate<Exception> body = null;
-			body = (s,ex) =>
+			body = (s, ex) =>
 			{
 				if (ex != null)
-					return s && callBack(s, ex, result);
-				
+					return callBack(s, ex, result) && s;
+
 				while (true)
 				{
 					if (_readBufferOffset >= _readBufferSize)
-						return s && ReadDataFromSocket(body);
-					
+						return ReadDataFromSocket(body) && s;
+
 					if (_readBuffer[_readBufferOffset] == '\r')
 					{
 						_readBufferOffset += 2;
 						result.Line = sb.ToString();
-						return s && callBack(s, null, result);
+						return callBack(s, null, result) && s;
 					}
 
 					if (result.FirstChar == 0)
@@ -194,12 +194,12 @@ namespace NBoosters.RedisBoost.Core
 							  {
 								  _writeArgs.SetBuffer(null, 0, 0);
 								  _writeBufferOffset = 0;
-								  return s && callBack(s, ex);
+								  return callBack(s, ex) && s;
 							  });
 		}
 
 		private bool ReadDataFromSocket(AsyncOperationDelegate<Exception> callBack)
-		{			
+		{
 			_readBufferOffset = _readBufferOffset - _readBufferSize;
 			_readBufferSize = 0;
 			_readArgs.SetBuffer(_readBuffer, 0, _readBuffer.Length);
@@ -207,7 +207,7 @@ namespace NBoosters.RedisBoost.Core
 					{
 						_readArgs.SetBuffer(null, 0, 0);
 						_readBufferSize = _readArgs.BytesTransferred;
-						return s && callBack(s, ex);
+						return callBack(s, ex) && s;
 					});
 		}
 
