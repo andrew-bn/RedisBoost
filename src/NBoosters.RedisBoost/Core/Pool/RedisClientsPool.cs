@@ -26,7 +26,7 @@ using NBoosters.RedisBoost.Core.Misk;
 
 namespace NBoosters.RedisBoost.Core.Pool
 {
-	internal sealed class RedisClientsPool : IRedisClientsPool
+	internal class RedisClientsPool : IRedisClientsPool
 	{
 		private const int INACTIVITY_TIMEOUT = 1000 * 60; // 1 min
 		private const int DESTROY_TIMEOUT = 10 * 1000;// 10 sec
@@ -102,10 +102,7 @@ namespace NBoosters.RedisBoost.Core.Pool
 
 		internal void ReturnClient(IPooledRedisClient pooledRedisClient)
 		{
-			if (pooledRedisClient.State == RedisClient.ClientState.Subscription ||
-				pooledRedisClient.State == RedisClient.ClientState.Quit ||
-				pooledRedisClient.State == RedisClient.ClientState.Disconnect ||
-				pooledRedisClient.State == RedisClient.ClientState.FatalError)
+			if (DestroyClientCondition(pooledRedisClient))
 			{
 				pooledRedisClient.Destroy();
 			}
@@ -121,6 +118,14 @@ namespace NBoosters.RedisBoost.Core.Pool
 				else
 					pool.Enqueue(new PoolItem(pooledRedisClient));
 			}
+		}
+
+		protected virtual bool DestroyClientCondition(IPooledRedisClient pooledRedisClient)
+		{
+			return pooledRedisClient.State == RedisClient.ClientState.Subscription ||
+			       pooledRedisClient.State == RedisClient.ClientState.Quit ||
+			       pooledRedisClient.State == RedisClient.ClientState.Disconnect ||
+			       pooledRedisClient.State == RedisClient.ClientState.FatalError;
 		}
 
 		private bool PoolIsOversized(ConcurrentQueue<PoolItem> pool)
@@ -175,8 +180,7 @@ namespace NBoosters.RedisBoost.Core.Pool
 		{
 			try
 			{
-				client.QuitAsync().Wait(_destroyTimeout);
-				client.Destroy();
+				DestroyClient(client);
 				return null;
 			}
 			catch (Exception ex)
@@ -184,25 +188,36 @@ namespace NBoosters.RedisBoost.Core.Pool
 				return ex;
 			}
 		}
-
-		private int _disposed = 0;
-		public void Dispose()
+		protected virtual void DestroyClient(IPooledRedisClient client)
+		{
+			client.QuitAsync().Wait(_destroyTimeout);
+			client.Destroy();
+		}
+		protected virtual void Dispose(bool disposing)
 		{
 			if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
 				return;
 
-			_timer.Dispose();
-
-			foreach (var pool in _pools)
+			if (disposing)
 			{
-				var queue = pool.Value;
-				while (queue.Count != 0)
+				_timer.Dispose();
+
+				foreach (var pool in _pools)
 				{
-					PoolItem item;
-					if (queue.TryDequeue(out item))
-						DestroyPoolItem(item);
+					var queue = pool.Value;
+					while (queue.Count != 0)
+					{
+						PoolItem item;
+						if (queue.TryDequeue(out item))
+							DestroyPoolItem(item);
+					}
 				}
 			}
+		}
+		private int _disposed = 0;
+		public void Dispose()
+		{
+			Dispose(true);
 		}
 		private bool Disposed
 		{

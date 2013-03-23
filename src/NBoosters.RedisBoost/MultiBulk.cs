@@ -27,26 +27,41 @@ namespace NBoosters.RedisBoost
 	{
 		internal RedisResponse[] Parts { get; private set; }
 
+		public bool IsNull
+		{
+			get { return Parts == null; }
+		}
+
 		internal MultiBulk(RedisResponse[] parts, IRedisSerializer serializer)
 			: base(RedisResponseType.MultiBulk, serializer)
 		{
 			Parts = parts;
 		}
+
 		public int Length
 		{
-			get { return Parts.Length; }
+			get
+			{
+				ThrowIfMultiBulkNull();
+				return Parts.Length;
+			}
 		}
 		public RedisResponse this[int index]
 		{
-			get { return Parts[index]; }
+			get
+			{
+				ThrowIfMultiBulkNull();
+				return Parts[index];
+			}
 		}
 		public T[] AsArray<T>()
 		{
-			return Parts.Select(p=>p.As<T>()).ToArray();
+			return IsNull? null: Parts.Select(p => p.As<T>()).ToArray();
 		}
+
 		public static implicit operator byte[][](MultiBulk value)
 		{
-			return ToArray<byte[]>(value.Parts);
+			return value.IsNull? null: ToArray<byte[]>(value.Parts);
 		}
 		private static T[] ToArray<T>(RedisResponse[] response)
 		{
@@ -54,7 +69,7 @@ namespace NBoosters.RedisBoost
 			for (int i = 0; i < result.Length; i++)
 			{
 				if (response[i].ResponseType != RedisResponseType.Bulk)
-					throw new InvalidCastException("MultiBulk reply contains non bulk parts. Unable to convert non bulk part to "+typeof(T).Name);
+					throw new InvalidCastException("MultiBulk reply contains non bulk parts. Unable to convert non bulk part to " + typeof(T).Name);
 				result[i] = response[i].AsBulk().As<T>();
 			}
 			return result;
@@ -62,12 +77,19 @@ namespace NBoosters.RedisBoost
 
 		public IEnumerator<RedisResponse> GetEnumerator()
 		{
+			ThrowIfMultiBulkNull();
 			return ((IEnumerable<RedisResponse>)Parts).GetEnumerator();
 		}
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
+		}
+
+		private void ThrowIfMultiBulkNull()
+		{
+			if (IsNull)
+				throw new RedisException("This is NULL multi-bulk reply");
 		}
 	}
 }

@@ -58,15 +58,6 @@
     <Compile Include="Core\Pool\RedisClientsPool.cs" />
     <Compile Include="Core\Serialization\BasicRedisSerializer.cs" />
     <Compile Include="Core\Serialization\IRedisSerializer.cs" />
-    <Compile Include="Extensions\ClientsPoolExtensions.cs" />
-    <Compile Include="Extensions\ExtensionBase.cs" />
-    <Compile Include="Extensions\ExtensionsFactory.cs" />
-    <Compile Include="Extensions\IExtensionsFactory.cs" />
-    <Compile Include="Extensions\ManualResetEvent\IManualResetEvent.cs" />
-    <Compile Include="Extensions\ManualResetEvent\RedisManualResetEvent.cs" />
-    <Compile Include="Extensions\PubSubClientsPool.cs" />
-    <Compile Include="Extensions\Queue\IQueue.cs" />
-    <Compile Include="Extensions\Queue\RedisQueue.cs" />
     <Compile Include="IRedisClientsPool.cs" />
     <Compile Include="IRedisSubscription.cs" />
     <Compile Include="MultiBulk.cs" />
@@ -126,9 +117,7 @@
     <Compile Include="ZAddArgs.cs" />
     <Compile Include="ZAggrStoreArgs.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Extensions\AutoResetEvent\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

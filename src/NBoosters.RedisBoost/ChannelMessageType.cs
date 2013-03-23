@@ -23,13 +23,12 @@ namespace NBoosters.RedisBoost
 	[Flags]
 	public enum ChannelMessageType
 	{
-		Quit = 0,
-		Any = 1,
-		Subscribe = 2,
+		Unknown = 0,
+		Subscribe = 1,
+		PSubscribe = 2,
 		Unsubscribe = 4,
-		Message = 8,
-		PMessage = 16,
-		PSubscribe = 32,
-		PUnsubscribe = 64,
+		PUnsubscribe = 8,
+		Message = 16,
+		PMessage = 32,
 	}
 }

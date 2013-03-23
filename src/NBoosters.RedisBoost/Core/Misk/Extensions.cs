@@ -23,6 +23,18 @@ namespace NBoosters.RedisBoost.Core.Misk
 {
 	internal static class Extensions
 	{
+		public static Task ContinueWithIfNoError<T,TResult>(this T task, TaskCompletionSource<TResult> tcs, Action<T> action)
+			where T : Task
+		{
+			return task.ContinueWith(t =>
+			{
+				if (task.IsFaulted) 
+					tcs.SetException(task.Exception);
+				else
+					action(task);
+			});
+
+		}
 		public static Task ContinueWithIfNoError<T>(this T task, Action<T> action)
 			where T:Task
 		{
@@ -44,7 +56,9 @@ namespace NBoosters.RedisBoost.Core.Misk
 		}
 		public static Exception UnwrapAggregation(this Exception ex)
 		{
-			while (ex is AggregateException) ex = ex.InnerException;
+			var aggrException = ex as AggregateException;
+			if (aggrException != null)
+				ex = aggrException.Flatten().InnerException;
 			return ex;
 		}
 	}

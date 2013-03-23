@@ -202,12 +202,17 @@ namespace NBoosters.RedisBoost.Core
 			{
 				_receiveMultiBulkPartsLeft = _redisDataAnalizer.ConvertToInt(line.Line);
 
-				_multiBulkParts = new RedisResponse[_receiveMultiBulkPartsLeft];
-
-				if (_receiveMultiBulkPartsLeft == 0)
-					continuation(null, RedisResponse.CreateMultiBulk(_multiBulkParts, _serializer));
+				if (_receiveMultiBulkPartsLeft == -1) // multi-bulk nill
+					continuation(null, RedisResponse.CreateMultiBulk(null, _serializer));
 				else
-					ReadResponseTask(FinishResponseReading);
+				{
+					_multiBulkParts = new RedisResponse[_receiveMultiBulkPartsLeft];
+
+					if (_receiveMultiBulkPartsLeft == 0)
+						continuation(null, RedisResponse.CreateMultiBulk(_multiBulkParts, _serializer));
+					else
+						ReadResponseTask(FinishResponseReading);
+				}
 			}
 			else continuation(new RedisException("Invalid reply type"), null);
 		}

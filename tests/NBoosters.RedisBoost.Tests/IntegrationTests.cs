@@ -61,7 +61,7 @@ namespace NBoosters.RedisBoost.Tests
 		{
 			using (var cli = CreateClient())
 			{
-				Assert.AreEqual(0,cli.SetBitAsync("key", 7, 1).Result);
+				Assert.AreEqual(0, cli.SetBitAsync("key", 7, 1).Result);
 				Assert.AreEqual(0, cli.GetBitAsync("key", 0).Result);
 				Assert.AreEqual(1, cli.GetBitAsync("key", 7).Result);
 				Assert.AreEqual(0, cli.GetBitAsync("key", 100).Result);
@@ -250,8 +250,8 @@ namespace NBoosters.RedisBoost.Tests
 			using (var cli = CreateClient())
 			{
 				cli.SetAsync("Key", GetBytes("Value")).Wait();
-				Assert.AreEqual(1,cli.MoveAsync("Key", 3).Result);
-				Assert.AreEqual(0,cli.ExistsAsync("Key").Result);
+				Assert.AreEqual(1, cli.MoveAsync("Key", 3).Result);
+				Assert.AreEqual(0, cli.ExistsAsync("Key").Result);
 				cli.SelectAsync(3).Wait();
 				Assert.AreEqual(1, cli.ExistsAsync("Key").Result);
 			}
@@ -272,8 +272,8 @@ namespace NBoosters.RedisBoost.Tests
 		{
 			using (var cli = CreateClient())
 			{
-				cli.SortAsync("mylist",limitCount:2,limitOffset:23,by:"byPattern",
-					asc:false,alpha:true,destination:"dst",getPatterns: new[]{"getPattern"}).Wait();
+				cli.SortAsync("mylist", limitCount: 2, limitOffset: 23, by: "byPattern",
+					asc: false, alpha: true, destination: "dst", getPatterns: new[] { "getPattern" }).Wait();
 			}
 		}
 		[Test]
@@ -301,7 +301,7 @@ namespace NBoosters.RedisBoost.Tests
 			using (var cli = CreateClient())
 			{
 				cli.SetAsync("key", GetBytes("10.50")).Wait();
-				Assert.AreEqual("10.6", GetString(cli.IncrByFloatAsync("key",0.1).Result));
+				Assert.AreEqual("10.6", GetString(cli.IncrByFloatAsync("key", 0.1).Result));
 			}
 		}
 		[Test]
@@ -310,7 +310,7 @@ namespace NBoosters.RedisBoost.Tests
 			using (var cli = CreateClient())
 			{
 				cli.HSetAsync("key", "field", GetBytes("10.50")).Wait();
-				Assert.AreEqual("10.6",GetString(cli.HIncrByFloatAsync("key","field",0.1).Result));
+				Assert.AreEqual("10.6", GetString(cli.HIncrByFloatAsync("key", "field", 0.1).Result));
 			}
 		}
 
@@ -524,6 +524,16 @@ namespace NBoosters.RedisBoost.Tests
 			}
 		}
 		[Test]
+		public void LPushBlPop_NilReply()
+		{
+			using (var cli = CreateClient())
+			{
+				var blpop = cli.BlPopAsync(1, "Key");
+				var result = blpop.Result;
+				Assert.IsTrue(result.IsNull);
+			}
+		}
+		[Test]
 		public void RPushBrPop()
 		{
 			using (var cli = CreateClient())
@@ -732,7 +742,7 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreEqual(2, cli.SCardAsync("Key").Result);
 			}
 		}
-	
+
 
 		[Test]
 		public void SDiffStore()
@@ -751,7 +761,7 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreEqual(2, cli.SCardAsync("New").Result);
 			}
 		}
-		
+
 		[Test]
 		public void SUnionStore()
 		{
@@ -812,7 +822,7 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreEqual(1, cli.SIsMemberAsync("Key", GetBytes("a")).Result);
 			}
 		}
-		
+
 		[Test]
 		public void SMove()
 		{
@@ -1310,7 +1320,33 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreEqual("1", GetString(subResult.Value));
 			}
 		}
-
+		[Test]
+		[ExpectedException(typeof(AggregateException))]
+		public void Subscribe_WithFilter_ReadMessagesAfterChannelClosing()
+		{
+			using (var cli1 = CreateClient())
+			{
+				var c1 = cli1.SubscribeAsync("channel").Result;
+				c1.ReadMessageAsync().Wait();//read subscribe message
+				var readTask = c1.ReadMessageAsync(ChannelMessageType.Message);
+				c1.Dispose();
+				readTask.Wait();
+			}
+		}
+		[Test]
+		public void Subscribe_NoFilter_ReadMessagesAfterChannelClosing()
+		{
+			using (var cli1 = CreateClient())
+			{
+				var c1 = cli1.SubscribeAsync("channel").Result;
+				c1.ReadMessageAsync().Wait();//read subscribe message
+				var readTask = c1.ReadMessageAsync();
+				c1.Dispose();
+				var subResult = readTask.Result;
+				Assert.AreEqual(ChannelMessageType.Unknown, subResult.MessageType);
+				Assert.AreEqual(RedisResponseType.Error, subResult.Value.ResponseType);
+			}
+		}
 		[Test]
 		public void Unsubscribe()
 		{
@@ -1348,7 +1384,7 @@ namespace NBoosters.RedisBoost.Tests
 
 					var channelMessage = subscriber.ReadMessageAsync(ChannelMessageType.Message |
 																ChannelMessageType.PMessage).Result;
-					
+
 					Assert.AreEqual(ChannelMessageType.Message, channelMessage.MessageType);
 					Assert.AreEqual("channel", channelMessage.Channels[0]);
 					Assert.AreEqual("Message", GetString(channelMessage.Value));
@@ -1371,13 +1407,28 @@ namespace NBoosters.RedisBoost.Tests
 			}
 		}
 		[Test]
-		public void Subscribe_Quit()
+		[ExpectedException(typeof(AggregateException))]
+		public void Subscribe_Quit_WithFilter_ExceptionExpected()
 		{
 			using (var cli1 = CreateClient().SubscribeAsync("channel").Result)
 			{
 				cli1.QuitAsync().Wait();
 				var result = cli1.ReadMessageAsync(ChannelMessageType.Message).Result;
-				Assert.AreEqual(ChannelMessageType.Quit, result.MessageType);
+				Assert.AreEqual(ChannelMessageType.Unknown, result.MessageType);
+				Assert.AreEqual(RedisResponseType.Status, result.Value.ResponseType);
+			}
+		}
+
+		[Test]
+		public void Subscribe_Quit_NoFilter_ValidResponse()
+		{
+			using (var cli1 = CreateClient().SubscribeAsync("channel").Result)
+			{
+				cli1.ReadMessageAsync().Wait();//read subscribe message;
+				cli1.QuitAsync().Wait();
+				var result = cli1.ReadMessageAsync().Result;
+				Assert.AreEqual(ChannelMessageType.Unknown, result.MessageType);
+				Assert.AreEqual(RedisResponseType.Status, result.Value.ResponseType);
 			}
 		}
 		#endregion
@@ -1598,7 +1649,7 @@ namespace NBoosters.RedisBoost.Tests
 					Assert.AreEqual(typeof(RedisException), ex.InnerException.GetType());
 					Assert.AreEqual("Pipeline is closed", ex.InnerException.Message);
 				}
-				
+
 			}
 		}
 		[Test]
@@ -1610,13 +1661,13 @@ namespace NBoosters.RedisBoost.Tests
 
 				for (int i = 0; i < 10000; i++)
 				{
-					cli.SetAsync("Key" + i, GetBytes("Value"+i));
-					tasks.Add(cli.GetAsync("Key"+i));
+					cli.SetAsync("Key" + i, GetBytes("Value" + i));
+					tasks.Add(cli.GetAsync("Key" + i));
 				}
 				// some other work here...
 				//...
 				for (int i = 0; i < 10000; i++)
-					Assert.AreEqual("Value"+i,GetString(tasks[i].Result));
+					Assert.AreEqual("Value" + i, GetString(tasks[i].Result));
 			}
 		}
 		[Test]
@@ -1633,16 +1684,16 @@ namespace NBoosters.RedisBoost.Tests
 					if (i == 4999)
 						cli.SubscribeAsync("channel").Wait();
 				}
-				
+
 				for (int i = 0; i < 5000; i++)
 				{
-					SpinWait.SpinUntil(()=>tasks[i].IsCompleted);
+					SpinWait.SpinUntil(() => tasks[i].IsCompleted);
 					Assert.IsFalse(tasks[i].IsFaulted);
 					Assert.AreEqual("Value" + i, GetString(tasks[i].Result));
 				}
 				for (int i = 5000; i < 10000; i++)
 				{
-					SpinWait.SpinUntil(()=>tasks[i].IsCompleted);
+					SpinWait.SpinUntil(() => tasks[i].IsCompleted);
 					Assert.IsTrue(tasks[i].IsFaulted);
 				}
 			}
@@ -1685,7 +1736,7 @@ namespace NBoosters.RedisBoost.Tests
 			var sb = new RedisConnectionStringBuilder(ConnectionString);
 			using (var cli = RedisClient.ConnectAsync(((IPEndPoint)sb.EndPoint).Address.ToString(), ((IPEndPoint)sb.EndPoint).Port, 3).Result)
 			{
-				Assert.AreEqual("PONG",cli.PingAsync().Result);
+				Assert.AreEqual("PONG", cli.PingAsync().Result);
 			}
 		}
 		private static byte[] GetBytes(string value)
