@@ -47,6 +47,7 @@
     <Compile Include="Bulk.cs" />
     <Compile Include="ChannelMessage.cs" />
     <Compile Include="ChannelMessageType.cs" />
+    <Compile Include="Core\AsyncOperationDelegate.cs" />
     <Compile Include="Core\IPrepareSupportRedisClient.cs" />
     <Compile Include="Core\Misk\Extensions.cs" />
     <Compile Include="Core\Pipeline\IRedisPipeline.cs" />
@@ -56,6 +57,12 @@
     <Compile Include="Core\Pool\PooledRedisClient.cs" />
     <Compile Include="Core\Pool\PoolItem.cs" />
     <Compile Include="Core\Pool\RedisClientsPool.cs" />
+    <Compile Include="Core\RedisChannel\IRedisChannel.cs" />
+    <Compile Include="Core\RedisChannel\RedisChannel.cs" />
+    <Compile Include="Core\RedisChannel\ChannelAsyncEventArgs.cs" />
+    <Compile Include="Core\RedisStream\IRedisStream.cs" />
+    <Compile Include="Core\RedisStream\RedisStream.cs" />
+    <Compile Include="Core\RedisStream\StreamAsyncEventArgs.cs" />
     <Compile Include="Core\Serialization\BasicRedisSerializer.cs" />
     <Compile Include="Core\Serialization\IRedisSerializer.cs" />
     <Compile Include="IRedisClientsPool.cs" />
@@ -84,19 +91,15 @@
       <DependentUpon>RedisClient.cs</DependentUpon>
     </Compile>
     <Compile Include="IRedisClient.cs" />
-    <Compile Include="Core\IRedisStream.cs" />
-    <Compile Include="Core\RedisStream.cs" />
     <Compile Include="MSetArgs.cs" />
     <Compile Include="RedisClient.Keys.cs">
       <DependentUpon>RedisClient.cs</DependentUpon>
     </Compile>
     <Compile Include="Core\AsyncSocket\AsyncSocketExtensions.cs" />
     <Compile Include="Core\IRedisDataAnalizer.cs" />
-    <Compile Include="Core\IRedisChannel.cs" />
     <Compile Include="Core\Misk\IObjectsPool.cs" />
     <Compile Include="Core\Misk\ObjectsPool.cs" />
     <Compile Include="Core\RedisConstants.cs" />
-    <Compile Include="Core\RedisChannel.cs" />
     <Compile Include="Core\RedisDataAnalizer.cs" />
     <Compile Include="Core\RedisLine.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
