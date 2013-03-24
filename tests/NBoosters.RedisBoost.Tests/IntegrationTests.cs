@@ -1655,10 +1655,10 @@ namespace NBoosters.RedisBoost.Tests
 		[Test]
 		public void PipelineTest()
 		{
-			while (true)
+			//while (true)
 			{
-				Console.WriteLine("New loop");
-				const int size = 100000;
+				//Console.WriteLine("New loop");
+				const int size = 10000;
 				using (var cli = CreateClient())
 				{
 

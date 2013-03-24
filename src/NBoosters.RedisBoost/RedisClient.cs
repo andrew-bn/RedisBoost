@@ -353,7 +353,7 @@ namespace NBoosters.RedisBoost
 			return tcs.Task;
 		}
 
-		private Task SendDirectReqeust(params byte[][] args)
+		private Task SendDirectRequest(params byte[][] args)
 		{
 			var tcs = new TaskCompletionSource<bool>();
 			_redisChannel.SendAsync(args,
@@ -382,11 +382,13 @@ namespace NBoosters.RedisBoost
 		public Task<RedisResponse> ReadDirectResponse()
 		{
 			var tcs = new TaskCompletionSource<RedisResponse>();
-			/*_redisChannel.ReadResponseAsync((s, ex, r) =>
-				{
-					ProcessRedisResponse(tcs, ex, r);
-					return s;
-				});*/
+
+			Action<ChannelAsyncEventArgs> callBack = e => ProcessRedisResponse(tcs,e.Exception,e.RedisResponse);
+			var args = new ChannelAsyncEventArgs {Completed = callBack};
+
+			if (!_redisChannel.ReadResponseAsync(args))
+				callBack(args);
+
 			return tcs.Task;
 		}
 
