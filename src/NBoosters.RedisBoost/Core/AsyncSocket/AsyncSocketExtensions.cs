@@ -89,6 +89,7 @@ namespace NBoosters.RedisBoost.Core.AsyncSocket
 			eventArgs.UserToken = null;
 
 			var ex = GetExceptionIfError(eventArgs);
+
 			return callBack(sync, ex) && sync;
 		}
 	}

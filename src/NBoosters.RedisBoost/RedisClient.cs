@@ -27,6 +27,8 @@ using NBoosters.RedisBoost.Core;
 using NBoosters.RedisBoost.Core.Misk;
 using NBoosters.RedisBoost.Core.Pipeline;
 using NBoosters.RedisBoost.Core.Pool;
+using NBoosters.RedisBoost.Core.RedisChannel;
+using NBoosters.RedisBoost.Core.RedisStream;
 using NBoosters.RedisBoost.Core.Serialization;
 
 namespace NBoosters.RedisBoost
@@ -380,11 +382,11 @@ namespace NBoosters.RedisBoost
 		public Task<RedisResponse> ReadDirectResponse()
 		{
 			var tcs = new TaskCompletionSource<RedisResponse>();
-			_redisChannel.ReadResponseAsync((s, ex, r) =>
+			/*_redisChannel.ReadResponseAsync((s, ex, r) =>
 				{
 					ProcessRedisResponse(tcs, ex, r);
 					return s;
-				});
+				});*/
 			return tcs.Task;
 		}
 

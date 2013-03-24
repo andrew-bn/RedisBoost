@@ -1,4 +1,4 @@
-﻿#region Apache Licence, Version 2.0
+#region Apache Licence, Version 2.0
 /*
  Copyright 2013 Andrey Bulygin.
 
@@ -20,7 +20,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 
-namespace NBoosters.RedisBoost.Core
+namespace NBoosters.RedisBoost.Core.RedisStream
 {
 	internal interface IRedisStream
 	{
@@ -33,8 +33,8 @@ namespace NBoosters.RedisBoost.Core
 		bool WriteNewLine();
 		bool WriteDataSizeLine(int argsCount);
 		bool WriteCountLine(byte startSimbol, int argsCount);
-		bool ReadBlockLine(int length, AsyncOperationDelegate<Exception, byte[]> callBack);
-		bool ReadLine(AsyncOperationDelegate<Exception, RedisLine> callBack);
+		bool ReadBlockLine(StreamAsyncEventArgs eventArgs);
+		bool ReadLine(StreamAsyncEventArgs eventArgs);
 		bool Connect(EndPoint endPoint, AsyncOperationDelegate<Exception> callBack);
 		bool Disconnect(AsyncOperationDelegate<Exception> callBack);
 	}

@@ -1,4 +1,4 @@
-﻿#region Apache Licence, Version 2.0
+#region Apache Licence, Version 2.0
 /*
  Copyright 2013 Andrey Bulygin.
 
@@ -19,10 +19,9 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using NBoosters.RedisBoost.Core.AsyncSocket;
 
-namespace NBoosters.RedisBoost.Core
+namespace NBoosters.RedisBoost.Core.RedisStream
 {
 	internal class RedisStream : IRedisStream
 	{
@@ -37,7 +36,7 @@ namespace NBoosters.RedisBoost.Core
 		private volatile int _readBufferSize;
 		private volatile int _readBufferOffset;
 
-		private readonly SocketAsyncEventArgs _readArgs;
+		private volatile SocketAsyncEventArgs _readArgs;
 		private readonly SocketAsyncEventArgs _writeArgs;
 		private readonly SocketAsyncEventArgs _notIoArgs;
 
@@ -51,6 +50,7 @@ namespace NBoosters.RedisBoost.Core
 			_writeBufferOffset = 0;
 
 			_readArgs = new SocketAsyncEventArgs();
+			_readArgs.Completed += ReceiveAsyncOpCallBack;
 
 			_writeArgs = new SocketAsyncEventArgs();
 
@@ -65,11 +65,6 @@ namespace NBoosters.RedisBoost.Core
 			_notIoArgs.AcceptSocket = _socket;
 		}
 
-
-		private bool HasSpace(int dataLengthToWrite)
-		{
-			return (_writeBuffer.Length) >= (_writeBufferOffset + dataLengthToWrite);
-		}
 		public ArraySegment<byte> WriteData(ArraySegment<byte> data)
 		{
 			var bytesToWrite = _writeBuffer.Length - _writeBufferOffset;
@@ -104,7 +99,7 @@ namespace NBoosters.RedisBoost.Core
 		public bool WriteCountLine(byte startSimbol, int argsCount)
 		{
 			var part = _redisDataAnalizer.ConvertToByteArray(argsCount);
-			int length = 3 + part.Length;
+			var length = 3 + part.Length;
 
 			if (!HasSpace(length)) return false;
 
@@ -118,75 +113,96 @@ namespace NBoosters.RedisBoost.Core
 			return true;
 		}
 
-		public bool ReadBlockLine(int length, AsyncOperationDelegate<Exception, byte[]> callBack)
+		public bool ReadBlockLine(StreamAsyncEventArgs args)
 		{
-			var result = new byte[length];
-			var offset = 0;
-			AsyncOperationDelegate<Exception> body = null;
-			body = (s, ex) =>
-			{
-				if (ex != null)
-					return callBack(s, ex, null) && s;
-
-				while (offset < length)
-				{
-					if (_readBufferOffset >= _readBufferSize)
-						return ReadDataFromSocket(body) && s;
-
-					var bytesToCopy = length - offset;
-
-					if (_readBufferSize - _readBufferOffset < bytesToCopy)
-						bytesToCopy = _readBufferSize - _readBufferOffset;
-
-					Array.Copy(_readBuffer, _readBufferOffset, result, offset, bytesToCopy);
-					_readBufferOffset += bytesToCopy;
-					offset += bytesToCopy;
-				}
-				_readBufferOffset += 2;
-				return callBack(s, null, result) && s;
-			};
-
-			return body(true, null);
+			_curReadStreamArgs = args;
+			_curReadStreamArgs.Block = new byte[_curReadStreamArgs.Length];
+			_curReadStreamArgs.Offset = 0;
+			_curReadStreamArgs.Exception = null;
+			return ReadBlockLineTask(false);
 		}
-		public bool ReadLine(AsyncOperationDelegate<Exception, RedisLine> callBack)
+		private bool CallOnCompleted(bool async)
 		{
-			var sb = new StringBuilder();
-			var result = new RedisLine();
-
-			AsyncOperationDelegate<Exception> body = null;
-			body = (s, ex) =>
-			{
-				if (ex != null)
-					return callBack(s, ex, result) && s;
-
-				while (true)
-				{
-					if (_readBufferOffset >= _readBufferSize)
-						return ReadDataFromSocket(body) && s;
-
-					if (_readBuffer[_readBufferOffset] == '\r')
-					{
-						_readBufferOffset += 2;
-						result.Line = sb.ToString();
-						return callBack(s, null, result) && s;
-					}
-
-					if (result.FirstChar == 0)
-						result.FirstChar = _readBuffer[_readBufferOffset];
-					else
-						sb.Append((char)_readBuffer[_readBufferOffset]);
-
-					++_readBufferOffset;
-				}
-			};
-
-			return body(true, null);
+			if (async) _curReadStreamArgs.Completed(_curReadStreamArgs);
+			return async;
 		}
+		private bool ReadBlockLineTask(bool async)
+		{
+			if (_curReadStreamArgs.HasException)
+				return CallOnCompleted(async);
+
+			while (_curReadStreamArgs.Offset < _curReadStreamArgs.Length)
+			{
+				if (_readBufferOffset >= _readBufferSize)
+				{
+					if (ReadDataFromSocket(()=>ReadBlockLineTask(true))) return true;
+					if (_curReadStreamArgs.HasException)
+						return CallOnCompleted(async);
+					continue;
+				}
+
+				var bytesToCopy = _curReadStreamArgs.Length - _curReadStreamArgs.Offset;
+				
+				var bytesInBufferLeft = _readBufferSize - _readBufferOffset;
+				if (bytesToCopy > bytesInBufferLeft) bytesToCopy = bytesInBufferLeft;
+
+				Array.Copy(_readBuffer, _readBufferOffset, _curReadStreamArgs.Block,_curReadStreamArgs.Offset, bytesToCopy);
+				
+				_readBufferOffset += bytesToCopy;
+				_curReadStreamArgs.Offset += bytesToCopy;
+			}
+			_readBufferOffset += 2;
+			return CallOnCompleted(async);
+		}
+
+		private volatile StreamAsyncEventArgs _curReadStreamArgs;
+		public bool ReadLine(StreamAsyncEventArgs args)
+		{
+			_curReadStreamArgs = args;
+			_curReadStreamArgs.LineBuffer.Clear();
+			_curReadStreamArgs.FirstChar = 0;
+			_curReadStreamArgs.Line = null;
+			_curReadStreamArgs.Exception = null;
+			return ReadLineTask(false);
+		}
+
+		private bool ReadLineTask(bool async)
+		{
+			if (_curReadStreamArgs.HasException)
+				return CallOnCompleted(async);
+
+			while (true)
+			{
+				if (_readBufferOffset >= _readBufferSize)
+				{
+					if (ReadDataFromSocket(() => ReadLineTask(true))) return true;
+					if (_curReadStreamArgs.HasException)
+						return CallOnCompleted(async);
+					continue;
+				}
+
+				if (_readBuffer[_readBufferOffset] == '\r')
+				{
+					_readBufferOffset += 2;
+					_curReadStreamArgs.Line = _curReadStreamArgs.LineBuffer.ToString();
+					return CallOnCompleted(async);
+				}
+
+				if (_curReadStreamArgs.FirstChar == 0)
+					_curReadStreamArgs.FirstChar = _readBuffer[_readBufferOffset];
+				else
+					_curReadStreamArgs.LineBuffer.Append((char)_readBuffer[_readBufferOffset]);
+
+				++_readBufferOffset;
+			}
+		}
+
 		private void WriteNewLineToBuffer()
 		{
 			_writeBuffer[_writeBufferOffset++] = RedisConstants.NewLine[0];
 			_writeBuffer[_writeBufferOffset++] = RedisConstants.NewLine[1];
 		}
+
 		public bool Flush(AsyncOperationDelegate<Exception> callBack)
 		{
 			_writeArgs.SetBuffer(_writeBuffer, 0, _writeBufferOffset);
@@ -198,17 +214,16 @@ namespace NBoosters.RedisBoost.Core
 							  });
 		}
 
-		private bool ReadDataFromSocket(AsyncOperationDelegate<Exception> callBack)
+		private bool ReadDataFromSocket(Action callBack)
 		{
 			_readBufferOffset = _readBufferOffset - _readBufferSize;
 			_readBufferSize = 0;
 			_readArgs.SetBuffer(_readBuffer, 0, _readBuffer.Length);
-			return _socket.ReceiveAsyncAsync(_readArgs, (s, ex) =>
-					{
-						_readArgs.SetBuffer(null, 0, 0);
-						_readBufferSize = _readArgs.BytesTransferred;
-						return callBack(s, ex) && s;
-					});
+			_readArgs.UserToken = callBack;
+
+			var async = _socket.ReceiveAsync(_readArgs);
+			if (!async) ReceiveAsyncOpCallBack(false, _socket, _readArgs);
+			return async;
 		}
 
 		public bool Connect(EndPoint endPoint, AsyncOperationDelegate<Exception> callBack)
@@ -235,10 +250,43 @@ namespace NBoosters.RedisBoost.Core
 			_socket.Dispose();
 		}
 
-
 		public bool BufferIsEmpty
 		{
 			get { return _writeBufferOffset == 0; }
+		}
+
+		private void ReceiveAsyncOpCallBack(object sender, SocketAsyncEventArgs eventArgs)
+		{
+			ReceiveAsyncOpCallBack(true, sender, eventArgs);
+		}
+
+		private void ReceiveAsyncOpCallBack(bool async, object sender, SocketAsyncEventArgs eventArgs)
+		{
+			_curReadStreamArgs.Exception = GetExceptionIfError(eventArgs);
+			eventArgs.SetBuffer(null, 0, 0);
+			_readBufferSize = eventArgs.BytesTransferred;
+
+			var token = (Action) eventArgs.UserToken;
+			eventArgs.UserToken = null;
+			if (async) token();
+		}
+
+		private static Exception GetExceptionIfError(SocketAsyncEventArgs args)
+		{
+			var error = args.SocketError;
+			if (args.BytesTransferred == 0 &&
+				(args.LastOperation == SocketAsyncOperation.Receive ||
+				 args.LastOperation == SocketAsyncOperation.Send))
+				error = SocketError.Shutdown;
+
+			return error != SocketError.Success
+						? new SocketException((int)error)
+						: null;
+		}
+
+		private bool HasSpace(int dataLengthToWrite)
+		{
+			return (_writeBuffer.Length) >= (_writeBufferOffset + dataLengthToWrite);
 		}
 	}
 }

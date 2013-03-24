@@ -20,6 +20,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using NBoosters.RedisBoost.Core.RedisChannel;
 
 namespace NBoosters.RedisBoost.Core.Pipeline
 {
@@ -35,21 +36,10 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 		private int _pipelineIsClosed = 0;
 
 		private volatile Exception _pipelineException = null;
-		
+		private readonly ChannelAsyncEventArgs _readChannelArgs = new ChannelAsyncEventArgs();
 		public RedisPipeline(IRedisChannel channel)
 		{
 			_channel = channel;
-			Task.Factory.StartNew(() =>
-				{
-					while (true)
-					{
-						Thread.Sleep(1000);
-						Console.WriteLine("Write queue " + _requestsQueue.Count);
-						Console.WriteLine("Read queue " + _responsesQueue.Count);
-
-					}
-				});
-
 		}
 
 		public void ExecuteCommandAsync(byte[][] args,Action<Exception, RedisResponse> callBack)
@@ -139,46 +129,46 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 			if (Interlocked.CompareExchange(ref _receiveIsRunning, 1, 0) == 0)
 				RunReceiveProcess();
 		}
+		private PipelineItem _currentReceiveItem;
 		private void RunReceiveProcess()
 		{
-			PipelineItem item;
-
-			ContinueReceiving:
-			if (_responsesQueue.TryDequeue(out item))
+			while (true)
 			{
-				if (_pipelineException == null)
+				if (_responsesQueue.TryDequeue(out _currentReceiveItem))
 				{
-					var temp = item;
-					if (_channel.ReadResponseAsync((s, ex, r) => ItemReceiveProcessDone(s, ex, r, temp)))
-						goto ContinueReceiving;
+					if (_pipelineException == null)
+					{
+						_readChannelArgs.Completed = ItemReceiveProcessDone;
+						if (_channel.ReadResponseAsync(_readChannelArgs)) return;
+						ItemReceiveProcessDone(false, _readChannelArgs);
+					}
+					else _currentReceiveItem.CallBack(_pipelineException, null);
 				}
 				else
 				{
-					item.CallBack(_pipelineException, null);
-					goto ContinueReceiving;
+					Interlocked.Exchange(ref _receiveIsRunning, 0);
+					if (_responsesQueue.Count == 0 || Interlocked.CompareExchange(ref _receiveIsRunning, 1, 0) != 0)
+						return;
 				}
-			}
-			else
-			{
-				Interlocked.Exchange(ref _receiveIsRunning, 0);
-				if (_responsesQueue.Count > 0 && Interlocked.CompareExchange(ref _receiveIsRunning, 1, 0) == 0)
-					goto ContinueReceiving;
 			}
 		}
 
-		private bool ItemReceiveProcessDone(bool sync, Exception ex, RedisResponse response, PipelineItem item)
+		private void ItemReceiveProcessDone(ChannelAsyncEventArgs args)
 		{
-			if (ex!=null)
-				_pipelineException = ex;
+			ItemReceiveProcessDone(true,args);
+		}
+
+		private void ItemReceiveProcessDone(bool async,ChannelAsyncEventArgs args)
+		{
+			if (args.Exception != null)
+				_pipelineException = args.Exception;
 
 			if (_pipelineException != null)
-				item.CallBack(_pipelineException, null);
+				_currentReceiveItem.CallBack(_pipelineException, null);
 			else
-				item.CallBack(null, response);
+				_currentReceiveItem.CallBack(null, args.RedisResponse);
 
-			if (!sync)
-				RunReceiveProcess();
-			return sync;
+			if (async) RunReceiveProcess();
 		}
 
 	

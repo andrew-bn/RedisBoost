@@ -1,4 +1,4 @@
-﻿#region Apache Licence, Version 2.0
+#region Apache Licence, Version 2.0
 /*
  Copyright 2013 Andrey Bulygin.
 
@@ -21,14 +21,14 @@ using System.Net;
 using System.Net.Sockets;
 using NBoosters.RedisBoost.Core.Serialization;
 
-namespace NBoosters.RedisBoost.Core
+namespace NBoosters.RedisBoost.Core.RedisChannel
 {
 	internal interface IRedisChannel : IDisposable
 	{
 		IRedisDataAnalizer RedisDataAnalizer { get; }
 		void EngageWith(Socket socket, IRedisSerializer serializer);
 		bool SendAsync(byte[][] request, AsyncOperationDelegate<Exception> callback);
-		bool ReadResponseAsync(AsyncOperationDelegate<Exception, RedisResponse> callBack);
+		bool ReadResponseAsync(ChannelAsyncEventArgs args);
 		bool ConnectAsync(EndPoint endPoint, AsyncOperationDelegate<Exception> callBack);
 		bool DisconnectAsync(AsyncOperationDelegate<Exception> callBack);
 		bool Flush(AsyncOperationDelegate<Exception> callBack);
