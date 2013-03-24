@@ -356,39 +356,46 @@ namespace NBoosters.RedisBoost
 		private Task SendDirectRequest(params byte[][] args)
 		{
 			var tcs = new TaskCompletionSource<bool>();
-			_redisChannel.SendAsync(args,
-				(s,ex) =>
-				{
-					if (!_redisChannel.BufferIsEmpty)
-					{
-						return _redisChannel.Flush((snk, err) =>
-							{
-								if (err != null)
-								{
-									DisposeIfFatalError(ex);
-									if (!(ex is RedisException))
-										err = new RedisException(ex.Message, ex);
-									tcs.SetException(err);
-								}
-								else tcs.SetResult(true);
-								return snk;
-							}) && s;
-					}
-					return s;
-				});
+
+			var channelArgs = new ChannelAsyncEventArgs();
+			channelArgs.SendData = args;
+			channelArgs.Completed = SendDirectCallBack;
+			channelArgs.UserToken = tcs;
+
+			if (!_redisChannel.SendAsync(channelArgs))
+				SendDirectCallBack(channelArgs);
 
 			return tcs.Task;
+		}
+		private void SendDirectCallBack(ChannelAsyncEventArgs args)
+		{
+			if (!_redisChannel.BufferIsEmpty)
+			{
+				args.Completed = a =>
+				{
+					if (a.HasException)
+					{
+						var err = a.Exception;
+						DisposeIfFatalError(err);
+						if (!(a.Exception is RedisException))
+							err = new RedisException(err.Message, err);
+
+						((TaskCompletionSource<bool>)args.UserToken).SetException(err);
+					}
+					else ((TaskCompletionSource<bool>)args.UserToken).SetResult(true);
+				};
+
+				if (!_redisChannel.Flush(args))
+					args.Completed(args);
+			}
 		}
 		public Task<RedisResponse> ReadDirectResponse()
 		{
 			var tcs = new TaskCompletionSource<RedisResponse>();
-
-			Action<ChannelAsyncEventArgs> callBack = e => ProcessRedisResponse(tcs,e.Exception,e.RedisResponse);
-			var args = new ChannelAsyncEventArgs {Completed = callBack};
-
+			var args = new ChannelAsyncEventArgs();
+			args.Completed = e => ProcessRedisResponse(tcs,e.Exception,e.RedisResponse);
 			if (!_redisChannel.ReadResponseAsync(args))
-				callBack(args);
-
+				args.Completed(args);
 			return tcs.Task;
 		}
 
@@ -443,7 +450,7 @@ namespace NBoosters.RedisBoost
 			Dispose();
 		}
 
-		private int _disposed = 0;
+		private int _disposed;
 		protected virtual void Dispose(bool disposing)
 		{
 			if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)

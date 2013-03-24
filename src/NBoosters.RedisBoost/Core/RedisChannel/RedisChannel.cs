@@ -49,46 +49,48 @@ namespace NBoosters.RedisBoost.Core.RedisChannel
 		}
 
 		#region Send Data Task
-
 		private volatile int _sendState;
-		private volatile byte[][] _sendRequest;
 		private volatile int _partIndex;
 		private ArraySegment<byte> _arraySegment;
-		private volatile AsyncOperationDelegate<Exception> _sendCallBack;
-
-		public bool SendAsync(byte[][] request, AsyncOperationDelegate<Exception> callback)
+		private volatile ChannelAsyncEventArgs _curSendChannelArgs;
+		private readonly StreamAsyncEventArgs _flushStreamArgs = new StreamAsyncEventArgs();
+		public bool SendAsync(ChannelAsyncEventArgs args)
 		{
-			_sendCallBack = callback;
-			_sendRequest = request;
+			_curSendChannelArgs = args;
 			_sendState = 0;
 			_partIndex = 0;
-			return SendDataTask(true, null);
+			_flushStreamArgs.Completed = FlushCallBack;
+			return SendDataTask(false);
 		}
-
-		private bool SendDataTask(bool sync, Exception ex)
+		private void FlushCallBack(StreamAsyncEventArgs args)
 		{
-			if (ex != null)
-				return _sendCallBack(sync, ex) && sync;
+			_curSendChannelArgs.Exception = args.Exception;
+			SendDataTask(true);
+		}
+		private bool SendDataTask(bool async)
+		{
+			if (_curSendChannelArgs.HasException)
+				return CallOnSendCompleted(async);
 
 			if (_sendState == 0)
 			{
-				if (!_redisStream.WriteArgumentsCountLine(_sendRequest.Length))
-					return _redisStream.Flush(SendDataTask) && sync;
+				if (!_redisStream.WriteArgumentsCountLine(_curSendChannelArgs.SendData.Length))
+					return _redisStream.Flush(_flushStreamArgs) || SendDataTask(async);
 
 				_sendState = 1;
 			}
 
 			if (_sendState > 0)
 			{
-				for (; _partIndex < _sendRequest.Length; _partIndex++)
+				for (; _partIndex < _curSendChannelArgs.SendData.Length; _partIndex++)
 				{
 					if (_sendState == 1)
 					{
-						if (!_redisStream.WriteDataSizeLine(_sendRequest[_partIndex].Length))
-							return _redisStream.Flush(SendDataTask) && sync;
+						if (!_redisStream.WriteDataSizeLine(_curSendChannelArgs.SendData[_partIndex].Length))
+							return _redisStream.Flush(_flushStreamArgs) || SendDataTask(async);
 
 						_sendState = 2;
-						_arraySegment = new ArraySegment<byte>(_sendRequest[_partIndex], 0, _sendRequest[_partIndex].Length);
+						_arraySegment = new ArraySegment<byte>(_curSendChannelArgs.SendData[_partIndex], 0, _curSendChannelArgs.SendData[_partIndex].Length);
 					}
 
 					if (_sendState == 2)
@@ -97,7 +99,7 @@ namespace NBoosters.RedisBoost.Core.RedisChannel
 						{
 							_arraySegment = _redisStream.WriteData(_arraySegment);
 							if (_arraySegment.Count > 0)
-								return _redisStream.Flush(SendDataTask) && sync;
+								return _redisStream.Flush(_flushStreamArgs) || SendDataTask(async);
 
 							_sendState = 3;
 							break;
@@ -106,14 +108,19 @@ namespace NBoosters.RedisBoost.Core.RedisChannel
 					if (_sendState == 3)
 					{
 						if (!_redisStream.WriteNewLine())
-							return _redisStream.Flush(SendDataTask) && sync;
+							return _redisStream.Flush(_flushStreamArgs) || SendDataTask(async);
 
 						_sendState = 1;
 					}
 				}
-				return _sendCallBack(sync, null) && sync;
 			}
-			return sync;
+			return CallOnSendCompleted(async);
+		}
+
+		private bool CallOnSendCompleted(bool async)
+		{
+			if (async) _curSendChannelArgs.Completed(_curSendChannelArgs);
+			return async;
 		}
 		#endregion
 		#region Receive Data Task
@@ -142,7 +149,7 @@ namespace NBoosters.RedisBoost.Core.RedisChannel
 		private bool ProcessRedisResponse(bool async)
 		{
 			if (_curReadChannelArgs.Exception != null || _curReadChannelArgs.MultiBulkParts == null)
-				return CallReadOnCompleted(async);
+				return CallOnReadCompleted(async);
 
 			if (_curReadChannelArgs.ReceiveMultiBulkPartsLeft > 0)
 				_curReadChannelArgs.MultiBulkParts[_curReadChannelArgs.MultiBulkParts.Length - _curReadChannelArgs.ReceiveMultiBulkPartsLeft] = _curReadChannelArgs.RedisResponse;
@@ -153,7 +160,7 @@ namespace NBoosters.RedisBoost.Core.RedisChannel
 				return ReadResponseFromStream(async);
 
 			_curReadChannelArgs.RedisResponse = RedisResponse.CreateMultiBulk(_curReadChannelArgs.MultiBulkParts, _serializer);
-			return CallReadOnCompleted(async);
+			return CallOnReadCompleted(async);
 		}
 
 		private void ProcessRedisBulkLine(StreamAsyncEventArgs args)
@@ -223,16 +230,30 @@ namespace NBoosters.RedisBoost.Core.RedisChannel
 
 			return ProcessRedisResponse(async);
 		}
-		private bool CallReadOnCompleted(bool async)
+		private bool CallOnReadCompleted(bool async)
 		{
 			if (async) _curReadChannelArgs.Completed(_curReadChannelArgs);
 			return async;
 		}
 		#endregion
-		public bool Flush(AsyncOperationDelegate<Exception> callBack)
+		public bool Flush(ChannelAsyncEventArgs args)
 		{
-			return _redisStream.Flush(callBack);
+			_curSendChannelArgs = args;
+			Action<StreamAsyncEventArgs> callBack = a =>
+				{
+					_curReadChannelArgs.Exception = a.Exception;
+					CallOnSendCompleted(true);
+				};
+			_flushStreamArgs.Completed = callBack;
+			var isAsync = _redisStream.Flush(_flushStreamArgs);
+			if (!isAsync)
+			{
+				_curReadChannelArgs.Exception = _flushStreamArgs.Exception;
+				CallOnSendCompleted(false);
+			}
+			return isAsync;
 		}
+		
 		public bool ConnectAsync(EndPoint endPoint, AsyncOperationDelegate<Exception> callBack)
 		{
 			return _redisStream.Connect(endPoint, callBack);

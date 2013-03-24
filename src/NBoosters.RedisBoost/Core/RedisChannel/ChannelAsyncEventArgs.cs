@@ -8,10 +8,13 @@ namespace NBoosters.RedisBoost.Core.RedisChannel
 {
 	internal class ChannelAsyncEventArgs
 	{
+		public bool HasException { get { return Exception != null; } }
 		public Exception Exception { get; set; }
 		public RedisResponse RedisResponse { get; set; }
 		public int ReceiveMultiBulkPartsLeft { get; set; }
 		public RedisResponse[] MultiBulkParts { get; set; }
 		public Action<ChannelAsyncEventArgs> Completed { get; set; }
+		public object UserToken { get; set; }
+		public byte[][] SendData { get; set; }
 	}
 }

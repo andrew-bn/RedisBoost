@@ -37,9 +37,16 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 
 		private volatile Exception _pipelineException = null;
 		private readonly ChannelAsyncEventArgs _readChannelArgs = new ChannelAsyncEventArgs();
+		private readonly ChannelAsyncEventArgs _sendChannelArgs = new ChannelAsyncEventArgs();
+		private readonly ChannelAsyncEventArgs _flushChannelArgs = new ChannelAsyncEventArgs();
+		private PipelineItem _currentReceiveItem;
+		private PipelineItem _currentSendItem;
 		public RedisPipeline(IRedisChannel channel)
 		{
 			_channel = channel;
+			_readChannelArgs.Completed = ItemReceiveProcessDone;
+			_sendChannelArgs.Completed = ItemSendProcessDone;
+			_flushChannelArgs.Completed = BufferFlushProcessDone;
 		}
 
 		public void ExecuteCommandAsync(byte[][] args,Action<Exception, RedisResponse> callBack)
@@ -64,63 +71,58 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 
 		private void RunSendProcess()
 		{
-			PipelineItem item;
-			
-			ContinueSending:
-
-			if (_requestsQueue.TryDequeue(out item))
+			while (true)
 			{
-				if (_pipelineException == null)
+				if (_requestsQueue.TryDequeue(out _currentSendItem))
 				{
-					var temp = item;
-					if (_channel.SendAsync(item.Request, (s, ex) => ItemSendProcessDone(s, ex, temp)))
-						goto ContinueSending;
+					if (_pipelineException == null)
+					{
+						_sendChannelArgs.SendData = _currentSendItem.Request;
+						if (_channel.SendAsync(_sendChannelArgs)) return;
+						ItemSendProcessDone(false, _sendChannelArgs);
+					}
+					else _currentSendItem.CallBack(_pipelineException, null);
+
+				}
+				else if (!_channel.BufferIsEmpty && _pipelineException == null)
+				{
+					if (_channel.Flush(_flushChannelArgs)) return;
+					BufferFlushProcessDone(false,_flushChannelArgs);
 				}
 				else
 				{
-					item.CallBack(_pipelineException, null);
-					goto ContinueSending;
+					Interlocked.Exchange(ref _sendIsRunning, 0);
+
+					if (_requestsQueue.Count <= 0 || Interlocked.CompareExchange(ref _sendIsRunning, 1, 0) != 0)
+						return;
 				}
 			}
-			else if (!_channel.BufferIsEmpty && _pipelineException == null)
-			{
-				if (_channel.Flush(BufferFlushProcessDone))
-					goto ContinueSending;
-			}
-			else
-			{
-				Interlocked.Exchange(ref _sendIsRunning, 0);
-
-				if (_requestsQueue.Count > 0 && Interlocked.CompareExchange(ref _sendIsRunning, 1, 0) == 0)
-					goto ContinueSending;
-			}
 		}
-
-		private bool BufferFlushProcessDone(bool sync, Exception exception)
+		private void BufferFlushProcessDone(ChannelAsyncEventArgs args)
 		{
-			if (exception!=null)
-				_pipelineException = exception;
-
-			if (!sync)
-				RunSendProcess();
-
-			return sync;
+			BufferFlushProcessDone(true,args);
 		}
-		private bool ItemSendProcessDone(bool sync, Exception ex, PipelineItem item)
+		private void BufferFlushProcessDone(bool async,ChannelAsyncEventArgs args)
 		{
-			if (ex!=null)
-				_pipelineException = ex;
+			_pipelineException = args.Exception;
+			if (async) RunSendProcess();
+		}
+		private void ItemSendProcessDone(ChannelAsyncEventArgs args)
+		{
+			ItemSendProcessDone(true, args);
+		}
+		private void ItemSendProcessDone(bool async, ChannelAsyncEventArgs args)
+		{
+			_pipelineException = args.Exception;
 
 			if (_pipelineException != null)
-				item.CallBack(_pipelineException,null);
+				_currentSendItem.CallBack(_pipelineException,null);
 			else
 			{
-				_responsesQueue.Enqueue(item);
+				_responsesQueue.Enqueue(_currentSendItem);
 				TryRunReceiveProcess();
 			}
-			if (!sync)
-				RunSendProcess();
-			return sync;
+			if (async) RunSendProcess();
 		}
 
 		private void TryRunReceiveProcess()
@@ -129,7 +131,6 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 			if (Interlocked.CompareExchange(ref _receiveIsRunning, 1, 0) == 0)
 				RunReceiveProcess();
 		}
-		private PipelineItem _currentReceiveItem;
 		private void RunReceiveProcess()
 		{
 			while (true)
@@ -138,7 +139,6 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 				{
 					if (_pipelineException == null)
 					{
-						_readChannelArgs.Completed = ItemReceiveProcessDone;
 						if (_channel.ReadResponseAsync(_readChannelArgs)) return;
 						ItemReceiveProcessDone(false, _readChannelArgs);
 					}

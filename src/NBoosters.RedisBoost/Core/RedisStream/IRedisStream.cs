@@ -24,18 +24,20 @@ namespace NBoosters.RedisBoost.Core.RedisStream
 {
 	internal interface IRedisStream
 	{
+
+		bool Flush(StreamAsyncEventArgs args);
+		bool ReadBlockLine(StreamAsyncEventArgs eventArgs);
+		bool ReadLine(StreamAsyncEventArgs eventArgs);
+		bool Connect(EndPoint endPoint, AsyncOperationDelegate<Exception> callBack);
+		bool Disconnect(AsyncOperationDelegate<Exception> callBack);
+
 		void EngageWith(Socket socket);
 		void DisposeAndReuse();
 		bool BufferIsEmpty { get; }
-		bool Flush(AsyncOperationDelegate<Exception> callBack);
 		ArraySegment<byte> WriteData(ArraySegment<byte> data);
 		bool WriteArgumentsCountLine(int argsCount);
 		bool WriteNewLine();
 		bool WriteDataSizeLine(int argsCount);
 		bool WriteCountLine(byte startSimbol, int argsCount);
-		bool ReadBlockLine(StreamAsyncEventArgs eventArgs);
-		bool ReadLine(StreamAsyncEventArgs eventArgs);
-		bool Connect(EndPoint endPoint, AsyncOperationDelegate<Exception> callBack);
-		bool Disconnect(AsyncOperationDelegate<Exception> callBack);
 	}
 }

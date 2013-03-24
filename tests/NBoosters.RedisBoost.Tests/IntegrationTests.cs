@@ -1655,28 +1655,24 @@ namespace NBoosters.RedisBoost.Tests
 		[Test]
 		public void PipelineTest()
 		{
-			//while (true)
+			const int size = 10000;
+			using (var cli = CreateClient())
 			{
-				//Console.WriteLine("New loop");
-				const int size = 10000;
-				using (var cli = CreateClient())
+
+				var tasks = new List<Task<MultiBulk>>();
+
+				for (int i = 0; i < size; i++)
 				{
-
-					var tasks = new List<Task<MultiBulk>>();
-
-					for (int i = 0; i < size; i++)
-					{
-						cli.SetAsync("Key" + i, GetBytes("Value" + i));
-						cli.SetAsync("Key_" + i, GetBytes("Value" + i));
-						tasks.Add(cli.MGetAsync("Key" + i, "Key_" + i));
-					}
-					// some other work here...
-					//...
-					for (int i = 0; i < size; i++)
-					{
-						Assert.AreEqual("Value" + i, GetString(tasks[i].Result[0]));
-						Assert.AreEqual("Value" + i, GetString(tasks[i].Result[1]));
-					}
+					cli.SetAsync("Key" + i, GetBytes("Value" + i));
+					cli.SetAsync("Key_" + i, GetBytes("Value" + i));
+					tasks.Add(cli.MGetAsync("Key" + i, "Key_" + i));
+				}
+				// some other work here...
+				//...
+				for (int i = 0; i < size; i++)
+				{
+					Assert.AreEqual("Value" + i, GetString(tasks[i].Result[0]));
+					Assert.AreEqual("Value" + i, GetString(tasks[i].Result[1]));
 				}
 			}
 		}
