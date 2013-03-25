@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>NBoosters.RedisBoost</id>
-    <version>1.5.4</version>
+    <version>1.5.5</version>
     <title>NBoosters.RedisBoost</title>
     <licenseUrl>https://raw.github.com/andrew-bn/RedisBoost/master/LICENSE</licenseUrl>
     <authors>Andrey Bulygin</authors>
@@ -13,6 +13,11 @@
     </description>
     <copyright>Andrey Bulygin</copyright>
     <tags>boost nbooster redis client async</tags>
+    <releaseNotes>
+      <![CDATA[
+			For full release notes see https://github.com/andrew-bn/RedisBoost/blob/master/ReleaseNotes.md
+			]]>
+    </releaseNotes>
   </metadata>
   <files>
     <file src="..\src\NBoosters.RedisBoost\bin\Release\NBoosters.RedisBoost.dll" target="lib\net40\" />
