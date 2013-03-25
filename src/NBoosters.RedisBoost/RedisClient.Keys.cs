@@ -19,7 +19,7 @@
 using System;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
-using NBoosters.RedisBoost.Core.Misk;
+using NBoosters.RedisBoost.Misk;
 
 namespace NBoosters.RedisBoost
 {

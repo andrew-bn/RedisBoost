@@ -23,7 +23,7 @@ namespace NBoosters.RedisBoost.Core.AsyncSocket
 {
 	internal static class AsyncSocketExtensions
 	{
-		private static Exception GetExceptionIfError(SocketAsyncEventArgs args)
+		public static Exception GetExceptionIfError(this SocketAsyncEventArgs args)
 		{
 			var error = args.SocketError;
 			if (args.BytesTransferred == 0 &&
@@ -35,7 +35,6 @@ namespace NBoosters.RedisBoost.Core.AsyncSocket
 						? new SocketException((int)error) 
 						: null;
 		}
-
 
 		public static bool ConnectAsyncAsync(this Socket socket, SocketAsyncEventArgs args, AsyncOperationDelegate<Exception> callBack)
 		{

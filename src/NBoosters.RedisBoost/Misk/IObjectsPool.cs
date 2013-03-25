@@ -1,4 +1,4 @@
-﻿#region Apache Licence, Version 2.0
+#region Apache Licence, Version 2.0
 /*
  Copyright 2013 Andrey Bulygin.
 
@@ -18,7 +18,7 @@
 
 using System;
 
-namespace NBoosters.RedisBoost.Core.Misk
+namespace NBoosters.RedisBoost.Misk
 {
 	internal interface IObjectsPool<T>
 	{
