@@ -1,5 +1,14 @@
 Release Notes
 ==============
+1.5.5
+--------------
+- fixed pipeline issue with big amount of commands: pipeline failed to process all pipelined commands 
+(e.g. more than 10000 commands in pipeline)
+- clarified pubsub ReadMessageAsync command. If command is called without filter, then all errors and unknown packets are 
+returned to client without exceptions thrown. If ReadMessageAsync is called with filter, then exception is thrown if
+error occured or unknown packet was received. So ReadMessageAsync without filter is guaranteed to be exceptionless.
+- minor fixes and redesign
+
 1.5.4
 --------------
 - project moved to .NET40

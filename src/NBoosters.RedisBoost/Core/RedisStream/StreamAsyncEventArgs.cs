@@ -17,22 +17,17 @@
 #endregion
 
 using System;
-using System.Net;
-using System.Net.Sockets;
-using NBoosters.RedisBoost.Core.Serialization;
 
-namespace NBoosters.RedisBoost.Core
+namespace NBoosters.RedisBoost.Core.RedisStream
 {
-	internal interface IRedisChannel : IDisposable
+	internal class StreamAsyncEventArgs
 	{
-		IRedisDataAnalizer RedisDataAnalizer { get; }
-		void EngageWith(Socket socket, IRedisSerializer serializer);
-		void SendAsync(byte[][] request, Action<Exception> callback);
-		void ReadResponseAsync(Action<Exception,RedisResponse> callBack);
-		void ConnectAsync(EndPoint endPoint, Action<Exception> callBack);
-		void DisconnectAsync(Action<Exception> callBack);
-		void Flush(Action<Exception> callBack);
-
-		bool BufferIsEmpty { get; }
+		public bool HasException { get { return Exception != null; } }
+		public int Length { get; set; }
+		public byte[] Block { get; set; }
+		public Exception Exception { get; set; }
+		public byte FirstChar { get; set; }
+		public string Line { get; set; }
+		public Action<StreamAsyncEventArgs> Completed { get; set; }
 	}
 }

@@ -1,4 +1,4 @@
-﻿#region Apache Licence, Version 2.0
+#region Apache Licence, Version 2.0
 /*
  Copyright 2013 Andrey Bulygin.
 
@@ -19,7 +19,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace NBoosters.RedisBoost.Core.Misk
+namespace NBoosters.RedisBoost.Misk
 {
 	internal static class Extensions
 	{

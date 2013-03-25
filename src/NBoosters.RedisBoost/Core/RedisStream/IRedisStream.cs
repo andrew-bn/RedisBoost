@@ -1,4 +1,4 @@
-﻿#region Apache Licence, Version 2.0
+#region Apache Licence, Version 2.0
 /*
  Copyright 2013 Andrey Bulygin.
 
@@ -20,22 +20,24 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 
-namespace NBoosters.RedisBoost.Core
+namespace NBoosters.RedisBoost.Core.RedisStream
 {
 	internal interface IRedisStream
 	{
+
+		bool Flush(StreamAsyncEventArgs args);
+		bool ReadBlockLine(StreamAsyncEventArgs eventArgs);
+		bool ReadLine(StreamAsyncEventArgs eventArgs);
+		bool Connect(EndPoint endPoint, AsyncOperationDelegate<Exception> callBack);
+		bool Disconnect(AsyncOperationDelegate<Exception> callBack);
+
 		void EngageWith(Socket socket);
 		void DisposeAndReuse();
 		bool BufferIsEmpty { get; }
-		void Flush(Action<Exception> callBack);
 		ArraySegment<byte> WriteData(ArraySegment<byte> data);
 		bool WriteArgumentsCountLine(int argsCount);
 		bool WriteNewLine();
 		bool WriteDataSizeLine(int argsCount);
 		bool WriteCountLine(byte startSimbol, int argsCount);
-		void ReadBlockLine(int length, Action<Exception, byte[]> callBack);
-		void ReadLine(Action<Exception, RedisLine> callBack);
-		void Connect(EndPoint endPoint, Action<Exception> callBack);
-		void Disconnect(Action<Exception> callBack);
 	}
 }

@@ -19,7 +19,7 @@
 using System;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
-using NBoosters.RedisBoost.Core.Misk;
+using NBoosters.RedisBoost.Misk;
 
 namespace NBoosters.RedisBoost
 {
@@ -71,7 +71,7 @@ namespace NBoosters.RedisBoost
 		{
 			_state = ClientState.Subscription;
 			var request = ComposeRequest(commandName, channels);
-			return SendDirectReqeust(request).ContinueWithIfNoError(t => (IRedisSubscription)this);
+			return SendDirectRequest(request).ContinueWithIfNoError(t => (IRedisSubscription)this);
 		}
 
 		public Task<ChannelMessage> ReadMessageAsync()
@@ -140,7 +140,7 @@ namespace NBoosters.RedisBoost
 		Task IRedisSubscription.QuitAsync()
 		{
 			_state = ClientState.Quit;
-			return SendDirectReqeust(RedisConstants.Quit);
+			return SendDirectRequest(RedisConstants.Quit);
 		}
 	}
 }
