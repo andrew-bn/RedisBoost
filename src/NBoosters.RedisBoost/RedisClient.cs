@@ -24,12 +24,12 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
-using NBoosters.RedisBoost.Core.Misk;
 using NBoosters.RedisBoost.Core.Pipeline;
 using NBoosters.RedisBoost.Core.Pool;
 using NBoosters.RedisBoost.Core.RedisChannel;
 using NBoosters.RedisBoost.Core.RedisStream;
 using NBoosters.RedisBoost.Core.Serialization;
+using NBoosters.RedisBoost.Misk;
 
 namespace NBoosters.RedisBoost
 {

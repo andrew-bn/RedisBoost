@@ -124,16 +124,17 @@ namespace NBoosters.RedisBoost.Core.RedisChannel
 		}
 		#endregion
 		#region Receive Data Task
-
-		
 		private volatile ChannelAsyncEventArgs _curReadChannelArgs;
 		private readonly StreamAsyncEventArgs _readStreamArgs = new StreamAsyncEventArgs();
+		public int _receiveMultiBulkPartsLeft;
+		public RedisResponse[] _multiBulkParts;
+
 		public bool ReadResponseAsync(ChannelAsyncEventArgs args)
 		{
 			_curReadChannelArgs = args;
 			_curReadChannelArgs.RedisResponse = null;
-			_curReadChannelArgs.ReceiveMultiBulkPartsLeft = 0;
-			_curReadChannelArgs.MultiBulkParts = null;
+			_receiveMultiBulkPartsLeft = 0;
+			_multiBulkParts = null;
 			_curReadChannelArgs.Exception = null;
 			return ReadResponseFromStream(false);
 		}
@@ -148,18 +149,18 @@ namespace NBoosters.RedisBoost.Core.RedisChannel
 
 		private bool ProcessRedisResponse(bool async)
 		{
-			if (_curReadChannelArgs.Exception != null || _curReadChannelArgs.MultiBulkParts == null)
+			if (_curReadChannelArgs.Exception != null || _multiBulkParts == null)
 				return CallOnReadCompleted(async);
 
-			if (_curReadChannelArgs.ReceiveMultiBulkPartsLeft > 0)
-				_curReadChannelArgs.MultiBulkParts[_curReadChannelArgs.MultiBulkParts.Length - _curReadChannelArgs.ReceiveMultiBulkPartsLeft] = _curReadChannelArgs.RedisResponse;
+			if (_receiveMultiBulkPartsLeft > 0)
+				_multiBulkParts[_multiBulkParts.Length - _receiveMultiBulkPartsLeft] = _curReadChannelArgs.RedisResponse;
 
-			--_curReadChannelArgs.ReceiveMultiBulkPartsLeft;
+			--_receiveMultiBulkPartsLeft;
 
-			if (_curReadChannelArgs.ReceiveMultiBulkPartsLeft > 0)
+			if (_receiveMultiBulkPartsLeft > 0)
 				return ReadResponseFromStream(async);
 
-			_curReadChannelArgs.RedisResponse = RedisResponse.CreateMultiBulk(_curReadChannelArgs.MultiBulkParts, _serializer);
+			_curReadChannelArgs.RedisResponse = RedisResponse.CreateMultiBulk(_multiBulkParts, _serializer);
 			return CallOnReadCompleted(async);
 		}
 
@@ -215,15 +216,15 @@ namespace NBoosters.RedisBoost.Core.RedisChannel
 			}
 			else if (_redisDataAnalizer.IsMultiBulkReply(streamArgs.FirstChar))
 			{
-				_curReadChannelArgs.ReceiveMultiBulkPartsLeft = _redisDataAnalizer.ConvertToInt(streamArgs.Line);
+				_receiveMultiBulkPartsLeft = _redisDataAnalizer.ConvertToInt(streamArgs.Line);
 
-				if (_curReadChannelArgs.ReceiveMultiBulkPartsLeft == -1) // multi-bulk nill
+				if (_receiveMultiBulkPartsLeft == -1) // multi-bulk nill
 					_curReadChannelArgs.RedisResponse = RedisResponse.CreateMultiBulk(null, _serializer);
 				else
 				{
-					_curReadChannelArgs.MultiBulkParts = new RedisResponse[_curReadChannelArgs.ReceiveMultiBulkPartsLeft];
+					_multiBulkParts = new RedisResponse[_receiveMultiBulkPartsLeft];
 
-					if (_curReadChannelArgs.ReceiveMultiBulkPartsLeft > 0)
+					if (_receiveMultiBulkPartsLeft > 0)
 						return ReadResponseFromStream(async);
 				}
 			}

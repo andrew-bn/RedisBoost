@@ -22,7 +22,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core.Serialization;
-using NBoosters.RedisBoost.Core.Misk;
+using NBoosters.RedisBoost.Misk;
 
 namespace NBoosters.RedisBoost.Core.Pool
 {
