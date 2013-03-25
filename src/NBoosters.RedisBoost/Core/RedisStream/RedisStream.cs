@@ -27,7 +27,7 @@ namespace NBoosters.RedisBoost.Core.RedisStream
 	{
 		public const int CONNECTION_CLOSED = 0;
 		private readonly IRedisDataAnalizer _redisDataAnalizer;
-		private const int BUFFERS_SIZE = 1024*2000;
+		private const int BUFFERS_SIZE = 1024*8;
 
 		private readonly byte[] _writeBuffer;
 		private volatile int _writeBufferOffset;
@@ -274,7 +274,7 @@ namespace NBoosters.RedisBoost.Core.RedisStream
 			_curReadStreamArgs.Exception = GetExceptionIfError(eventArgs);
 			eventArgs.SetBuffer(null, 0, 0);
 			_readBufferSize = eventArgs.BytesTransferred;
-
+			Console.WriteLine("Receive "+eventArgs.BytesTransferred);
 			var token = (Action) eventArgs.UserToken;
 			eventArgs.UserToken = null;
 			if (async) token();
@@ -302,6 +302,7 @@ namespace NBoosters.RedisBoost.Core.RedisStream
 		{
 			_sent = 0;
 			_sendCallBack = callBack;
+			Console.WriteLine("Send "+_writeBufferOffset);
 			_writeArgs.SetBuffer(_writeBuffer, 0, _writeBufferOffset);
 			return SendAllAsync(false);
 		}
