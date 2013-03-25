@@ -1658,7 +1658,6 @@ namespace NBoosters.RedisBoost.Tests
 			const int size = 10000;
 			using (var cli = CreateClient())
 			{
-
 				var tasks = new List<Task<MultiBulk>>();
 
 				for (int i = 0; i < size; i++)
