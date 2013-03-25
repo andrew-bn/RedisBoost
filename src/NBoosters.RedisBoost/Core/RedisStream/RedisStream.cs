@@ -139,6 +139,7 @@ namespace NBoosters.RedisBoost.Core.RedisStream
 			return true;
 		}
 		#endregion
+		#region reading
 		public bool ReadBlockLine(StreamAsyncEventArgs args)
 		{
 			_curReadStreamArgs = args;
@@ -147,44 +148,6 @@ namespace NBoosters.RedisBoost.Core.RedisStream
 
 			_read = 0;
 			return ReadBlockLineTask(false);
-		}
-		private bool CallOnReadCompleted(bool async)
-		{
-			if (async) _curReadStreamArgs.Completed(_curReadStreamArgs);
-			return async;
-		}
-		private bool CallOnSendCompleted(bool async)
-		{
-			if (async) _curSendStreamArgs.Completed(_curReadStreamArgs);
-			return async;
-		}
-		private bool ReadBlockLineTask(bool async)
-		{
-			if (_curReadStreamArgs.HasException)
-				return CallOnReadCompleted(async);
-
-			while (_read < _curReadStreamArgs.Length)
-			{
-				if (_readBufferOffset >= _readBufferSize)
-				{
-					if (ReadDataFromSocket(()=>ReadBlockLineTask(true))) return true;
-					if (_curReadStreamArgs.HasException)
-						return CallOnReadCompleted(async);
-					continue;
-				}
-
-				var bytesToCopy = _curReadStreamArgs.Length - _read;
-				
-				var bytesInBufferLeft = _readBufferSize - _readBufferOffset;
-				if (bytesToCopy > bytesInBufferLeft) bytesToCopy = bytesInBufferLeft;
-
-				Array.Copy(_readBuffer, _readBufferOffset, _curReadStreamArgs.Block, _read, bytesToCopy);
-				
-				_readBufferOffset += bytesToCopy;
-				_read += bytesToCopy;
-			}
-			_readBufferOffset += 2;
-			return CallOnReadCompleted(async);
 		}
 
 		public bool ReadLine(StreamAsyncEventArgs args)
@@ -234,17 +197,35 @@ namespace NBoosters.RedisBoost.Core.RedisStream
 			_writeBuffer[_writeBufferOffset++] = RedisConstants.NewLine[1];
 		}
 
-		private bool ReadDataFromSocket(Action callBack)
+		private bool ReadBlockLineTask(bool async)
 		{
-			_readBufferOffset = _readBufferOffset - _readBufferSize;
-			_readBufferSize = 0;
-			_readArgs.SetBuffer(_readBuffer, 0, _readBuffer.Length);
-			_readArgs.UserToken = callBack;
+			if (_curReadStreamArgs.HasException)
+				return CallOnReadCompleted(async);
 
-			var async = _socket.ReceiveAsync(_readArgs);
-			if (!async) ReceiveAsyncOpCallBack(false, _socket, _readArgs);
-			return async;
+			while (_read < _curReadStreamArgs.Length)
+			{
+				if (_readBufferOffset >= _readBufferSize)
+				{
+					if (ReadDataFromSocket(() => ReadBlockLineTask(true))) return true;
+					if (_curReadStreamArgs.HasException)
+						return CallOnReadCompleted(async);
+					continue;
+				}
+
+				var bytesToCopy = _curReadStreamArgs.Length - _read;
+
+				var bytesInBufferLeft = _readBufferSize - _readBufferOffset;
+				if (bytesToCopy > bytesInBufferLeft) bytesToCopy = bytesInBufferLeft;
+
+				Array.Copy(_readBuffer, _readBufferOffset, _curReadStreamArgs.Block, _read, bytesToCopy);
+
+				_readBufferOffset += bytesToCopy;
+				_read += bytesToCopy;
+			}
+			_readBufferOffset += 2;
+			return CallOnReadCompleted(async);
 		}
+		#endregion
 
 		public bool Connect(EndPoint endPoint, AsyncOperationDelegate<Exception> callBack)
 		{
@@ -275,26 +256,24 @@ namespace NBoosters.RedisBoost.Core.RedisStream
 			get { return _writeBufferOffset == 0; }
 		}
 
-		private void ReceiveAsyncOpCallBack(object sender, SocketAsyncEventArgs eventArgs)
-		{
-			ReceiveAsyncOpCallBack(true, sender, eventArgs);
-		}
-
-		private void ReceiveAsyncOpCallBack(bool async, object sender, SocketAsyncEventArgs eventArgs)
-		{
-			_curReadStreamArgs.Exception = eventArgs.GetExceptionIfError();
-			eventArgs.SetBuffer(null, 0, 0);
-			_readBufferSize = eventArgs.BytesTransferred;
-			var token = (Action) eventArgs.UserToken;
-			eventArgs.UserToken = null;
-			if (async) token();
-		}
-
-		#region helpers
 		private bool HasSpace(int dataLengthToWrite)
 		{
 			return (_writeBuffer.Length) >= (_writeBufferOffset + dataLengthToWrite);
 		}
+
+		private bool CallOnReadCompleted(bool async)
+		{
+			if (async) _curReadStreamArgs.Completed(_curReadStreamArgs);
+			return async;
+		}
+
+		private bool CallOnSendCompleted(bool async)
+		{
+			if (async) _curSendStreamArgs.Completed(_curReadStreamArgs);
+			return async;
+		}
+
+		#region socket send helpers
 
 		private bool SendAllAsync(Action callBack)
 		{
@@ -315,13 +294,13 @@ namespace NBoosters.RedisBoost.Core.RedisStream
 
 			_writeArgs.SetBuffer(_sentBytes, _writeBufferOffset - _sentBytes);
 
-			Func<bool, bool> sendPacketCallBack =
+			Func<bool, bool> sendCallBack =
 				isAsync =>
 				{
 					_sentBytes += _writeArgs.BytesTransferred;
 					return SendAllAsync(isAsync);
 				};
-			return SendPacketAsync(() => sendPacketCallBack(true)) || sendPacketCallBack(async);
+			return SendPacketAsync(() => sendCallBack(true)) || sendCallBack(async);
 		}
 
 		private bool SendPacketAsync(Action callBack)
@@ -342,6 +321,34 @@ namespace NBoosters.RedisBoost.Core.RedisStream
 			var action = (Action)_writeArgs.UserToken;
 			_writeArgs.UserToken = null;
 			if (async) action();
+		}
+		#endregion
+		#region socket receive helpers
+		private bool ReadDataFromSocket(Action callBack)
+		{
+			_readBufferOffset = _readBufferOffset - _readBufferSize;
+			_readBufferSize = 0;
+			_readArgs.SetBuffer(_readBuffer, 0, _readBuffer.Length);
+			_readArgs.UserToken = callBack;
+
+			var async = _socket.ReceiveAsync(_readArgs);
+			if (!async) ReceiveAsyncOpCallBack(false, _socket, _readArgs);
+			return async;
+		}
+
+		private void ReceiveAsyncOpCallBack(object sender, SocketAsyncEventArgs eventArgs)
+		{
+			ReceiveAsyncOpCallBack(true, sender, eventArgs);
+		}
+
+		private void ReceiveAsyncOpCallBack(bool async, object sender, SocketAsyncEventArgs eventArgs)
+		{
+			_curReadStreamArgs.Exception = eventArgs.GetExceptionIfError();
+			eventArgs.SetBuffer(null, 0, 0);
+			_readBufferSize = eventArgs.BytesTransferred;
+			var token = (Action)eventArgs.UserToken;
+			eventArgs.UserToken = null;
+			if (async) token();
 		}
 		#endregion
 	}

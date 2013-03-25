@@ -101,7 +101,6 @@
     <Compile Include="Core\IRedisDataAnalizer.cs" />
     <Compile Include="Core\RedisConstants.cs" />
     <Compile Include="Core\RedisDataAnalizer.cs" />
-    <Compile Include="Core\RedisLine.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RedisClient.cs" />
     <Compile Include="RedisClient.SortedSets.cs">
