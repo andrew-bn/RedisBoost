@@ -17,8 +17,9 @@
 #endregion
 
 using System;
-using NBoosters.RedisBoost.Core.Misk;
+using NBoosters.RedisBoost.Core;
 using NBoosters.RedisBoost.Core.Serialization;
+using NBoosters.RedisBoost.Misk;
 
 namespace NBoosters.RedisBoost.Extensions
 {
