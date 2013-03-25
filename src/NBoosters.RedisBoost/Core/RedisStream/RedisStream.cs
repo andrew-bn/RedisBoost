@@ -40,7 +40,7 @@ namespace NBoosters.RedisBoost.Core.RedisStream
 		private readonly byte[] _readBuffer;
 		private int _readBufferSize;
 		private int _readBufferOffset;
-		public StringBuilder _readLineBuffer;
+		private readonly StringBuilder _readLineBuffer;
 
 		private readonly SocketAsyncEventArgs _readArgs;
 		private readonly SocketAsyncEventArgs _writeArgs;
@@ -82,7 +82,7 @@ namespace NBoosters.RedisBoost.Core.RedisStream
 		public bool Flush(StreamAsyncEventArgs args)
 		{
 			_curSendStreamArgs = args;
-			Func<bool, bool> sendCallBack = (async) =>
+			Func<bool, bool> sendCallBack = async =>
 			{
 				_writeArgs.SetBuffer(null, 0, 0);
 				_writeBufferOffset = 0;
@@ -307,16 +307,16 @@ namespace NBoosters.RedisBoost.Core.RedisStream
 		{
 			_writeArgs.UserToken = callBack;
 			var async = _socket.SendAsync(_writeArgs);
-			if (!async) SendCallBack(false,_socket,_writeArgs);
+			if (!async) SendCallBack(false,_writeArgs);
 			return async;
 		}
 
 		private void SendCallBack(object sender, SocketAsyncEventArgs args)
 		{
-			SendCallBack(true,sender,args);
+			SendCallBack(true, args);
 		}
 
-		private void SendCallBack(bool async, object sender, SocketAsyncEventArgs args)
+		private void SendCallBack(bool async, SocketAsyncEventArgs args)
 		{
 			var action = (Action)_writeArgs.UserToken;
 			_writeArgs.UserToken = null;

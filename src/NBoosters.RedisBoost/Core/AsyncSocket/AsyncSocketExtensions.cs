@@ -40,20 +40,20 @@ namespace NBoosters.RedisBoost.Core.AsyncSocket
 		{
 			args.UserToken = callBack;
 			args.Completed += AsyncOpCallBack;
-			return !socket.ConnectAsync(args) && AsyncOpCallBack(true, socket, args);
+			return !socket.ConnectAsync(args) && AsyncOpCallBack(true, args);
 		}
 
 		public static bool DisconnectAsyncAsync(this Socket socket, SocketAsyncEventArgs args, AsyncOperationDelegate<Exception> callBack)
 		{
 			args.UserToken = callBack;
 			args.Completed += AsyncOpCallBack;
-			return !socket.DisconnectAsync(args) && AsyncOpCallBack(true, socket, args);
+			return !socket.DisconnectAsync(args) && AsyncOpCallBack(true, args);
 		}
 		private static void AsyncOpCallBack(object sender, SocketAsyncEventArgs eventArgs)
 		{
-			AsyncOpCallBack(false,sender,eventArgs);
+			AsyncOpCallBack(false,eventArgs);
 		}
-		private static bool AsyncOpCallBack(bool sync, object sender, SocketAsyncEventArgs eventArgs)
+		private static bool AsyncOpCallBack(bool sync, SocketAsyncEventArgs eventArgs)
 		{
 			eventArgs.Completed -= AsyncOpCallBack;
 

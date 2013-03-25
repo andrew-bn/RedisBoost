@@ -1,12 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Moq;
-using NBoosters.RedisBoost;
-using NBoosters.RedisBoost.Core;
 using NBoosters.RedisBoost.Core.Pool;
 using NBoosters.RedisBoost.Core.Serialization;
 using NUnit.Framework;

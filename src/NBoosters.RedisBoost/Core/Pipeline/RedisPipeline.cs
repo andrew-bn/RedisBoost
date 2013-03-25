@@ -19,7 +19,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
-using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core.RedisChannel;
 
 namespace NBoosters.RedisBoost.Core.Pipeline
@@ -31,11 +30,11 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 
 		private readonly IRedisChannel _channel;
 		
-		private int _sendIsRunning = 0;
-		private int _receiveIsRunning = 0;
-		private int _pipelineIsClosed = 0;
+		private int _sendIsRunning;
+		private int _receiveIsRunning;
+		private int _pipelineIsClosed;
 
-		private volatile Exception _pipelineException = null;
+		private volatile Exception _pipelineException;
 		private readonly ChannelAsyncEventArgs _readChannelArgs = new ChannelAsyncEventArgs();
 		private readonly ChannelAsyncEventArgs _sendChannelArgs = new ChannelAsyncEventArgs();
 		private readonly ChannelAsyncEventArgs _flushChannelArgs = new ChannelAsyncEventArgs();

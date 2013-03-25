@@ -214,7 +214,7 @@ namespace NBoosters.RedisBoost.Core.Pool
 				}
 			}
 		}
-		private int _disposed = 0;
+		private int _disposed;
 		public void Dispose()
 		{
 			Dispose(true);

@@ -126,8 +126,8 @@ namespace NBoosters.RedisBoost.Core.RedisChannel
 		#region Receive Data Task
 		private volatile ChannelAsyncEventArgs _curReadChannelArgs;
 		private readonly StreamAsyncEventArgs _readStreamArgs = new StreamAsyncEventArgs();
-		public int _receiveMultiBulkPartsLeft;
-		public RedisResponse[] _multiBulkParts;
+		private int _receiveMultiBulkPartsLeft;
+		private RedisResponse[] _multiBulkParts;
 
 		public bool ReadResponseAsync(ChannelAsyncEventArgs args)
 		{
