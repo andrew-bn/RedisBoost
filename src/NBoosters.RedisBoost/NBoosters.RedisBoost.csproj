@@ -48,7 +48,14 @@
     <Compile Include="ChannelMessage.cs" />
     <Compile Include="ChannelMessageType.cs" />
     <Compile Include="Core\AsyncOperationDelegate.cs" />
+    <Compile Include="Core\AsyncSocket\AsyncSocketWrapper.cs" />
+    <Compile Include="Core\AsyncSocket\AsyncSocketEventArgs.cs" />
+    <Compile Include="Core\AsyncSocket\IAsyncSocket.cs" />
+    <Compile Include="Core\AsyncSocket\ISocket.cs" />
+    <Compile Include="Core\AsyncSocket\SocketWrapper.cs" />
+    <Compile Include="Core\EventArgsBase.cs" />
     <Compile Include="Core\IPrepareSupportRedisClient.cs" />
+    <Compile Include="Core\ISocketDependent.cs" />
     <Compile Include="Core\Pipeline\IRedisPipeline.cs" />
     <Compile Include="Core\Pipeline\PipelineItem.cs" />
     <Compile Include="Core\Pipeline\RedisPipeline.cs" />
@@ -62,6 +69,9 @@
     <Compile Include="Core\RedisStream\IRedisStream.cs" />
     <Compile Include="Core\RedisStream\RedisStream.cs" />
     <Compile Include="Core\RedisStream\StreamAsyncEventArgs.cs" />
+    <Compile Include="Core\Sender\IRedisSender.cs" />
+    <Compile Include="Core\Sender\RedisSender.cs" />
+    <Compile Include="Core\Sender\SenderAsyncEventArgs.cs" />
     <Compile Include="Core\Serialization\BasicRedisSerializer.cs" />
     <Compile Include="Core\Serialization\IRedisSerializer.cs" />
     <Compile Include="IRedisClientsPool.cs" />
@@ -119,7 +129,9 @@
     <Compile Include="ZAddArgs.cs" />
     <Compile Include="ZAggrStoreArgs.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Core\Receiver\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
