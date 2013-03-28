@@ -7,8 +7,9 @@ using NBoosters.RedisBoost.Core.AsyncSocket;
 
 namespace NBoosters.RedisBoost.Core.Sender
 {
-	internal class RedisSender: IRedisSender
+	internal class RedisSender : IRedisSender
 	{
+		private const int ADDITIONAL_LINE_BYTES = 3; // first char (*$+-) and \r\n
 		private class SenderContext
 		{
 			public int SendState { get; set; }
@@ -23,18 +24,25 @@ namespace NBoosters.RedisBoost.Core.Sender
 		private readonly byte[] _buffer;
 		private int _offset;
 		private readonly IAsyncSocket _asyncSocket;
+		private readonly bool _autoFlush;
 		private readonly AsyncSocketEventArgs _flushArgs;
 		private SenderContext _senderContext;
 
-		public RedisSender(IAsyncSocket asyncSocket)
+		public RedisSender(IAsyncSocket asyncSocket, bool autoFlush)
+			: this(asyncSocket, BUFFER_SIZE, autoFlush)
+		{
+		}
+
+		public RedisSender(IAsyncSocket asyncSocket, int bufferSize, bool autoFlush)
 		{
 			_asyncSocket = asyncSocket;
+			_autoFlush = autoFlush;
 			_senderContext = new SenderContext();
 
 			_flushArgs = new AsyncSocketEventArgs();
 			_flushArgs.Completed = FlushCallBack;
 
-			_buffer = new byte[BUFFER_SIZE];
+			_buffer = new byte[bufferSize];
 		}
 
 		public bool Send(SenderAsyncEventArgs args)
@@ -59,33 +67,30 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 		private bool SendDataTask(bool async, SenderAsyncEventArgs args)
 		{
-			var context = (SenderContext) args.UserToken;
+			var context = (SenderContext)args.UserToken;
 
 			if (context.EventArgs.HasError)
 				return CallOnSendCompleted(async, context);
 
 			if (context.SendState == 0)
 			{
-				if (!WriteArgumentsCountLine(context.EventArgs.DataToSend.Length))
-					return Flush(context.EventArgs) || SendDataTask(async, args);
-
+				while (!WriteArgumentsCountLine(context.EventArgs.DataToSend.Length))
+					if (Flush(context.EventArgs)) return true;
 				context.SendState = 1;
 			}
 
-			if (context.SendState > 0)
+			if (context.SendState > 0 && context.SendState < 4)
 			{
 				for (; context.PartIndex < context.EventArgs.DataToSend.Length; context.PartIndex++)
 				{
 					if (context.SendState == 1)
 					{
-						if (!WriteDataSizeLine(context.EventArgs.DataToSend[context.PartIndex].Length))
-							return Flush(context.EventArgs) || SendDataTask(async, args);
+						while (!WriteDataSizeLine(context.EventArgs.DataToSend[context.PartIndex].Length))
+							if (Flush(context.EventArgs)) return true;
 
 						context.SendState = 2;
-						context.ArraySegment = 
-							new ArraySegment<byte>(context.EventArgs.DataToSend[context.PartIndex],
-													0,
-													context.EventArgs.DataToSend[context.PartIndex].Length);
+						context.ArraySegment = new ArraySegment<byte>(context.EventArgs.DataToSend[context.PartIndex], 0,
+																	  context.EventArgs.DataToSend[context.PartIndex].Length);
 					}
 
 					if (context.SendState == 2)
@@ -94,21 +99,31 @@ namespace NBoosters.RedisBoost.Core.Sender
 						{
 							context.ArraySegment = WriteData(context.ArraySegment);
 							if (context.ArraySegment.Count > 0)
-								return Flush(context.EventArgs) || SendDataTask(async, args);
+							{
+								if (Flush(context.EventArgs)) return true;
+								continue;
+							}
 
 							context.SendState = 3;
 							break;
 						}
 					}
+
 					if (context.SendState == 3)
 					{
-						if (!WriteNewLine())
-							return Flush(context.EventArgs) || SendDataTask(async, args);
-
+						while (!WriteNewLine())
+							if (Flush(context.EventArgs)) return true;
 						context.SendState = 1;
 					}
 				}
 			}
+
+			if (context.SendState != 4 && _autoFlush)
+			{
+				context.SendState = 4;
+				if (Flush(context.EventArgs)) return true;
+			}
+
 			return CallOnSendCompleted(async, context);
 		}
 
@@ -128,15 +143,16 @@ namespace NBoosters.RedisBoost.Core.Sender
 			if (!isAsync) FlushCallBack(false, _flushArgs);
 			return isAsync;
 		}
-		
+
 		private void FlushCallBack(AsyncSocketEventArgs args)
 		{
-			FlushCallBack(true,args);
+			FlushCallBack(true, args);
 		}
 
 		private void FlushCallBack(bool async, AsyncSocketEventArgs args)
 		{
 			var senderArgs = (SenderAsyncEventArgs)args.UserToken;
+			_offset = 0;
 			args.UserToken = null;
 			senderArgs.Error = args.Error;
 			if (async) senderArgs.Completed(senderArgs);
@@ -166,7 +182,7 @@ namespace NBoosters.RedisBoost.Core.Sender
 		private bool WriteCountLine(byte startSimbol, int argsCount)
 		{
 			var part = ConvertToByteArray(argsCount);
-			var length = 3 + part.Length;
+			var length = ADDITIONAL_LINE_BYTES + part.Length;
 
 			if (!HasSpace(length)) return false;
 
