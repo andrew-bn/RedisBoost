@@ -63,6 +63,9 @@
     <Compile Include="Core\Pool\PooledRedisClient.cs" />
     <Compile Include="Core\Pool\PoolItem.cs" />
     <Compile Include="Core\Pool\RedisClientsPool.cs" />
+    <Compile Include="Core\Receiver\IRedisReceiver.cs" />
+    <Compile Include="Core\Receiver\ReceiverAsyncEventArgs.cs" />
+    <Compile Include="Core\Receiver\RedisReceiver.cs" />
     <Compile Include="Core\RedisChannel\IRedisChannel.cs" />
     <Compile Include="Core\RedisChannel\RedisChannel.cs" />
     <Compile Include="Core\RedisChannel\ChannelAsyncEventArgs.cs" />
@@ -129,9 +132,7 @@
     <Compile Include="ZAddArgs.cs" />
     <Compile Include="ZAggrStoreArgs.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Core\Receiver\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
