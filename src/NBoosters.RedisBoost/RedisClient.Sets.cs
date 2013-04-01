@@ -19,6 +19,7 @@
 using System;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
+using NBoosters.RedisBoost.Misk;
 
 namespace NBoosters.RedisBoost
 {
@@ -36,7 +37,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> SAddAsync(string key, params byte[][] members)
 		{
-			var request = ComposeRequest(RedisConstants.SAdd, ConvertToByteArray(key), members);
+			var request = ComposeRequest(RedisConstants.SAdd, key.ToBytes(), members);
 			return IntegerResponseCommand(request);
 		}
 
@@ -52,13 +53,13 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> SRemAsync(string key, params byte[][] members)
 		{
-			var request = ComposeRequest(RedisConstants.SRem, ConvertToByteArray(key), members);
+			var request = ComposeRequest(RedisConstants.SRem, key.ToBytes(), members);
 			return IntegerResponseCommand(request);
 		}
 
 		public Task<long> SCardAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.SCard, ConvertToByteArray(key));
+			return IntegerResponseCommand(RedisConstants.SCard, key.ToBytes());
 		}
 
 		public Task<MultiBulk> SDiffAsync(params string[] keys)
@@ -69,7 +70,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> SDiffStoreAsync(string destinationKey, params string[] keys)
 		{
-			var request = ComposeRequest(RedisConstants.SDiffStore, ConvertToByteArray(destinationKey), keys);
+			var request = ComposeRequest(RedisConstants.SDiffStore, destinationKey.ToBytes(), keys);
 			return IntegerResponseCommand(request);
 		}
 
@@ -81,7 +82,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> SUnionStoreAsync(string destinationKey, params string[] keys)
 		{
-			var request = ComposeRequest(RedisConstants.SUnionStore, ConvertToByteArray(destinationKey), keys);
+			var request = ComposeRequest(RedisConstants.SUnionStore, destinationKey.ToBytes(), keys);
 			return IntegerResponseCommand(request);
 		}
 
@@ -93,7 +94,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> SInterStoreAsync(string destinationKey, params string[] keys)
 		{
-			var request = ComposeRequest(RedisConstants.SInterStore, ConvertToByteArray(destinationKey), keys);
+			var request = ComposeRequest(RedisConstants.SInterStore, destinationKey.ToBytes(), keys);
 			return IntegerResponseCommand(request);
 		}
 
@@ -104,12 +105,12 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> SIsMemberAsync(string key, byte[] value)
 		{
-			return IntegerResponseCommand(RedisConstants.SIsMember, ConvertToByteArray(key), value);
+			return IntegerResponseCommand(RedisConstants.SIsMember, key.ToBytes(), value);
 		}
 
 		public Task<MultiBulk> SMembersAsync(string key)
 		{
-			return MultiBulkResponseCommand(RedisConstants.SMembers, ConvertToByteArray(key));
+			return MultiBulkResponseCommand(RedisConstants.SMembers, key.ToBytes());
 		}
 
 		public Task<long> SMoveAsync<T>(string sourceKey, string destinationKey, T member)
@@ -119,24 +120,24 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> SMoveAsync(string sourceKey, string destinationKey, byte[] member)
 		{
-			return IntegerResponseCommand(RedisConstants.SMove, ConvertToByteArray(sourceKey),
-				ConvertToByteArray(destinationKey), member);
+			return IntegerResponseCommand(RedisConstants.SMove, sourceKey.ToBytes(),
+				destinationKey.ToBytes(), member);
 		}
 
 		public Task<Bulk> SPopAsync(string key)
 		{
-			return BulkResponseCommand(RedisConstants.SPop, ConvertToByteArray(key));
+			return BulkResponseCommand(RedisConstants.SPop, key.ToBytes());
 		}
 
 		public Task<Bulk> SRandMemberAsync(string key)
 		{
-			return BulkResponseCommand(RedisConstants.SRandMember, ConvertToByteArray(key));
+			return BulkResponseCommand(RedisConstants.SRandMember, key.ToBytes());
 		}
 
 		public Task<MultiBulk> SRandMemberAsync(string key, int count)
 		{
-			return MultiBulkResponseCommand(RedisConstants.SRandMember, ConvertToByteArray(key),
-				ConvertToByteArray(count));
+			return MultiBulkResponseCommand(RedisConstants.SRandMember, key.ToBytes(),
+				count.ToBytes());
 		}
 	}
 }

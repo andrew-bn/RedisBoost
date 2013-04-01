@@ -18,6 +18,7 @@
 
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
+using NBoosters.RedisBoost.Misk;
 
 namespace NBoosters.RedisBoost
 {
@@ -30,7 +31,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<RedisResponse> EvalAsync(string script, string[] keys, params byte[][] arguments)
 		{
-			return Eval(RedisConstants.Eval, ConvertToByteArray(script), keys, arguments);
+			return Eval(RedisConstants.Eval, script.ToBytes(), keys, arguments);
 		}
 
 		public Task<RedisResponse> EvalShaAsync(byte[] sha1, string[] keys, params object[] arguments)
@@ -45,7 +46,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<Bulk> ScriptLoadAsync(string script)
 		{
-			return BulkResponseCommand(RedisConstants.Script, RedisConstants.Load, ConvertToByteArray(script));
+			return BulkResponseCommand(RedisConstants.Script, RedisConstants.Load, script.ToBytes());
 		}
 
 		public Task<MultiBulk> ScriptExistsAsync(params byte[][] sha1)
@@ -66,10 +67,10 @@ namespace NBoosters.RedisBoost
 			var request = new byte[3 + keys.Length + arguments.Length][];
 			request[0] = commandName;
 			request[1] = script;
-			request[2] = ConvertToByteArray(keys.Length);
+			request[2] = keys.Length.ToBytes();
 
 			for (int i = 0; i < keys.Length; i++)
-				request[3 + i] = ConvertToByteArray(keys[i]);
+				request[3 + i] = keys[i].ToBytes();
 			for (int i = 0; i < arguments.Length; i++)
 				request[3 + keys.Length + i] = arguments[i];
 

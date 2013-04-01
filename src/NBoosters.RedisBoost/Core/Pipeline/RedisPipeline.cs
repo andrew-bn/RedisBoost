@@ -236,11 +236,10 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 
 		public void DisposeAndReuse()
 		{
-			ResetState();
 			_socket.Dispose();
 		}
 
-		private void ResetState()
+		public void ResetState()
 		{
 			_sendIsRunning = 0;
 			_receiveIsRunning = 0;

@@ -18,6 +18,7 @@
 
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
+using NBoosters.RedisBoost.Misk;
 
 namespace NBoosters.RedisBoost
 {
@@ -25,7 +26,7 @@ namespace NBoosters.RedisBoost
 	{
 		public Task<string> AuthAsync(string password)
 		{
-			return StatusResponseCommand(RedisConstants.Auth, ConvertToByteArray(password));
+			return StatusResponseCommand(RedisConstants.Auth, password.ToBytes());
 		}
 
 		public Task<Bulk> EchoAsync<T>(T message)
@@ -51,7 +52,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<string> SelectAsync(int index)
 		{
-			return StatusResponseCommand(RedisConstants.Select, ConvertToByteArray(index));
+			return StatusResponseCommand(RedisConstants.Select, index.ToBytes());
 		}
 	}
 }

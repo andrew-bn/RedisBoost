@@ -122,7 +122,7 @@ namespace NBoosters.RedisBoost
 				var asyncSocket = new AsyncSocketWrapper();
 				return new RedisPipeline(asyncSocket, new RedisSender(asyncSocket, false), new RedisReceiver(asyncSocket));
 			});
-
+			_redisPipeline.ResetState();
 			_redisPipeline.EngageWith(socketWrapper);
 			_redisPipeline.EngageWith(Serializer);
 		}
@@ -138,7 +138,7 @@ namespace NBoosters.RedisBoost
 			for (int i = 0; i < args.Length; i++)
 			{
 				var arg = args[i];
-				request[i * 2 + 2] = ConvertToByteArray(arg.KeyOrField);
+				request[i * 2 + 2] = arg.KeyOrField.ToBytes();
 				request[i * 2 + 3] = arg.IsArray ? (byte[])arg.Value : Serialize(arg.Value);
 			}
 			return request;
@@ -146,7 +146,7 @@ namespace NBoosters.RedisBoost
 
 		private byte[][] ComposeRequest(byte[] commandName, byte[] arg1, string[] args)
 		{
-			return ComposeRequest(commandName, arg1, args.Select(ConvertToByteArray).ToArray());
+			return ComposeRequest(commandName, arg1, args.Select(a=>a.ToBytes()).ToArray());
 		}
 
 		private byte[][] ComposeRequest(byte[] commandName, byte[] arg1, byte[][] args)
@@ -173,7 +173,7 @@ namespace NBoosters.RedisBoost
 			request[2] = arg2;
 
 			for (int i = 0; i < args.Length; i++)
-				request[i + 3] = ConvertToByteArray(args[i]);
+				request[i + 3] = args[i].ToBytes();
 
 			return request;
 		}
@@ -186,7 +186,7 @@ namespace NBoosters.RedisBoost
 			request[0] = commandName;
 
 			for (int i = 0; i < args.Length; i++)
-				request[i + 1] = ConvertToByteArray(args[i]);
+				request[i + 1] = args[i].ToBytes();
 
 			if (lastArg != null)
 				request[request.Length - 1] = lastArg;
@@ -211,66 +211,6 @@ namespace NBoosters.RedisBoost
 		{
 			return (T)Serializer.Deserialize(typeof(T), value);
 		}
-		private static byte[] ConvertToByteArray(BitOpType bitOp)
-		{
-			var result = RedisConstants.And;
-			if (bitOp == BitOpType.Not)
-				result = RedisConstants.Not;
-			else if (bitOp == BitOpType.Or)
-				result = RedisConstants.Or;
-			else if (bitOp == BitOpType.Xor)
-				result = RedisConstants.Xor;
-
-			return result;
-		}
-		private static byte[] ConvertToByteArray(Subcommand subcommand)
-		{
-			var result = RedisConstants.RefCount;
-			if (subcommand == Subcommand.IdleTime)
-				result = RedisConstants.IdleTime;
-			else if (subcommand == Subcommand.Encoding)
-				result = RedisConstants.ObjEncoding;
-
-			return result;
-		}
-		private static byte[] ConvertToByteArray(Aggregation aggregation)
-		{
-			var aggr = RedisConstants.Sum;
-			if (aggregation == Aggregation.Max)
-				aggr = RedisConstants.Max;
-			if (aggregation == Aggregation.Min)
-				aggr = RedisConstants.Min;
-			return aggr;
-		}
-		private static byte[] ConvertToByteArray(string data)
-		{
-			return data.ToBytes();
-		}
-		private static byte[] ConvertToByteArray(int data)
-		{
-			return data.ToBytes();
-		}
-		private byte[] ConvertToByteArray(long data)
-		{
-			return data.ToBytes();
-		}
-		private byte[] ConvertToByteArray(double data)
-		{
-			byte[] result;
-			if (double.IsPositiveInfinity(data))
-				result = RedisConstants.PositiveInfinity;
-			else if (double.IsNegativeInfinity(data))
-				result = RedisConstants.NegativeInfinity;
-			else
-				result = data.ToBytes();
-
-			return result;
-		}
-
-		private string ConvertToString(byte[] result)
-		{
-			return result.AsString();
-		}
 		#endregion
 		#region read response
 		private Task<MultiBulk> MultiBulkResponseCommand(params byte[][] args)
@@ -283,9 +223,7 @@ namespace NBoosters.RedisBoost
 				t =>
 					{
 						var reply = t.Result;
-						if (reply.ResponseType != RedisResponseType.Status)
-							return string.Empty;
-						return reply.AsStatus();
+						return reply.ResponseType != RedisResponseType.Status ? string.Empty : reply.AsStatus();
 					});
 		}
 		private Task<long> IntegerResponseCommand(params byte[][] args)
@@ -293,9 +231,7 @@ namespace NBoosters.RedisBoost
 			return ExecutePipelinedCommand(args).ContinueWithIfNoError(t =>
 				{
 					var reply = t.Result;
-					if (reply.ResponseType != RedisResponseType.Integer)
-						return default(long);
-					return reply.AsInteger();
+					return reply.ResponseType != RedisResponseType.Integer ? default(long) : reply.AsInteger();
 				});
 			
 		}
@@ -305,9 +241,7 @@ namespace NBoosters.RedisBoost
 				t =>
 					{
 						var reply = t.Result;
-						if (reply.ResponseType == RedisResponseType.Integer)
-							return reply.AsInteger();
-						return (long?)null;
+						return reply.ResponseType == RedisResponseType.Integer ? reply.AsInteger() : (long?) null;
 					});
 
 		}

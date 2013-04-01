@@ -81,5 +81,36 @@ namespace NBoosters.RedisBoost.Misk
 		{
 			return ToBytes(value.ToString("R", CultureInfo.InvariantCulture));
 		}
+		internal static byte[] ToBytes(this BitOpType value)
+		{
+			var result = RedisConstants.And;
+			if (value == BitOpType.Not)
+				result = RedisConstants.Not;
+			else if (value == BitOpType.Or)
+				result = RedisConstants.Or;
+			else if (value == BitOpType.Xor)
+				result = RedisConstants.Xor;
+
+			return result;
+		}
+		internal static byte[] ToBytes(this Subcommand subcommand)
+		{
+			var result = RedisConstants.RefCount;
+			if (subcommand == Subcommand.IdleTime)
+				result = RedisConstants.IdleTime;
+			else if (subcommand == Subcommand.Encoding)
+				result = RedisConstants.ObjEncoding;
+
+			return result;
+		}
+		internal static byte[] ToBytes(this Aggregation aggregation)
+		{
+			var aggr = RedisConstants.Sum;
+			if (aggregation == Aggregation.Max)
+				aggr = RedisConstants.Max;
+			if (aggregation == Aggregation.Min)
+				aggr = RedisConstants.Min;
+			return aggr;
+		}
 	}
 }

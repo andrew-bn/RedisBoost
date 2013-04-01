@@ -32,7 +32,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> PublishAsync(string channel, byte[] message)
 		{
-			return IntegerResponseCommand(RedisConstants.Publish, ConvertToByteArray(channel), message);
+			return IntegerResponseCommand(RedisConstants.Publish, channel.ToBytes(), message);
 		}
 
 		public Task<IRedisSubscription> SubscribeAsync(params string[] channels)
@@ -115,7 +115,7 @@ namespace NBoosters.RedisBoost
 			var response = readTask.Result.AsMultiBulk();
 			if (response.Length < 3 || //1 - message type, 2.. - channel, ..3 - message
 				response[0].ResponseType != RedisResponseType.Bulk ||
-				!Enum.TryParse(ConvertToString(response[0].AsBulk()), true, out messageType)) 
+				!Enum.TryParse(((byte[])response[0].AsBulk()).AsString(), true, out messageType)) 
 			{
 				tcs.SetResult(new ChannelMessage(ChannelMessageType.Unknown, readTask.Result, new string[0]));
 				return;
@@ -130,7 +130,7 @@ namespace NBoosters.RedisBoost
 			var channels = new string[response.Length - 2];
 
 			for (var i = 1; i < (response.Length - 1); i++)
-				channels[i - 1] = ConvertToString(response[i].AsBulk());
+				channels[i - 1] = ((byte[])response[i].AsBulk()).AsString();
 
 			var lastReply = response[response.Length - 1];
 

@@ -25,7 +25,7 @@ namespace NBoosters.RedisBoost.Core.Sender
 {
 	internal class RedisSender : IRedisSender
 	{
-		private const int ADDITIONAL_LINE_BYTES = 3; // first char (*$+-) and \r\n
+		private const int ADDITIONAL_LINE_BYTES = 3; // first char [*$+-] and \r\n
 		private class SenderContext
 		{
 			public int SendState { get; set; }

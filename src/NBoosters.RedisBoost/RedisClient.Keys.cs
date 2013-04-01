@@ -27,73 +27,73 @@ namespace NBoosters.RedisBoost
 	{
 		public Task<MultiBulk> KeysAsync(string pattern)
 		{
-			return MultiBulkResponseCommand(RedisConstants.Keys, ConvertToByteArray(pattern));
+			return MultiBulkResponseCommand(RedisConstants.Keys, pattern.ToBytes());
 		}
 
 		public Task<long> DelAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.Del, ConvertToByteArray(key));
+			return IntegerResponseCommand(RedisConstants.Del, key.ToBytes());
 		}
 
 		public Task<string> MigrateAsync(string host,int port, string key, int destinationDb, int timeout)
 		{
-			return StatusResponseCommand(RedisConstants.Migrate, 
-										 ConvertToByteArray(host),ConvertToByteArray(port),
-										 ConvertToByteArray(key), ConvertToByteArray(destinationDb),
-										 ConvertToByteArray(timeout));
+			return StatusResponseCommand(RedisConstants.Migrate,
+										 host.ToBytes(), port.ToBytes(),
+										 key.ToBytes(), destinationDb.ToBytes(),
+										 timeout.ToBytes());
 		}
 
 		public Task<Bulk> DumpAsync(string key)
 		{
-			return BulkResponseCommand(RedisConstants.Dump, ConvertToByteArray(key));
+			return BulkResponseCommand(RedisConstants.Dump, key.ToBytes());
 		}
 
 		public Task<string> RestoreAsync(string key, int ttlInMilliseconds, byte[] serializedValue)
 		{
-			return StatusResponseCommand(RedisConstants.Restore, ConvertToByteArray(key),
-				ConvertToByteArray(ttlInMilliseconds), serializedValue);
+			return StatusResponseCommand(RedisConstants.Restore, key.ToBytes(),
+				ttlInMilliseconds.ToBytes(), serializedValue);
 		}
 
 		public Task<long> ExistsAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.Exists, ConvertToByteArray(key));
+			return IntegerResponseCommand(RedisConstants.Exists, key.ToBytes());
 		}
 
 		public Task<long> ExpireAsync(string key, int seconds)
 		{
-			return IntegerResponseCommand(RedisConstants.Expire, ConvertToByteArray(key), ConvertToByteArray(seconds));
+			return IntegerResponseCommand(RedisConstants.Expire, key.ToBytes(), seconds.ToBytes());
 		}
 
 		public Task<long> PExpireAsync(string key, int milliseconds)
 		{
-			return IntegerResponseCommand(RedisConstants.PExpire, ConvertToByteArray(key), ConvertToByteArray(milliseconds));
+			return IntegerResponseCommand(RedisConstants.PExpire, key.ToBytes(), milliseconds.ToBytes());
 		}
 
 		public Task<long> ExpireAtAsync(string key, DateTime timestamp)
 		{
 			var seconds = (int)(timestamp - RedisConstants.InitialUnixTime).TotalSeconds;
-			return IntegerResponseCommand(RedisConstants.ExpireAt, ConvertToByteArray(key), 
-				ConvertToByteArray(seconds));
+			return IntegerResponseCommand(RedisConstants.ExpireAt, key.ToBytes(),
+				seconds.ToBytes());
 		}
 
 		public Task<long> PersistAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.Persist, ConvertToByteArray(key));
+			return IntegerResponseCommand(RedisConstants.Persist, key.ToBytes());
 		}
 
 		public Task<long> PttlAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.Pttl, ConvertToByteArray(key));
+			return IntegerResponseCommand(RedisConstants.Pttl, key.ToBytes());
 		}
 
 		public Task<long> TtlAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.Ttl, ConvertToByteArray(key));
+			return IntegerResponseCommand(RedisConstants.Ttl, key.ToBytes());
 		}
 
 		public Task<string> TypeAsync(string key)
 		{
-			return StatusResponseCommand(RedisConstants.Type, ConvertToByteArray(key));
+			return StatusResponseCommand(RedisConstants.Type, key.ToBytes());
 		}
 
 		public Task<string> RandomKeyAsync()
@@ -104,28 +104,28 @@ namespace NBoosters.RedisBoost
 						var result = t.Result;
 						return (result == null || result.IsNull)
 								? String.Empty
-								: ConvertToString(result);
+								: ((byte[])result).AsString();
 					});
 		}
 
 		public Task<string> RenameAsync(string key, string newKey)
 		{
-			return StatusResponseCommand(RedisConstants.Rename, ConvertToByteArray(key), ConvertToByteArray(newKey));
+			return StatusResponseCommand(RedisConstants.Rename, key.ToBytes(), newKey.ToBytes());
 		}
 
 		public Task<long> RenameNxAsync(string key, string newKey)
 		{
-			return IntegerResponseCommand(RedisConstants.RenameNx, ConvertToByteArray(key), ConvertToByteArray(newKey));
+			return IntegerResponseCommand(RedisConstants.RenameNx, key.ToBytes(), newKey.ToBytes());
 		}
 
 		public Task<long> MoveAsync(string key, int db)
 		{
-			return IntegerResponseCommand(RedisConstants.Move, ConvertToByteArray(key), ConvertToByteArray(db));
+			return IntegerResponseCommand(RedisConstants.Move, key.ToBytes(), db.ToBytes());
 		}
 
 		public Task<RedisResponse> ObjectAsync(Subcommand subcommand, params string[] args)
 		{
-			var request = ComposeRequest(RedisConstants.Object, ConvertToByteArray(subcommand), args);
+			var request = ComposeRequest(RedisConstants.Object, subcommand.ToBytes(), args);
 			return ExecutePipelinedCommand(request);
 		}
 
@@ -152,24 +152,24 @@ namespace NBoosters.RedisBoost
 			int index = -1;
 			var request = new byte[paramsCount][];
 			request[++index] = RedisConstants.Sort;
-			request[++index] = ConvertToByteArray(key);
+			request[++index] = key.ToBytes();
 			if (by != null)
 			{
 				request[++index] = RedisConstants.By;
-				request[++index] = ConvertToByteArray(by);
+				request[++index] = by.ToBytes();
 			}
 			if (limitOffset.HasValue)
 			{
 				request[++index] = RedisConstants.Limit;
-				request[++index] = ConvertToByteArray(limitOffset.Value);
-				request[++index] = ConvertToByteArray(limitCount.Value);
+				request[++index] = limitOffset.Value.ToBytes();
+				request[++index] = limitCount.Value.ToBytes();
 			}
 			if (getPatterns != null)
 			{
 				for (int i = 0; i < getPatterns.Length; i++)
 				{
 					request[++index] = RedisConstants.Get;
-					request[++index] = ConvertToByteArray(getPatterns[i]);
+					request[++index] = getPatterns[i].ToBytes();
 				}
 			}
 			if (asc.HasValue)
@@ -179,7 +179,7 @@ namespace NBoosters.RedisBoost
 			if (destination != null)
 			{
 				request[++index] = RedisConstants.Store;
-				request[++index] = ConvertToByteArray(destination);
+				request[++index] = destination.ToBytes();
 			}
 			return request;
 		}

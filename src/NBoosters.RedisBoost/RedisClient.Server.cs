@@ -18,6 +18,7 @@
 
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
+using NBoosters.RedisBoost.Misk;
 
 namespace NBoosters.RedisBoost
 {
@@ -65,7 +66,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<RedisResponse> ConfigGetAsync(string parameter)
 		{
-			return ExecutePipelinedCommand(RedisConstants.Config,RedisConstants.Get,ConvertToByteArray(parameter));
+			return ExecutePipelinedCommand(RedisConstants.Config, RedisConstants.Get, parameter.ToBytes());
 		}
 
 		public Task<string> ConfigSetAsync<T>(string parameter, T value)
@@ -75,7 +76,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<string> ConfigSetAsync(string parameter,byte[] value)
 		{
-			return StatusResponseCommand(RedisConstants.Config, RedisConstants.Set, ConvertToByteArray(parameter), value);
+			return StatusResponseCommand(RedisConstants.Config, RedisConstants.Set, parameter.ToBytes(), value);
 		}
 
 		public Task<string> ConfigResetStatAsync()
@@ -85,7 +86,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<string> ClientKillAsync(string ip, int port)
 		{
-			return StatusResponseCommand(RedisConstants.Client, RedisConstants.Kill, ConvertToByteArray(string.Format("{0}:{1}",ip,port)));
+			return StatusResponseCommand(RedisConstants.Client, RedisConstants.Kill, string.Format("{0}:{1}", ip, port).ToBytes());
 		}
 
 		public Task<Bulk> InfoAsync()
@@ -97,7 +98,7 @@ namespace NBoosters.RedisBoost
 		{
 			return section == null
 					? BulkResponseCommand(RedisConstants.Info)
-					: BulkResponseCommand(RedisConstants.Info, ConvertToByteArray(section));
+					: BulkResponseCommand(RedisConstants.Info, section.ToBytes());
 		}
 
 		public Task<long> LastSaveAsync()
@@ -122,7 +123,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<string> SlaveOfAsync(string host,int port)
 		{
-			return StatusResponseCommand(RedisConstants.SlaveOf,ConvertToByteArray(host), ConvertToByteArray(port));
+			return StatusResponseCommand(RedisConstants.SlaveOf, host.ToBytes(), port.ToBytes());
 		}
 
 		public Task<MultiBulk> TimeAsync()
