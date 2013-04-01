@@ -1,45 +1,51 @@
-﻿using System;
+using System;
 using Moq;
 using NBoosters.RedisBoost.Core.Pipeline;
-using NBoosters.RedisBoost.Core.RedisChannel;
+using NBoosters.RedisBoost.Core.Receiver;
+using NBoosters.RedisBoost.Core.Sender;
 using NUnit.Framework;
 
-namespace NBoosters.RedisBoost.Tests
+namespace NBoosters.RedisBoost.Tests.Core
 {
 	[TestFixture]
 	public class RedisPipelineTests
 	{
-		private Mock<IRedisChannel> _redisChannel;
+		private Mock<IRedisSender> _redisSender;
+		private Mock<IRedisReceiver> _redisReceiver;
 		private RedisResponse _response;
 		[SetUp]
 		public void Setup()
 		{
 			_response = RedisResponse.CreateStatus("OK", null);
-			_redisChannel = new Mock<IRedisChannel>();
-			_redisChannel.Setup(c => c.BufferIsEmpty)
-						 .Returns(true);
-			_redisChannel.Setup(c => c.SendAsync(It.IsAny<ChannelAsyncEventArgs>()))
-				.Callback((ChannelAsyncEventArgs args) => args.Completed(args)).Returns(true);
-			_redisChannel.Setup(c => c.ReadResponseAsync(It.IsAny<ChannelAsyncEventArgs>()))
-				.Callback((ChannelAsyncEventArgs args) =>
+			_redisSender = new Mock<IRedisSender>();
+			_redisSender.Setup(c => c.BytesInBuffer).Returns(0);
+			_redisSender.Setup(c => c.Send(It.IsAny<SenderAsyncEventArgs>()))
+				.Callback((SenderAsyncEventArgs args) => args.Completed(args)).Returns(true);
+			_redisSender.Setup(c => c.Flush(It.IsAny<SenderAsyncEventArgs>()))
+				.Callback((SenderAsyncEventArgs args) =>
+				{
+					args.Completed(args);
+				}).Returns(true);
+
+
+			_redisReceiver = new Mock<IRedisReceiver>();
+
+			_redisReceiver.Setup(c => c.Receive(It.IsAny<ReceiverAsyncEventArgs>()))
+				.Callback((ReceiverAsyncEventArgs args) =>
 					{
-						args.RedisResponse = _response;
+						args.Response = _response;
 						args.Completed(args);
 					}).Returns(true);
-			_redisChannel.Setup(c => c.Flush(It.IsAny<ChannelAsyncEventArgs>()))
-				.Callback((ChannelAsyncEventArgs args) =>
-					{
-						args.Completed(args);
-					}).Returns(true);
+			
 		}
 		[Test]
 		public void ExecuteCommand_SendsRequestToRedis()
 		{
-			var req = new [] { new byte[]{1}  };
+			var req = new[] { new byte[] { 1 } };
 			var p = CreatePipeline();
 			Action<Exception, RedisResponse> callBack = (e, r) => { };
 			p.ExecuteCommandAsync(req, callBack);
-			_redisChannel.Verify(c => c.SendAsync(It.IsAny<ChannelAsyncEventArgs>()));
+			_redisSender.Verify(c => c.Send(It.IsAny<SenderAsyncEventArgs>()));
 		}
 		[Test]
 		public void ExecuteCommand_ReceivesResponse()
@@ -47,7 +53,7 @@ namespace NBoosters.RedisBoost.Tests
 			var req = new[] { new byte[] { 1 } };
 			var p = CreatePipeline();
 			p.ExecuteCommandAsync(req, (e, r) => { });
-			_redisChannel.Verify(c => c.ReadResponseAsync(It.IsAny<ChannelAsyncEventArgs>()));
+			_redisReceiver.Verify(c => c.Receive(It.IsAny<ReceiverAsyncEventArgs>()));
 		}
 		[Test]
 		public void ExecuteCommand_ReturnsValidResult()
@@ -63,10 +69,10 @@ namespace NBoosters.RedisBoost.Tests
 		public void ExecuteCommand_SendFailed_ValidExceptionReturned()
 		{
 			var exception = new ApplicationException("Exception message");
-			_redisChannel.Setup(c => c.SendAsync(It.IsAny<ChannelAsyncEventArgs>()))
-			.Callback((ChannelAsyncEventArgs args) =>
+			_redisSender.Setup(c => c.Send(It.IsAny<SenderAsyncEventArgs>()))
+			.Callback((SenderAsyncEventArgs args) =>
 				{
-					args.Exception = exception;
+					args.Error = exception;
 					args.Completed(args);
 				}).Returns(true);
 
@@ -81,10 +87,10 @@ namespace NBoosters.RedisBoost.Tests
 		public void ExecuteCommand_ReceivesFailed_ExceptionExpected()
 		{
 			Exception actual = null;
-			_redisChannel.Setup(c => c.ReadResponseAsync(It.IsAny<ChannelAsyncEventArgs>()))
-				.Callback((ChannelAsyncEventArgs args) =>
+			_redisReceiver.Setup(c => c.Receive(It.IsAny<ReceiverAsyncEventArgs>()))
+				.Callback((ReceiverAsyncEventArgs args) =>
 					{
-						args.Exception = new ApplicationException();
+						args.Error = new ApplicationException();
 						args.Completed(args);
 					}).Returns(true);
 
@@ -99,14 +105,14 @@ namespace NBoosters.RedisBoost.Tests
 			var req = new[] { new byte[] { 1 } };
 			Exception actual = null;
 			var p = CreatePipeline();
-			p.ClosePipeline();
+			p.OneWayMode();
 
 			p.ExecuteCommandAsync(req, (e, r) => { actual = e; });
 			Assert.IsTrue(actual is RedisException);
 		}
 		private RedisPipeline CreatePipeline()
 		{
-			return new RedisPipeline(_redisChannel.Object);
+			return new RedisPipeline(null,_redisSender.Object,_redisReceiver.Object);
 		}
 	}
 }

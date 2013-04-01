@@ -1,4 +1,4 @@
-#region Apache Licence, Version 2.0
+﻿#region Apache Licence, Version 2.0
 /*
  Copyright 2013 Andrey Bulygin.
 
@@ -18,44 +18,13 @@
 
 using System;
 using System.Globalization;
-using System.Threading.Tasks;
+using System.Text;
 using NBoosters.RedisBoost.Core;
 
 namespace NBoosters.RedisBoost.Misk
 {
-	internal static class Extensions
+	internal static class DataConvertionEnxtensions
 	{
-		public static Task ContinueWithIfNoError<T,TResult>(this T task, TaskCompletionSource<TResult> tcs, Action<T> action)
-			where T : Task
-		{
-			return task.ContinueWith(t =>
-			{
-				if (task.IsFaulted) 
-					tcs.SetException(task.Exception);
-				else
-					action(task);
-			});
-
-		}
-		public static Task ContinueWithIfNoError<T>(this T task, Action<T> action)
-			where T:Task
-		{
-			return task.ContinueWith(t =>
-				{
-					if (task.IsFaulted) throw task.Exception.UnwrapAggregation();
-					action(task);
-				});
-			
-		}
-		public static Task<TResult> ContinueWithIfNoError<T, TResult>(this T task, Func<T, TResult> func)
-			where T : Task
-		{
-			return task.ContinueWith(t =>
-			{
-				if (task.IsFaulted) throw task.Exception.UnwrapAggregation();
-				return func(task);
-			});
-		}
 		public static Exception UnwrapAggregation(this Exception ex)
 		{
 			var aggrException = ex as AggregateException;
@@ -86,7 +55,31 @@ namespace NBoosters.RedisBoost.Misk
 		}
 		internal static int ToInt(this string value)
 		{
-			return int.Parse(value, CultureInfo.InvariantCulture); 
+			return int.Parse(value, CultureInfo.InvariantCulture);
+		}
+		internal static long ToLong(this string value)
+		{
+			return long.Parse(value, CultureInfo.InvariantCulture);
+		}
+		internal static string AsString(this byte[] value)
+		{
+			return Encoding.UTF8.GetString(value);
+		}
+		internal static byte[] ToBytes(this string value)
+		{
+			return Encoding.UTF8.GetBytes(value);
+		}
+		internal static byte[] ToBytes(this int value)
+		{
+			return ToBytes(value.ToString(CultureInfo.InvariantCulture));
+		}
+		internal static byte[] ToBytes(this long value)
+		{
+			return ToBytes(value.ToString(CultureInfo.InvariantCulture));
+		}
+		internal static byte[] ToBytes(this double value)
+		{
+			return ToBytes(value.ToString("R", CultureInfo.InvariantCulture));
 		}
 	}
 }

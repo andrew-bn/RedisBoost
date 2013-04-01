@@ -18,43 +18,74 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Net;
 using System.Threading;
-using NBoosters.RedisBoost.Core.RedisChannel;
+using NBoosters.RedisBoost.Core.Receiver;
+using NBoosters.RedisBoost.Core.AsyncSocket;
+using NBoosters.RedisBoost.Core.Sender;
+using NBoosters.RedisBoost.Core.Serialization;
 
 namespace NBoosters.RedisBoost.Core.Pipeline
 {
 	internal class RedisPipeline: IRedisPipeline
 	{
-		private readonly ConcurrentQueue<PipelineItem> _requestsQueue = new ConcurrentQueue<PipelineItem>();
-		private readonly ConcurrentQueue<PipelineItem> _responsesQueue = new ConcurrentQueue<PipelineItem>(); 
+		private readonly IAsyncSocket _asyncSocket;
+		private readonly IRedisSender _redisSender;
+		private readonly IRedisReceiver _redisReceiver;
+		private ConcurrentQueue<PipelineItem> _requestsQueue = new ConcurrentQueue<PipelineItem>();
+		private ConcurrentQueue<PipelineItem> _responsesQueue = new ConcurrentQueue<PipelineItem>(); 
 
-		private readonly IRedisChannel _channel;
-		
 		private int _sendIsRunning;
 		private int _receiveIsRunning;
-		private int _pipelineIsClosed;
+		private int _pipelineIsInOneWayMode;
 
 		private volatile Exception _pipelineException;
-		private readonly ChannelAsyncEventArgs _readChannelArgs = new ChannelAsyncEventArgs();
-		private readonly ChannelAsyncEventArgs _sendChannelArgs = new ChannelAsyncEventArgs();
-		private readonly ChannelAsyncEventArgs _flushChannelArgs = new ChannelAsyncEventArgs();
+		private readonly ReceiverAsyncEventArgs _readArgs = new ReceiverAsyncEventArgs();
+		private readonly SenderAsyncEventArgs _sendArgs = new SenderAsyncEventArgs();
+		private readonly SenderAsyncEventArgs _flushChannelArgs = new SenderAsyncEventArgs();
+		private readonly AsyncSocketEventArgs _notIoArgs = new AsyncSocketEventArgs();
+
 		private PipelineItem _currentReceiveItem;
 		private PipelineItem _currentSendItem;
-		public RedisPipeline(IRedisChannel channel)
+
+		public RedisPipeline(IAsyncSocket asyncSocket, IRedisSender redisSender, IRedisReceiver redisReceiver)
 		{
-			_channel = channel;
-			_readChannelArgs.Completed = ItemReceiveProcessDone;
-			_sendChannelArgs.Completed = ItemSendProcessDone;
+			_asyncSocket = asyncSocket;
+			_redisSender = redisSender;
+			_redisReceiver = redisReceiver;
+			_readArgs.Completed = ItemReceiveProcessDone;
+			_sendArgs.Completed = ItemSendProcessDone;
 			_flushChannelArgs.Completed = BufferFlushProcessDone;
 		}
-
-		public void ExecuteCommandAsync(byte[][] args,Action<Exception, RedisResponse> callBack)
+		public void ResetState()
 		{
-			var item = new PipelineItem(args,callBack);
+			_sendIsRunning = 0;
+			_receiveIsRunning = 0;
+			_pipelineIsInOneWayMode = 0;
+			_requestsQueue = new ConcurrentQueue<PipelineItem>();
+			_responsesQueue = new ConcurrentQueue<PipelineItem>();
+			_pipelineException = null;
+			_notIoArgs.Error = null;
+			_sendArgs.Error = null;
+			_readArgs.Error = null;
+			_flushChannelArgs.Error = null;
+		}
+		public void SendRequestAsync(byte[][] args, Action<Exception, RedisResponse> callBack)
+		{
+			ExecuteCommandAsync(args, new PipelineItem(args, callBack,true));
+		}
+
+		public void ExecuteCommandAsync(byte[][] args, Action<Exception, RedisResponse> callBack)
+		{
+			ExecuteCommandAsync(args, new PipelineItem(args, callBack,false));
+		}
+
+		public void ExecuteCommandAsync(byte[][] args,PipelineItem item)
+		{
 			if (_pipelineException != null)
 				item.CallBack(_pipelineException, null);
-			else if (_pipelineIsClosed != 0)
-				item.CallBack(new RedisException("Pipeline is closed"), null);
+			else if (_pipelineIsInOneWayMode != 0 && !item.IsOneWay)
+				item.CallBack(new RedisException("Pipeline is in OneWay mode"), null);
 			else
 			{
 				_requestsQueue.Enqueue(item);
@@ -76,16 +107,16 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 				{
 					if (_pipelineException == null)
 					{
-						_sendChannelArgs.SendData = _currentSendItem.Request;
-						if (_channel.SendAsync(_sendChannelArgs)) return;
-						ItemSendProcessDone(false, _sendChannelArgs);
+						_sendArgs.DataToSend = _currentSendItem.Request;
+						if (_redisSender.Send(_sendArgs)) return;
+						ItemSendProcessDone(false, _sendArgs);
 					}
 					else _currentSendItem.CallBack(_pipelineException, null);
 
 				}
-				else if (!_channel.BufferIsEmpty && _pipelineException == null)
+				else if (_redisSender.BytesInBuffer>0 && _pipelineException == null)
 				{
-					if (_channel.Flush(_flushChannelArgs)) return;
+					if (_redisSender.Flush(_flushChannelArgs)) return;
 					BufferFlushProcessDone(false,_flushChannelArgs);
 				}
 				else
@@ -97,33 +128,40 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 				}
 			}
 		}
-		private void BufferFlushProcessDone(ChannelAsyncEventArgs args)
+		private void BufferFlushProcessDone(SenderAsyncEventArgs args)
 		{
 			BufferFlushProcessDone(true,args);
 		}
-		private void BufferFlushProcessDone(bool async,ChannelAsyncEventArgs args)
+		private void BufferFlushProcessDone(bool async, SenderAsyncEventArgs args)
 		{
-			_pipelineException = args.Exception;
+			_pipelineException = args.Error;
 			if (async) RunSendProcess();
 		}
-		private void ItemSendProcessDone(ChannelAsyncEventArgs args)
+		private void ItemSendProcessDone(SenderAsyncEventArgs args)
 		{
 			ItemSendProcessDone(true, args);
 		}
-		private void ItemSendProcessDone(bool async, ChannelAsyncEventArgs args)
+		private void ItemSendProcessDone(bool async, SenderAsyncEventArgs args)
 		{
-			_pipelineException = args.Exception;
+			_pipelineException = args.Error;
 
 			if (_pipelineException != null)
-				_currentSendItem.CallBack(_pipelineException,null);
-			else
+				_currentSendItem.CallBack(_pipelineException, null);
+			else if (!_currentSendItem.IsOneWay)
 			{
 				_responsesQueue.Enqueue(_currentSendItem);
 				TryRunReceiveProcess();
 			}
+			else _currentSendItem.CallBack(null, null);
+
 			if (async) RunSendProcess();
 		}
-
+		public void ReadResponseAsync(Action<Exception, RedisResponse> callBack)
+		{
+			var item = new PipelineItem(callBack);
+			_responsesQueue.Enqueue(item);
+			TryRunReceiveProcess();
+		}
 		private void TryRunReceiveProcess()
 		{
 			// start receive process if not yet started
@@ -138,8 +176,8 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 				{
 					if (_pipelineException == null)
 					{
-						if (_channel.ReadResponseAsync(_readChannelArgs)) return;
-						ItemReceiveProcessDone(false, _readChannelArgs);
+						if (_redisReceiver.Receive(_readArgs)) return;
+						ItemReceiveProcessDone(false, _readArgs);
 					}
 					else _currentReceiveItem.CallBack(_pipelineException, null);
 				}
@@ -152,31 +190,65 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 			}
 		}
 
-		private void ItemReceiveProcessDone(ChannelAsyncEventArgs args)
+		private void ItemReceiveProcessDone(ReceiverAsyncEventArgs args)
 		{
 			ItemReceiveProcessDone(true,args);
 		}
 
-		private void ItemReceiveProcessDone(bool async,ChannelAsyncEventArgs args)
+		private void ItemReceiveProcessDone(bool async, ReceiverAsyncEventArgs args)
 		{
-			if (args.Exception != null)
-				_pipelineException = args.Exception;
+			if (args.HasError)
+				_pipelineException = args.Error;
 
 			if (_pipelineException != null)
 				_currentReceiveItem.CallBack(_pipelineException, null);
 			else
-				_currentReceiveItem.CallBack(null, args.RedisResponse);
+				_currentReceiveItem.CallBack(null, args.Response);
 
 			if (async) RunReceiveProcess();
 		}
 
 	
-		public void ClosePipeline()
+		public void OneWayMode()
 		{
-			if (Interlocked.CompareExchange(ref _pipelineIsClosed, 1, 0) != 0)
+			if (Interlocked.CompareExchange(ref _pipelineIsInOneWayMode, 1, 0) != 0)
 				return;
 
 			SpinWait.SpinUntil(() => _requestsQueue.Count == 0 && _responsesQueue.Count == 0);
+		}
+
+		private ISocket _socket;
+		public void EngageWith(ISocket socket)
+		{
+			_socket = socket;
+			_asyncSocket.EngageWith(socket);
+			_redisReceiver.EngageWith(socket);
+			_redisSender.EngageWith(socket);
+		}
+
+		public void EngageWith(IRedisSerializer serializer)
+		{
+			_redisReceiver.EngageWith(serializer);
+		}
+
+		public void OpenConnection(EndPoint endPoint, Action<Exception> callBack)
+		{
+			_notIoArgs.Completed = a => callBack(a.Error);
+			_notIoArgs.RemoteEndPoint = endPoint;
+			if (!_asyncSocket.Connect(_notIoArgs))
+				callBack(_notIoArgs.Error);
+		}
+
+		public void CloseConnection(Action<Exception> callBack)
+		{
+			_notIoArgs.Completed = a => callBack(a.Error);
+			if (!_asyncSocket.Disconnect(_notIoArgs))
+				callBack(_notIoArgs.Error);
+		}
+
+		public void DisposeAndReuse()
+		{
+			_socket.Dispose();
 		}
 	}
 }

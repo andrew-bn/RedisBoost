@@ -1647,7 +1647,7 @@ namespace NBoosters.RedisBoost.Tests
 				catch (AggregateException ex)
 				{
 					Assert.AreEqual(typeof(RedisException), ex.InnerException.GetType());
-					Assert.AreEqual("Pipeline is closed", ex.InnerException.Message);
+					Assert.AreEqual("Pipeline is in OneWay mode", ex.InnerException.Message);
 				}
 
 			}

@@ -1,8 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿#region Apache Licence, Version 2.0
+/*
+ Copyright 2013 Andrey Bulygin.
+
+ Licensed under the Apache License, Version 2.0 (the "License"); 
+ you may not use this file except in compliance with the License. 
+ You may obtain a copy of the License at 
+
+		http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software 
+ distributed under the License is distributed on an "AS IS" BASIS, 
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+ See the License for the specific language governing permissions 
+ and limitations under the License.
+ */
+#endregion
+
+using System;
 using System.Net.Sockets;
-using System.Text;
 
 namespace NBoosters.RedisBoost.Core.AsyncSocket
 {
@@ -16,17 +31,14 @@ namespace NBoosters.RedisBoost.Core.AsyncSocket
 			public SocketAsyncEventArgs SocketArgs { get; set; }
 		}
 
-		private SendAllContext _sendAllContext;
-		private SocketAsyncEventArgs _sendArgs;
-		private SocketAsyncEventArgs _receiveArgs;
-		private SocketAsyncEventArgs _notIoArgs;
+		private readonly SendAllContext _sendAllContext;
+		private readonly SocketAsyncEventArgs _sendArgs;
+		private readonly SocketAsyncEventArgs _receiveArgs;
+		private readonly SocketAsyncEventArgs _notIoArgs;
 
 		private ISocket _socket;
-
-		public void EngageWith(ISocket socket)
+		public AsyncSocketWrapper()
 		{
-			_socket = socket;
-
 			_notIoArgs = new SocketAsyncEventArgs();
 			_notIoArgs.Completed += NotSendCallBack;
 
@@ -39,6 +51,14 @@ namespace NBoosters.RedisBoost.Core.AsyncSocket
 			_sendAllContext = new SendAllContext();
 			_sendAllContext.SendCallBack = SendAllCallBack;
 			_sendAllContext.SocketArgs = _sendArgs;
+		}
+
+		public void EngageWith(ISocket socket)
+		{
+			_socket = socket;
+			_notIoArgs.AcceptSocket = _socket.UnderlyingSocket;
+			_receiveArgs.AcceptSocket = _socket.UnderlyingSocket;
+			_sendArgs.AcceptSocket = _socket.UnderlyingSocket;
 		}
 
 		#region send

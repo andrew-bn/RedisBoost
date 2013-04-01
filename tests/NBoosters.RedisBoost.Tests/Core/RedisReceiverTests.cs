@@ -15,7 +15,6 @@ namespace NBoosters.RedisBoost.Tests.Core
 	public class RedisReceiverTests
 	{
 		private Mock<IAsyncSocket> _asyncSocket;
-		private Mock<IRedisSerializer> _redisSerializer;
 		private ReceiverAsyncEventArgs _args;
 		private byte[] _dataBuffer;
 		[SetUp]
@@ -23,7 +22,6 @@ namespace NBoosters.RedisBoost.Tests.Core
 		{
 			_args = new ReceiverAsyncEventArgs();
 			_asyncSocket= new Mock<IAsyncSocket>();
-			_redisSerializer = new Mock<IRedisSerializer>();
 
 			_asyncSocket.Setup(s => s.Receive(It.IsAny<AsyncSocketEventArgs>()))
 			            .Callback((AsyncSocketEventArgs a) =>
@@ -128,7 +126,7 @@ namespace NBoosters.RedisBoost.Tests.Core
 
 		private RedisReceiver CreateReceiver()
 		{
-			return new RedisReceiver(_asyncSocket.Object, _redisSerializer.Object);
+			return new RedisReceiver(_asyncSocket.Object);
 		}
 	}
 }

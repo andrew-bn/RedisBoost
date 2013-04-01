@@ -17,12 +17,19 @@
 #endregion
 
 using System;
+using System.Net;
 
 namespace NBoosters.RedisBoost.Core.Pipeline
 {
-	internal interface IRedisPipeline
+	internal interface IRedisPipeline : ISocketDependent, ISerializerDependent
 	{
 		void ExecuteCommandAsync(byte[][] args, Action<Exception, RedisResponse> callBack);
-		void ClosePipeline();
+		void SendRequestAsync(byte[][] args, Action<Exception, RedisResponse> callBack);
+		void ReadResponseAsync(Action<Exception, RedisResponse> callBack);
+		void OneWayMode();
+		void OpenConnection(EndPoint endPoint, Action<Exception> callBack);
+		void CloseConnection(Action<Exception> callBack);
+		void DisposeAndReuse();
+		void ResetState();
 	}
 }

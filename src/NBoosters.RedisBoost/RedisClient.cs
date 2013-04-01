@@ -24,10 +24,11 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
+using NBoosters.RedisBoost.Core.AsyncSocket;
 using NBoosters.RedisBoost.Core.Pipeline;
 using NBoosters.RedisBoost.Core.Pool;
-using NBoosters.RedisBoost.Core.RedisChannel;
-using NBoosters.RedisBoost.Core.RedisStream;
+using NBoosters.RedisBoost.Core.Receiver;
+using NBoosters.RedisBoost.Core.Sender;
 using NBoosters.RedisBoost.Core.Serialization;
 using NBoosters.RedisBoost.Misk;
 
@@ -46,11 +47,9 @@ namespace NBoosters.RedisBoost
 			FatalError,
 		}
 
-		static readonly ObjectsPool<IRedisChannel> _redisChannelPool = new ObjectsPool<IRedisChannel>();
+		static readonly ObjectsPool<IRedisPipeline> _redisPipelinePool = new ObjectsPool<IRedisPipeline>();
 
 		private readonly IRedisPipeline _redisPipeline;
-		private readonly IRedisChannel _redisChannel;
-		private readonly IRedisDataAnalizer _redisDataAnalizer;
 		private readonly RedisConnectionStringBuilder _connectionStringBuilder;
 		public string ConnectionString { get; private set; }
 		private volatile ClientState _state;
@@ -116,19 +115,16 @@ namespace NBoosters.RedisBoost
 			Serializer = serializer ?? DefaultSerializer;
 
 			var sock = new Socket(_connectionStringBuilder.EndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+			var socketWrapper = new SocketWrapper(sock);
 
-			_redisChannel = _redisChannelPool.GetOrCreate(() =>
+			_redisPipeline = _redisPipelinePool.GetOrCreate(() =>
 			{
-				var dataAnalizer = new RedisDataAnalizer();
-				return new RedisChannel(new RedisStream(dataAnalizer), dataAnalizer);
+				var asyncSocket = new AsyncSocketWrapper();
+				return new RedisPipeline(asyncSocket, new RedisSender(asyncSocket, false), new RedisReceiver(asyncSocket));
 			});
-
-			_redisChannel.EngageWith(sock, Serializer);
-
-			_redisDataAnalizer = _redisChannel.RedisDataAnalizer;
-
-			_redisPipeline = new RedisPipeline(_redisChannel);
-
+			_redisPipeline.ResetState();
+			_redisPipeline.EngageWith(socketWrapper);
+			_redisPipeline.EngageWith(Serializer);
 		}
 		#region request composers
 		private byte[][] ComposeRequest(byte[] commandName, byte[] arg1, MSetArgs[] args)
@@ -246,17 +242,17 @@ namespace NBoosters.RedisBoost
 				aggr = RedisConstants.Min;
 			return aggr;
 		}
-		private byte[] ConvertToByteArray(string data)
+		private static byte[] ConvertToByteArray(string data)
 		{
-			return _redisDataAnalizer.ConvertToByteArray(data);
+			return data.ToBytes();
 		}
-		private byte[] ConvertToByteArray(int data)
+		private static byte[] ConvertToByteArray(int data)
 		{
-			return _redisDataAnalizer.ConvertToByteArray(data.ToString());
+			return data.ToBytes();
 		}
 		private byte[] ConvertToByteArray(long data)
 		{
-			return _redisDataAnalizer.ConvertToByteArray(data.ToString());
+			return data.ToBytes();
 		}
 		private byte[] ConvertToByteArray(double data)
 		{
@@ -266,14 +262,14 @@ namespace NBoosters.RedisBoost
 			else if (double.IsNegativeInfinity(data))
 				result = RedisConstants.NegativeInfinity;
 			else
-				result = _redisDataAnalizer.ConvertToByteArray(data.ToString("R", CultureInfo.InvariantCulture));
+				result = data.ToBytes();
 
 			return result;
 		}
 
 		private string ConvertToString(byte[] result)
 		{
-			return _redisDataAnalizer.ConvertToString(result, 0);
+			return result.AsString();
 		}
 		#endregion
 		#region read response
@@ -328,9 +324,9 @@ namespace NBoosters.RedisBoost
 
 		#endregion
 		#region commands execution
-		private void ClosePipeline()
+		private void OneWayMode()
 		{
-			_redisPipeline.ClosePipeline();
+			_redisPipeline.OneWayMode();
 		}
 		private void ProcessRedisResponse(TaskCompletionSource<RedisResponse> tcs, Exception ex, RedisResponse response)
 		{
@@ -357,45 +353,29 @@ namespace NBoosters.RedisBoost
 		{
 			var tcs = new TaskCompletionSource<bool>();
 
-			var channelArgs = new ChannelAsyncEventArgs();
-			channelArgs.SendData = args;
-			channelArgs.Completed = SendDirectCallBack;
-			channelArgs.UserToken = tcs;
+			_redisPipeline.SendRequestAsync(args,
+				(ex, r) =>
+					{
+						if (ex!=null)
+						{
+							var err = ex;
+							DisposeIfFatalError(err);
+							if (!(ex is RedisException))
+								err = new RedisException(err.Message, err);
 
-			if (!_redisChannel.SendAsync(channelArgs))
-				SendDirectCallBack(channelArgs);
+							tcs.SetException(err);
+						}
+						else tcs.SetResult(true);
+					}
+				);
 
 			return tcs.Task;
 		}
-		private void SendDirectCallBack(ChannelAsyncEventArgs args)
-		{
-			if (!_redisChannel.BufferIsEmpty)
-			{
-				args.Completed = a =>
-				{
-					if (a.HasException)
-					{
-						var err = a.Exception;
-						DisposeIfFatalError(err);
-						if (!(a.Exception is RedisException))
-							err = new RedisException(err.Message, err);
-
-						((TaskCompletionSource<bool>)args.UserToken).SetException(err);
-					}
-					else ((TaskCompletionSource<bool>)args.UserToken).SetResult(true);
-				};
-
-				if (!_redisChannel.Flush(args))
-					args.Completed(args);
-			}
-		}
+		
 		public Task<RedisResponse> ReadDirectResponse()
 		{
 			var tcs = new TaskCompletionSource<RedisResponse>();
-			var args = new ChannelAsyncEventArgs();
-			args.Completed = e => ProcessRedisResponse(tcs,e.Exception,e.RedisResponse);
-			if (!_redisChannel.ReadResponseAsync(args))
-				args.Completed(args);
+			_redisPipeline.ReadResponseAsync((ex, r) => ProcessRedisResponse(tcs, ex, r));
 			return tcs.Task;
 		}
 
@@ -404,27 +384,28 @@ namespace NBoosters.RedisBoost
 		public Task ConnectAsync()
 		{
 			var tcs = new TaskCompletionSource<bool>();
-			_redisChannel.ConnectAsync(_connectionStringBuilder.EndPoint,
-			    (snk,ex) =>
-				    {
-					   if (ex != null)
-					   {
-						   DisposeIfFatalError(ex);
-						   tcs.SetException(new RedisException(ex.Message, ex));
-					   }
-					   else
-					   {
-						   tcs.SetResult(true);
-						   _state = ClientState.Connect;
-					   }
-					    return snk;
-				    });
+			_redisPipeline.OpenConnection(
+				_connectionStringBuilder.EndPoint,
+				ex =>
+					{
+						if (ex != null)
+						{
+							DisposeIfFatalError(ex);
+							tcs.SetException(new RedisException(ex.Message, ex));
+						}
+						else
+						{
+							tcs.SetResult(true);
+							_state = ClientState.Connect;
+						}
+					});
 			return tcs.Task;
 		}
 		public Task DisconnectAsync()
 		{
 			var tcs = new TaskCompletionSource<bool>();
-			_redisChannel.DisconnectAsync((s,ex) =>
+			_redisPipeline.CloseConnection(
+				ex =>
 				{
 					if (ex != null)
 					{
@@ -436,7 +417,6 @@ namespace NBoosters.RedisBoost
 						_state = ClientState.Disconnect;
 						tcs.SetResult(true);
 					}
-					return s;
 				});
 			return tcs.Task;
 		}
@@ -460,11 +440,11 @@ namespace NBoosters.RedisBoost
 			{
 				try
 				{
-					_redisChannel.Dispose();
+					_redisPipeline.DisposeAndReuse();
 				}
 				finally
 				{
-					_redisChannelPool.Release(_redisChannel);
+					_redisPipelinePool.Release(_redisPipeline);
 				}
 			}
 		}

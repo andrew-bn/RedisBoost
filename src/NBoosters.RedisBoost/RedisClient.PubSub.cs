@@ -37,13 +37,13 @@ namespace NBoosters.RedisBoost
 
 		public Task<IRedisSubscription> SubscribeAsync(params string[] channels)
 		{
-			ClosePipeline();
+			OneWayMode();
 			return SubscriptionCommandAsync(RedisConstants.Subscribe, channels);
 		}
 
 		public Task<IRedisSubscription> PSubscribeAsync(params string[] pattern)
 		{
-			ClosePipeline();
+			OneWayMode();
 			return SubscriptionCommandAsync(RedisConstants.PSubscribe, pattern);
 		}
 

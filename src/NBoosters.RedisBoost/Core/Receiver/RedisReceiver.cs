@@ -1,6 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿#region Apache Licence, Version 2.0
+/*
+ Copyright 2013 Andrey Bulygin.
+
+ Licensed under the Apache License, Version 2.0 (the "License"); 
+ you may not use this file except in compliance with the License. 
+ You may obtain a copy of the License at 
+
+		http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software 
+ distributed under the License is distributed on an "AS IS" BASIS, 
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+ See the License for the specific language governing permissions 
+ and limitations under the License.
+ */
+#endregion
+
+using System;
 using System.Text;
 using NBoosters.RedisBoost.Core.AsyncSocket;
 using NBoosters.RedisBoost.Core.Serialization;
@@ -14,12 +30,11 @@ namespace NBoosters.RedisBoost.Core.Receiver
 
 		private readonly byte[] _buffer;
 		private readonly IAsyncSocket _asyncSocket;
-		private readonly IRedisSerializer _serializer;
+		private IRedisSerializer _serializer;
 		private readonly AsyncSocketEventArgs _socketArgs;
 
 		#region context
-
-		private ReceiverAsyncEventArgs _eventArgs;
+		private ReceiverAsyncEventArgs _curEventArgs;
 		private int _multiBulkPartsLeft;
 		private RedisResponse[] _multiBulkParts;
 		private RedisResponse _redisResponse;
@@ -31,11 +46,10 @@ namespace NBoosters.RedisBoost.Core.Receiver
 		private int _bufferSize;
 		#endregion
 
-		public RedisReceiver(IAsyncSocket asyncSocket, IRedisSerializer serializer)
+		public RedisReceiver(IAsyncSocket asyncSocket)
 		{
 			_buffer = new byte[BUFFER_SIZE];
 			_asyncSocket = asyncSocket;
-			_serializer = serializer;
 			_socketArgs = new AsyncSocketEventArgs();
 			_socketArgs.BufferToReceive = _buffer;
 			_lineBuffer = new StringBuilder();
@@ -49,12 +63,13 @@ namespace NBoosters.RedisBoost.Core.Receiver
 
 		public bool Receive(ReceiverAsyncEventArgs args)
 		{
-			_eventArgs = args;
+			_curEventArgs = args;
 			args.Error = null;
 			args.Response = null;
 
 			_multiBulkPartsLeft = 0;
 			_multiBulkParts = null;
+			_redisResponse = null;
 
 			return ReadResponseFromStream(false, _socketArgs);
 		}
@@ -153,7 +168,7 @@ namespace NBoosters.RedisBoost.Core.Receiver
 
 			args.UserToken = args.Completed;
 			args.Completed = ReadLineCallBack;
-			
+			args.Error = null;
 			return ReadLineTask(false, args);
 		}
 
@@ -246,7 +261,7 @@ namespace NBoosters.RedisBoost.Core.Receiver
 		#endregion
 		private bool CallSocketOpCompleted(bool async, AsyncSocketEventArgs eventArgs)
 		{
-			_eventArgs.Error = eventArgs.Error;
+			_curEventArgs.Error = eventArgs.Error;
 			var callBack = (Action<AsyncSocketEventArgs>) eventArgs.UserToken;
 			if (async) callBack(eventArgs);
 			return async;
@@ -254,11 +269,16 @@ namespace NBoosters.RedisBoost.Core.Receiver
 
 		private bool CallOperationCompleted(bool async, AsyncSocketEventArgs eventArgs)
 		{
-			_eventArgs.Error = eventArgs.Error;
-			_eventArgs.Response = _redisResponse;
+			_curEventArgs.Error = eventArgs.Error;
+			_curEventArgs.Response = _redisResponse;
 
-			if (async) _eventArgs.Completed(_eventArgs);
+			if (async) _curEventArgs.Completed(_curEventArgs);
 			return async;
+		}
+
+		public void EngageWith(IRedisSerializer serializer)
+		{
+			_serializer = serializer;
 		}
 	}
 }

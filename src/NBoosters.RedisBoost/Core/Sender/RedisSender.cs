@@ -1,7 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
+﻿#region Apache Licence, Version 2.0
+/*
+ Copyright 2013 Andrey Bulygin.
+
+ Licensed under the Apache License, Version 2.0 (the "License"); 
+ you may not use this file except in compliance with the License. 
+ You may obtain a copy of the License at 
+
+		http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software 
+ distributed under the License is distributed on an "AS IS" BASIS, 
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+ See the License for the specific language governing permissions 
+ and limitations under the License.
+ */
+#endregion
+
+using System;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using NBoosters.RedisBoost.Core.AsyncSocket;
 
@@ -26,7 +42,7 @@ namespace NBoosters.RedisBoost.Core.Sender
 		private readonly IAsyncSocket _asyncSocket;
 		private readonly bool _autoFlush;
 		private readonly AsyncSocketEventArgs _flushArgs;
-		private SenderContext _senderContext;
+		private readonly SenderContext _senderContext;
 
 		public RedisSender(IAsyncSocket asyncSocket, bool autoFlush)
 			: this(asyncSocket, BUFFER_SIZE, autoFlush)
@@ -129,12 +145,14 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 		private bool CallOnSendCompleted(bool async, SenderContext context)
 		{
+			context.EventArgs.Completed = context.CallBack;
 			if (async) context.CallBack(context.EventArgs);
 			return async;
 		}
 
 		public bool Flush(SenderAsyncEventArgs args)
 		{
+			_flushArgs.Error = null;
 			_flushArgs.DataToSend = _buffer;
 			_flushArgs.DataLength = _offset;
 			_flushArgs.UserToken = args;
@@ -226,6 +244,11 @@ namespace NBoosters.RedisBoost.Core.Sender
 		private byte[] ConvertToByteArray(int value)
 		{
 			return Encoding.UTF8.GetBytes(value.ToString(CultureInfo.InvariantCulture));
+		}
+
+		public int BytesInBuffer
+		{
+			get { return _offset; }
 		}
 	}
 }

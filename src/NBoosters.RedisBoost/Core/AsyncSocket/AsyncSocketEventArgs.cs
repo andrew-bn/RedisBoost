@@ -16,7 +16,6 @@
  */
 #endregion
 
-using System;
 using System.Net;
 
 namespace NBoosters.RedisBoost.Core.AsyncSocket
