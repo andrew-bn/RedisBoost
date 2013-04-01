@@ -57,19 +57,7 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 			_sendArgs.Completed = ItemSendProcessDone;
 			_flushChannelArgs.Completed = BufferFlushProcessDone;
 		}
-		public void ResetState()
-		{
-			_sendIsRunning = 0;
-			_receiveIsRunning = 0;
-			_pipelineIsInOneWayMode = 0;
-			_requestsQueue = new ConcurrentQueue<PipelineItem>();
-			_responsesQueue = new ConcurrentQueue<PipelineItem>();
-			_pipelineException = null;
-			_notIoArgs.Error = null;
-			_sendArgs.Error = null;
-			_readArgs.Error = null;
-			_flushChannelArgs.Error = null;
-		}
+
 		public void SendRequestAsync(byte[][] args, Action<Exception, RedisResponse> callBack)
 		{
 			ExecuteCommandAsync(args, new PipelineItem(args, callBack,true));
@@ -248,7 +236,22 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 
 		public void DisposeAndReuse()
 		{
+			ResetState();
 			_socket.Dispose();
+		}
+
+		private void ResetState()
+		{
+			_sendIsRunning = 0;
+			_receiveIsRunning = 0;
+			_pipelineIsInOneWayMode = 0;
+			_requestsQueue = new ConcurrentQueue<PipelineItem>();
+			_responsesQueue = new ConcurrentQueue<PipelineItem>();
+			_pipelineException = null;
+			_notIoArgs.Error = null;
+			_sendArgs.Error = null;
+			_readArgs.Error = null;
+			_flushChannelArgs.Error = null;
 		}
 	}
 }

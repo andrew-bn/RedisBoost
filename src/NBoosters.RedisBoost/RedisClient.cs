@@ -122,7 +122,7 @@ namespace NBoosters.RedisBoost
 				var asyncSocket = new AsyncSocketWrapper();
 				return new RedisPipeline(asyncSocket, new RedisSender(asyncSocket, false), new RedisReceiver(asyncSocket));
 			});
-			_redisPipeline.ResetState();
+
 			_redisPipeline.EngageWith(socketWrapper);
 			_redisPipeline.EngageWith(Serializer);
 		}

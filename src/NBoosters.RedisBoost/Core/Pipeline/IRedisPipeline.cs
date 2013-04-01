@@ -30,6 +30,5 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 		void OpenConnection(EndPoint endPoint, Action<Exception> callBack);
 		void CloseConnection(Action<Exception> callBack);
 		void DisposeAndReuse();
-		void ResetState();
 	}
 }
