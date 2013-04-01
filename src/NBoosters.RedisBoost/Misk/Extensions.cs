@@ -17,7 +17,9 @@
 #endregion
 
 using System;
+using System.Globalization;
 using System.Threading.Tasks;
+using NBoosters.RedisBoost.Core;
 
 namespace NBoosters.RedisBoost.Misk
 {
@@ -60,6 +62,31 @@ namespace NBoosters.RedisBoost.Misk
 			if (aggrException != null)
 				ex = aggrException.Flatten().InnerException;
 			return ex;
+		}
+
+		internal static bool IsErrorReply(this byte firstByte)
+		{
+			return firstByte == RedisConstants.Minus;
+		}
+		internal static bool IsBulkReply(this byte firstByte)
+		{
+			return firstByte == RedisConstants.Dollar;
+		}
+		internal static bool IsMultiBulkReply(this byte firstByte)
+		{
+			return firstByte == RedisConstants.Asterix;
+		}
+		internal static bool IsIntReply(this byte firstByte)
+		{
+			return firstByte == RedisConstants.Colon;
+		}
+		internal static bool IsStatusReply(this byte firstByte)
+		{
+			return firstByte == RedisConstants.Plus;
+		}
+		internal static int ToInt(this string value)
+		{
+			return int.Parse(value, CultureInfo.InvariantCulture); 
 		}
 	}
 }

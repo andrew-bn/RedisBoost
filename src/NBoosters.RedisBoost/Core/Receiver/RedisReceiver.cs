@@ -1,254 +1,264 @@
-﻿//using System;
-//using System.Collections.Generic;
-//using System.Linq;
-//using System.Text;
-//using NBoosters.RedisBoost.Core.AsyncSocket;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using NBoosters.RedisBoost.Core.AsyncSocket;
+using NBoosters.RedisBoost.Core.Serialization;
+using NBoosters.RedisBoost.Misk;
 
-//namespace NBoosters.RedisBoost.Core.Receiver
-//{
-//	internal class RedisReceiver: IRedisReceiver
-//	{
-//		private class ReceiverContext
-//		{
-//			public ReceiverContext()
-//			{
-//				LineBuffer = new StringBuilder();
-//			}
+namespace NBoosters.RedisBoost.Core.Receiver
+{
+	internal class RedisReceiver : IRedisReceiver
+	{
+		private const int BUFFER_SIZE = 1024 * 8;
 
-//			public int MultiBulkPartsLeft { get; set; }
-//			public RedisResponse[] MultiBulkParts { get; set; }
-//			public ReceiverAsyncEventArgs EventArgs { get; set; }
-//			public int FirstChar { get; set; }
-//			public StringBuilder LineBuffer { get; private set; }
+		private readonly byte[] _buffer;
+		private readonly IAsyncSocket _asyncSocket;
+		private readonly IRedisSerializer _serializer;
+		private readonly AsyncSocketEventArgs _socketArgs;
 
-//			public byte[] Block { get; set; }
+		#region context
 
-//			public int ReadBlockBytes { get; set; }
-//		}
-//		private const int BUFFER_SIZE = 1024 * 8;
+		private ReceiverAsyncEventArgs _eventArgs;
+		private int _multiBulkPartsLeft;
+		private RedisResponse[] _multiBulkParts;
+		private RedisResponse _redisResponse;
+		private byte _firstChar;
+		private readonly StringBuilder _lineBuffer;
+		private byte[] _block;
+		private int _readBytes;
+		private int _offset;
+		private int _bufferSize;
+		#endregion
 
-//		private readonly byte[] _buffer;
-//		private int _offset;
-//		private int _bufferSize;
-//		private readonly IAsyncSocket _asyncSocket;
-//		private readonly AsyncSocketEventArgs _receiveArgs;
-//		private readonly ReceiverContext _receiveContext;
+		public RedisReceiver(IAsyncSocket asyncSocket, IRedisSerializer serializer)
+		{
+			_buffer = new byte[BUFFER_SIZE];
+			_asyncSocket = asyncSocket;
+			_serializer = serializer;
+			_socketArgs = new AsyncSocketEventArgs();
+			_socketArgs.BufferToReceive = _buffer;
+			_lineBuffer = new StringBuilder();
+			_offset = 0;
+		}
 
-//		public RedisReceiver(IAsyncSocket asyncSocket)
-//		{
-//			_asyncSocket = asyncSocket;
-//			_receiveArgs = new AsyncSocketEventArgs();
-//			_receiveArgs.BufferToReceive = _buffer;
-//			_receiveContext = new ReceiverContext();
-//			_buffer = new byte[BUFFER_SIZE];
-//			_offset = 0;
-//		}
+		public void EngageWith(ISocket socket)
+		{
+			_asyncSocket.EngageWith(socket);
+		}
 
-//		public void EngageWith(ISocket socket)
-//		{
-//			_asyncSocket.EngageWith(socket);
-//		}
+		public bool Receive(ReceiverAsyncEventArgs args)
+		{
+			_eventArgs = args;
+			args.Error = null;
+			args.Response = null;
 
-//		public bool Receive(ReceiverAsyncEventArgs args)
-//		{
-//			args.Error = null;
-//			args.Response = null;
+			_multiBulkPartsLeft = 0;
+			_multiBulkParts = null;
 
-//			_receiveContext.MultiBulkPartsLeft = 0;
-//			_receiveContext.MultiBulkParts = null;
-//			_receiveContext.EventArgs = args;
+			return ReadResponseFromStream(false, _socketArgs);
+		}
 
-//			_receiveArgs.UserToken = _receiveContext;
+		private bool ReadResponseFromStream(bool async, AsyncSocketEventArgs args)
+		{
+			args.Completed = ProcessRedisLine;
+			return ReadLine(args) || ProcessRedisLine(async, args);
+		}
 
-//			return ReadResponseFromStream(false, _receiveArgs);
-//		}
+		private bool ProcessRedisResponse(bool async, AsyncSocketEventArgs args)
+		{
+			if (args.HasError || _multiBulkParts == null)
+				return CallOperationCompleted(async,args);
 
-//		private bool ReadResponseFromStream(bool async, AsyncSocketEventArgs args)
-//		{
-//			args.Completed = ProcessRedisLine;
-//			return _redisStream.ReadLine(_readStreamArgs) || ProcessRedisLine(async, _readStreamArgs);
-//		}
+			if (_multiBulkPartsLeft > 0)
+				_multiBulkParts[_multiBulkParts.Length - _multiBulkPartsLeft] = _redisResponse;
 
-//		private bool ProcessRedisResponse(bool async)
-//		{
-//			if (_curReadChannelArgs.Exception != null || _multiBulkParts == null)
-//				return CallOnReadCompleted(async);
+			--_multiBulkPartsLeft;
 
-//			if (_receiveMultiBulkPartsLeft > 0)
-//				_multiBulkParts[_multiBulkParts.Length - _receiveMultiBulkPartsLeft] = _curReadChannelArgs.RedisResponse;
+			if (_multiBulkPartsLeft > 0)
+				return ReadResponseFromStream(async,args);
 
-//			--_receiveMultiBulkPartsLeft;
+			_redisResponse = RedisResponse.CreateMultiBulk(_multiBulkParts, _serializer);
+			return CallOperationCompleted(async,args);
+		}
 
-//			if (_receiveMultiBulkPartsLeft > 0)
-//				return ReadResponseFromStream(async);
+		private void ProcessRedisBulkLine(AsyncSocketEventArgs args)
+		{
+			ProcessRedisBulkLine(true, args);
+		}
 
-//			_curReadChannelArgs.RedisResponse = RedisResponse.CreateMultiBulk(_multiBulkParts, _serializer);
-//			return CallOnReadCompleted(async);
-//		}
+		private bool ProcessRedisBulkLine(bool async, AsyncSocketEventArgs args)
+		{
+			if (args.HasError)
+				return ProcessRedisResponse(async, args);
 
-//		private void ProcessRedisBulkLine(StreamAsyncEventArgs args)
-//		{
-//			ProcessRedisBulkLine(true, args);
-//		}
+			_redisResponse = RedisResponse.CreateBulk(_block, _serializer);
+			return ProcessRedisResponse(async, args);
+		}
 
-//		private bool ProcessRedisBulkLine(bool async, StreamAsyncEventArgs args)
-//		{
-//			_curReadChannelArgs.Exception = args.Exception;
+		private void ProcessRedisLine(AsyncSocketEventArgs args)
+		{
+			ProcessRedisLine(true, args);
+		}
 
-//			if (args.HasException)
-//				return ProcessRedisResponse(async);
+		private bool ProcessRedisLine(bool async, AsyncSocketEventArgs args)
+		{
+			var lineValue = _lineBuffer.ToString();
+			if (args.HasError)
+				return ProcessRedisResponse(async, args);
 
-//			_curReadChannelArgs.RedisResponse = RedisResponse.CreateBulk(args.Block, _serializer);
-//			return ProcessRedisResponse(async);
-//		}
+			if (_firstChar.IsErrorReply())
+				_redisResponse = RedisResponse.CreateError(lineValue, _serializer);
+			else if (_firstChar.IsStatusReply())
+				_redisResponse = RedisResponse.CreateStatus(lineValue, _serializer);
+			else if (_firstChar.IsIntReply())
+				_redisResponse = RedisResponse.CreateInteger(lineValue.ToInt(), _serializer);
+			else if (_firstChar.IsBulkReply())
+			{
+				var length = lineValue.ToInt();
+				//check nil reply
+				if (length < 0)
+					_redisResponse = RedisResponse.CreateBulk(null, _serializer);
+				else if (length == 0)
+					_redisResponse = RedisResponse.CreateBulk(new byte[0], _serializer);
+				else
+				{
+					args.Completed = ProcessRedisBulkLine;
+					return ReadBlockLine(length, args) || ProcessRedisBulkLine(async, args);
+				}
+			}
+			else if (_firstChar.IsMultiBulkReply())
+			{
+				_multiBulkPartsLeft = lineValue.ToInt();
 
-//		private void ProcessRedisLine(StreamAsyncEventArgs streamArgs)
-//		{
-//			ProcessRedisLine(true, streamArgs);
-//		}
+				if (_multiBulkPartsLeft == -1) // multi-bulk nill
+					_redisResponse = RedisResponse.CreateMultiBulk(null, _serializer);
+				else
+				{
+					_multiBulkParts = new RedisResponse[_multiBulkPartsLeft];
 
-//		private bool ProcessRedisLine(bool async, StreamAsyncEventArgs streamArgs)
-//		{
-//			_curReadChannelArgs.Exception = streamArgs.Exception;
+					if (_multiBulkPartsLeft > 0)
+						return ReadResponseFromStream(async, args);
+				}
+			}
 
-//			if (streamArgs.HasException)
-//				return ProcessRedisResponse(async);
+			return ProcessRedisResponse(async, args);
+		}
+		#region read line
+		private bool ReadLine(AsyncSocketEventArgs args)
+		{
+			_firstChar = 0;
+			_lineBuffer.Clear();
+			args.DataLength = 0;
 
-//			if (_redisDataAnalizer.IsErrorReply(streamArgs.FirstChar))
-//				_curReadChannelArgs.RedisResponse = RedisResponse.CreateError(streamArgs.Line, _serializer);
-//			else if (_redisDataAnalizer.IsStatusReply(streamArgs.FirstChar))
-//				_curReadChannelArgs.RedisResponse = RedisResponse.CreateStatus(streamArgs.Line, _serializer);
-//			else if (_redisDataAnalizer.IsIntReply(streamArgs.FirstChar))
-//				_curReadChannelArgs.RedisResponse = RedisResponse.CreateInteger(_redisDataAnalizer.ConvertToLong(streamArgs.Line), _serializer);
-//			else if (_redisDataAnalizer.IsBulkReply(streamArgs.FirstChar))
-//			{
-//				var length = _redisDataAnalizer.ConvertToInt(streamArgs.Line);
-//				//check nil reply
-//				if (length < 0)
-//					_curReadChannelArgs.RedisResponse = RedisResponse.CreateBulk(null, _serializer);
-//				else if (length == 0)
-//					_curReadChannelArgs.RedisResponse = RedisResponse.CreateBulk(new byte[0], _serializer);
-//				else
-//				{
-//					_readStreamArgs.Length = length;
-//					_readStreamArgs.Completed = ProcessRedisBulkLine;
-//					return _redisStream.ReadBlockLine(_readStreamArgs) ||
-//							ProcessRedisBulkLine(async, _readStreamArgs);
-//				}
-//			}
-//			else if (_redisDataAnalizer.IsMultiBulkReply(streamArgs.FirstChar))
-//			{
-//				_receiveMultiBulkPartsLeft = _redisDataAnalizer.ConvertToInt(streamArgs.Line);
+			args.UserToken = args.Completed;
+			args.Completed = ReadLineCallBack;
+			
+			return ReadLineTask(false, args);
+		}
 
-//				if (_receiveMultiBulkPartsLeft == -1) // multi-bulk nill
-//					_curReadChannelArgs.RedisResponse = RedisResponse.CreateMultiBulk(null, _serializer);
-//				else
-//				{
-//					_multiBulkParts = new RedisResponse[_receiveMultiBulkPartsLeft];
+		private void ReadLineCallBack(AsyncSocketEventArgs args)
+		{
+			ReadLineCallBack(true, args);
+		}
+		private bool ReadLineCallBack(bool async,AsyncSocketEventArgs args)
+		{
+			RecalculateBufferSize(args);
+			return ReadLineTask(async, args);
+		}
 
-//					if (_receiveMultiBulkPartsLeft > 0)
-//						return ReadResponseFromStream(async);
-//				}
-//			}
+		private void RecalculateBufferSize(AsyncSocketEventArgs args)
+		{
+			_offset = _offset - _bufferSize;
+			_bufferSize = args.DataLength;
+		}
 
-//			return ProcessRedisResponse(async);
-//		}
-//		#region read line
-//		public bool ReadLine(AsyncSocketEventArgs args)
-//		{
-//			var ctx = (ReceiverContext) args.UserToken;
-//			ctx.FirstChar = 0;
-//			ctx.LineBuffer.Clear();
-//			args.Completed = ReadLineCallBack;
-//			return ReadLineTask(false, args);
-//		}
+		private bool ReadLineTask(bool async, AsyncSocketEventArgs args)
+		{
+			if (args.HasError)
+				return CallSocketOpCompleted(async, args);
 
-//		private void ReadLineCallBack(AsyncSocketEventArgs args)
-//		{
-//			ReadLineTask(true, args);
-//		}
+			while (true)
+			{
+				if (_offset >= _bufferSize)
+					return _asyncSocket.Receive(args) || ReadLineCallBack(async, args);
 
-//		private bool ReadLineTask(bool async, AsyncSocketEventArgs args)
-//		{
-//			var ctx = (ReceiverContext) args.UserToken;
+				if (_buffer[_offset] == '\r')
+				{
+					_offset += 2;
+					return CallSocketOpCompleted(async, args);
+				}
 
-//			if (args.HasError)
-//				return CallCompleted(async,args);
+				if (_firstChar == 0)
+					_firstChar = _buffer[_offset];
+				else
+					_lineBuffer.Append((char)_buffer[_offset]);
 
-//			while (true)
-//			{
-//				if (_offset >= _bufferSize)
-//				{
-//					if (_asyncSocket.Receive(args)) return true;
-//					if (args.HasError) return CallCompleted(async,args);
-//					continue;
-//				}
+				++_offset;
+			}
+		}
+		#endregion
 
-//				if (_buffer[_offset] == '\r')
-//				{
-//					_offset += 2;
-//					return CallCompleted(async,args);
-//				}
+		#region read block
+		private bool ReadBlockLine(int length, AsyncSocketEventArgs args)
+		{
+			_block = new byte[length];
+			_readBytes = 0;
+			args.Error = null;
+			args.UserToken = args.Completed;
+			args.Completed = ReadBlockFromSocketCallBack;
+			args.DataLength = 0;
+			return ReadBlockLineTask(false, args);
+		}
 
-//				if (ctx.FirstChar == 0)
-//					ctx.FirstChar = _buffer[_offset];
-//				else
-//					ctx.LineBuffer.Append((char)_buffer[_offset]);
+		private void ReadBlockFromSocketCallBack(AsyncSocketEventArgs args)
+		{
+			ReadBlockFromSocketCallBack(true, args);
+		}
+		private bool ReadBlockFromSocketCallBack(bool async, AsyncSocketEventArgs args)
+		{
+			RecalculateBufferSize(args);
+			return ReadBlockLineTask(async, args);
+		}
+		private bool ReadBlockLineTask(bool async, AsyncSocketEventArgs args)
+		{
+			if (args.HasError)
+				return CallSocketOpCompleted(async,args);
 
-//				++_offset;
-//			}
-//		}
-//		private bool CallCompleted<T>(bool async, T eventArgs) where T: EventArgsBase<T>
-//		{
-//			if (async) eventArgs.Completed(eventArgs);
-//			return async;
-//		}
-//		#endregion
-//		#region read block
-//		public bool ReadBlockLine(AsyncSocketEventArgs args)
-//		{
-//			var ctx = (ReceiverContext)args.UserToken;
-//			ctx.Block = new byte[args.DataLength];
-//			ctx.ReadBlockBytes = 0;
-//			args.Error = null;
-//			args.Completed = ReadBlockLineTask;
-//			return ReadBlockLineTask(false, args);
-//		}
+			while (_readBytes < _block.Length)
+			{
+				if (_offset >= _bufferSize)
+					return _asyncSocket.Receive(args) || ReadBlockFromSocketCallBack(async, args);
 
-//		private void ReadBlockLineTask(AsyncSocketEventArgs args)
-//		{
-//			ReadBlockLineTask(true, args);
-//		}
+				var bytesToCopy = _block.Length - _readBytes;
 
-//		private bool ReadBlockLineTask(bool async, AsyncSocketEventArgs args)
-//		{
-//			var ctx = (ReceiverContext) args.UserToken;
-//			if (args.HasError)
-//				return CallCompleted(async,args);
+				var bytesInBufferLeft = _bufferSize - _offset;
+				if (bytesToCopy > bytesInBufferLeft) bytesToCopy = bytesInBufferLeft;
 
-//			while (ctx.ReadBlockBytes < args.)
-//			{
-//				if (_readBufferOffset >= _readBufferSize)
-//				{
-//					if (ReadDataFromSocket(() => ReadBlockLineTask(true))) return true;
-//					if (_curReadStreamArgs.HasException)
-//						return CallOnReadCompleted(async);
-//					continue;
-//				}
+				Array.Copy(_buffer, _offset, _block, _readBytes, bytesToCopy);
 
-//				var bytesToCopy = _curReadStreamArgs.Length - _read;
+				_offset += bytesToCopy;
+				_readBytes += bytesToCopy;
+			}
+			_offset += 2;
+			return CallSocketOpCompleted(async,args);
+		}
+		#endregion
+		private bool CallSocketOpCompleted(bool async, AsyncSocketEventArgs eventArgs)
+		{
+			_eventArgs.Error = eventArgs.Error;
+			var callBack = (Action<AsyncSocketEventArgs>) eventArgs.UserToken;
+			if (async) callBack(eventArgs);
+			return async;
+		}
 
-//				var bytesInBufferLeft = _readBufferSize - _readBufferOffset;
-//				if (bytesToCopy > bytesInBufferLeft) bytesToCopy = bytesInBufferLeft;
+		private bool CallOperationCompleted(bool async, AsyncSocketEventArgs eventArgs)
+		{
+			_eventArgs.Error = eventArgs.Error;
+			_eventArgs.Response = _redisResponse;
 
-//				Array.Copy(_readBuffer, _readBufferOffset, _curReadStreamArgs.Block, _read, bytesToCopy);
-
-//				_readBufferOffset += bytesToCopy;
-//				_read += bytesToCopy;
-//			}
-//			_readBufferOffset += 2;
-//			return CallOnReadCompleted(async);
-//		}
-//		#endregion
-//	}
-//}
+			if (async) _eventArgs.Completed(_eventArgs);
+			return async;
+		}
+	}
+}

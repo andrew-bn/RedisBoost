@@ -1,11 +1,11 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using Moq;
 using NBoosters.RedisBoost.Core.AsyncSocket;
 using NUnit.Framework;
 
-namespace NBoosters.RedisBoost.Tests.Core.AsyncSocket
+namespace NBoosters.RedisBoost.Tests.Core
 {
 	[TestFixture]
 	public class AsyncSocketTests
