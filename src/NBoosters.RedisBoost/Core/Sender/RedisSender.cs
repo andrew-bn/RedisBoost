@@ -20,6 +20,7 @@ using System;
 using System.Globalization;
 using System.Text;
 using NBoosters.RedisBoost.Core.AsyncSocket;
+using NBoosters.RedisBoost.Misk;
 
 namespace NBoosters.RedisBoost.Core.Sender
 {
@@ -199,7 +200,7 @@ namespace NBoosters.RedisBoost.Core.Sender
 		}
 		private bool WriteCountLine(byte startSimbol, int argsCount)
 		{
-			var part = ConvertToByteArray(argsCount);
+			var part = argsCount.ToBytes();
 			var length = ADDITIONAL_LINE_BYTES + part.Length;
 
 			if (!HasSpace(length)) return false;
@@ -240,11 +241,6 @@ namespace NBoosters.RedisBoost.Core.Sender
 			_buffer[_offset++] = RedisConstants.NewLine[1];
 		}
 		#endregion
-
-		private byte[] ConvertToByteArray(int value)
-		{
-			return Encoding.UTF8.GetBytes(value.ToString(CultureInfo.InvariantCulture));
-		}
 
 		public int BytesInBuffer
 		{
