@@ -38,7 +38,7 @@ namespace NBoosters.RedisBoost.Tests.Core
 			var r = CreateReceiver();
 			r.Receive(_args);
 
-			Assert.AreEqual(RedisResponseType.Integer, _args.Response.ResponseType);
+			Assert.AreEqual(ResponseType.Integer, _args.Response.ResponseType);
 			Assert.AreEqual(23, _args.Response.AsInteger());
 		}
 		[Test]
@@ -49,7 +49,7 @@ namespace NBoosters.RedisBoost.Tests.Core
 			var r = CreateReceiver();
 			r.Receive(_args);
 			
-			Assert.AreEqual(RedisResponseType.Status,_args.Response.ResponseType);
+			Assert.AreEqual(ResponseType.Status,_args.Response.ResponseType);
 			Assert.AreEqual("SomeLine", _args.Response.ToString());
 		}
 		[Test]
@@ -60,7 +60,7 @@ namespace NBoosters.RedisBoost.Tests.Core
 			var r = CreateReceiver();
 			r.Receive(_args);
 
-			Assert.AreEqual(RedisResponseType.Error, _args.Response.ResponseType);
+			Assert.AreEqual(ResponseType.Error, _args.Response.ResponseType);
 			Assert.AreEqual("SomeError", _args.Response.ToString());
 		}
 		[Test]
@@ -71,7 +71,7 @@ namespace NBoosters.RedisBoost.Tests.Core
 			var r = CreateReceiver();
 			r.Receive(_args);
 
-			Assert.AreEqual(RedisResponseType.Bulk, _args.Response.ResponseType);
+			Assert.AreEqual(ResponseType.Bulk, _args.Response.ResponseType);
 			Assert.IsTrue(ConvertToBytes("Bulk").SequenceEqual((byte[])_args.Response));
 		}
 
@@ -83,12 +83,12 @@ namespace NBoosters.RedisBoost.Tests.Core
 			var r = CreateReceiver();
 			r.Receive(_args);
 
-			Assert.AreEqual(RedisResponseType.MultiBulk, _args.Response.ResponseType);
+			Assert.AreEqual(ResponseType.MultiBulk, _args.Response.ResponseType);
 			var mb = _args.Response.AsMultiBulk();
 			Assert.AreEqual(3, mb.Length);
-			Assert.AreEqual(RedisResponseType.Bulk, mb[0].ResponseType);
-			Assert.AreEqual(RedisResponseType.Status, mb[1].ResponseType);
-			Assert.AreEqual(RedisResponseType.Bulk, mb[2].ResponseType);
+			Assert.AreEqual(ResponseType.Bulk, mb[0].ResponseType);
+			Assert.AreEqual(ResponseType.Status, mb[1].ResponseType);
+			Assert.AreEqual(ResponseType.Bulk, mb[2].ResponseType);
 		}
 
 		[Test]
@@ -112,9 +112,9 @@ namespace NBoosters.RedisBoost.Tests.Core
 			r.Receive(_args);
 
 			Assert.IsTrue(completed);
-			Assert.AreEqual(RedisResponseType.MultiBulk, _args.Response.ResponseType);
+			Assert.AreEqual(ResponseType.MultiBulk, _args.Response.ResponseType);
 			Assert.AreEqual(3, _args.Response.AsMultiBulk().Length);
-			Assert.AreEqual(RedisResponseType.Bulk, _args.Response.AsMultiBulk()[0].ResponseType);
+			Assert.AreEqual(ResponseType.Bulk, _args.Response.AsMultiBulk()[0].ResponseType);
 			Assert.AreEqual(5, _args.Response.AsMultiBulk()[1].AsBulk().Length);
 			Assert.AreEqual(7, _args.Response.AsMultiBulk()[2].AsBulk().Length);
 		}

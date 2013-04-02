@@ -28,7 +28,7 @@ namespace NBoosters.RedisBoost
 			public string Message { get; private set; }
 
 			public ErrorResponse(string message, IRedisSerializer serializer)
-				: base(RedisResponseType.Error, serializer)
+				: base(RedisBoost.ResponseType.Error, serializer)
 			{
 				Message = message;
 			}
@@ -42,7 +42,7 @@ namespace NBoosters.RedisBoost
 			public string Status { get; private set; }
 
 			public StatusResponse(string status, IRedisSerializer serializer)
-				: base(RedisResponseType.Status, serializer)
+				: base(RedisBoost.ResponseType.Status, serializer)
 			{
 				Status = status;
 			}
@@ -56,7 +56,7 @@ namespace NBoosters.RedisBoost
 			public long Value { get; private set; }
 
 			public IntegerResponse(long value, IRedisSerializer serializer)
-				: base(RedisResponseType.Integer, serializer)
+				: base(RedisBoost.ResponseType.Integer, serializer)
 			{
 				Value = value;
 			}
@@ -66,13 +66,13 @@ namespace NBoosters.RedisBoost
 			}
 		}
 
-		internal RedisResponse(RedisResponseType responseType, IRedisSerializer serializer)
+		internal RedisResponse(ResponseType responseType, IRedisSerializer serializer)
 		{
 			ResponseType = responseType;
 			Serializer = serializer;
 		}
 
-		public RedisResponseType ResponseType { get; private set; }
+		public ResponseType ResponseType { get; private set; }
 		internal IRedisSerializer Serializer { get; private set; }
 
 		internal static RedisResponse CreateError(string message, IRedisSerializer serializer)
@@ -126,11 +126,11 @@ namespace NBoosters.RedisBoost
 			var serializer = value.Serializer;
 			switch (value.ResponseType)
 			{
-				case RedisResponseType.Bulk:
+				case ResponseType.Bulk:
 					return value.AsBulk().Value;
-				case RedisResponseType.Integer:
+				case ResponseType.Integer:
 					return serializer.Serialize(value.AsInteger());
-				case RedisResponseType.Status:
+				case ResponseType.Status:
 					return serializer.Serialize(value.AsStatus());
 				default:
 					throw new InvalidCastException("Unable to cast RedisResponse to byte[]. Response type: " + value.ResponseType);

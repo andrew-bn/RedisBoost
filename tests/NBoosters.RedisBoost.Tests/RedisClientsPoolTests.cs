@@ -26,7 +26,7 @@ namespace NBoosters.RedisBoost.Tests
 						.Returns(Task<string>.Factory.StartNew(() => { return "OK"; }));
 			_redisClient.Setup(c => c.ConnectionString)
 						.Returns(_connectionString);
-			_redisClient.Setup(c => c.State).Returns(RedisClient.ClientState.Connect);
+			_redisClient.Setup(c => c.State).Returns(ClientState.Connect);
 			_clientsFactory = (sb, s) => _redisClient.Object;
 
 		}
@@ -80,28 +80,28 @@ namespace NBoosters.RedisBoost.Tests
 		[Test]
 		public void ReturnClient_StatusIsQuit_DestroysClient()
 		{
-			_redisClient.Setup(c => c.State).Returns(RedisClient.ClientState.Quit);
+			_redisClient.Setup(c => c.State).Returns(ClientState.Quit);
 			CreatePool().ReturnClient(_redisClient.Object);
 			_redisClient.Verify(c => c.Destroy());
 		}
 		[Test]
 		public void ReturnClient_StatusIsDisconnect_DestroysClient()
 		{
-			_redisClient.Setup(c => c.State).Returns(RedisClient.ClientState.Disconnect);
+			_redisClient.Setup(c => c.State).Returns(ClientState.Disconnect);
 			CreatePool().ReturnClient(_redisClient.Object);
 			_redisClient.Verify(c => c.Destroy());
 		}
 		[Test]
 		public void ReturnClient_StatusIsSubscription_DestroysClient()
 		{
-			_redisClient.Setup(c => c.State).Returns(RedisClient.ClientState.Subscription);
+			_redisClient.Setup(c => c.State).Returns(ClientState.Subscription);
 			CreatePool().ReturnClient(_redisClient.Object);
 			_redisClient.Verify(c => c.Destroy());
 		}
 		[Test]
 		public void ReturnClient_StatusIsFatalError_DestroysClient()
 		{
-			_redisClient.Setup(c => c.State).Returns(RedisClient.ClientState.FatalError);
+			_redisClient.Setup(c => c.State).Returns(ClientState.FatalError);
 			CreatePool().ReturnClient(_redisClient.Object);
 			_redisClient.Verify(c => c.Destroy());
 		}

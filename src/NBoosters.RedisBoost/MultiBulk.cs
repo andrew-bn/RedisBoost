@@ -33,7 +33,7 @@ namespace NBoosters.RedisBoost
 		}
 
 		internal MultiBulk(RedisResponse[] parts, IRedisSerializer serializer)
-			: base(RedisResponseType.MultiBulk, serializer)
+			: base(ResponseType.MultiBulk, serializer)
 		{
 			Parts = parts;
 		}
@@ -68,7 +68,7 @@ namespace NBoosters.RedisBoost
 			var result = new T[response.Length];
 			for (int i = 0; i < result.Length; i++)
 			{
-				if (response[i].ResponseType != RedisResponseType.Bulk)
+				if (response[i].ResponseType != ResponseType.Bulk)
 					throw new InvalidCastException("MultiBulk reply contains non bulk parts. Unable to convert non bulk part to " + typeof(T).Name);
 				result[i] = response[i].AsBulk().As<T>();
 			}

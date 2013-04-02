@@ -533,7 +533,7 @@ namespace NBoosters.RedisBoost.Tests
 				var result = cli.EvalAsync("return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
 											new[] { "key1", "key2" }, "first", second).Result;
 
-				Assert.AreEqual(RedisResponseType.MultiBulk, result.ResponseType);
+				Assert.AreEqual(ResponseType.MultiBulk, result.ResponseType);
 				var mb = result.AsMultiBulk();
 				Assert.AreEqual("key1", mb[0].As<string>());
 				Assert.AreEqual("key2", mb[1].As<string>());

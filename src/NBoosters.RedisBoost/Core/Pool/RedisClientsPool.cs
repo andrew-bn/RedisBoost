@@ -122,10 +122,10 @@ namespace NBoosters.RedisBoost.Core.Pool
 
 		protected virtual bool DestroyClientCondition(IPooledRedisClient pooledRedisClient)
 		{
-			return pooledRedisClient.State == RedisClient.ClientState.Subscription ||
-			       pooledRedisClient.State == RedisClient.ClientState.Quit ||
-			       pooledRedisClient.State == RedisClient.ClientState.Disconnect ||
-			       pooledRedisClient.State == RedisClient.ClientState.FatalError;
+			return pooledRedisClient.State == ClientState.Subscription ||
+			       pooledRedisClient.State == ClientState.Quit ||
+			       pooledRedisClient.State == ClientState.Disconnect ||
+			       pooledRedisClient.State == ClientState.FatalError;
 		}
 
 		private bool PoolIsOversized(ConcurrentQueue<PoolItem> pool)

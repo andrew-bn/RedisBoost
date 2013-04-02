@@ -105,7 +105,7 @@ namespace NBoosters.RedisBoost
 					RedisResponse.CreateError(readTask.Exception.UnwrapAggregation().Message, Serializer), new string[0]));
 				return;
 			}
-			if (readTask.Result.ResponseType != RedisResponseType.MultiBulk)
+			if (readTask.Result.ResponseType != ResponseType.MultiBulk)
 			{
 				tcs.SetResult(new ChannelMessage(ChannelMessageType.Unknown, readTask.Result, new string[0]));
 				return;
@@ -114,7 +114,7 @@ namespace NBoosters.RedisBoost
 			ChannelMessageType messageType;
 			var response = readTask.Result.AsMultiBulk();
 			if (response.Length < 3 || //1 - message type, 2.. - channel, ..3 - message
-				response[0].ResponseType != RedisResponseType.Bulk ||
+				response[0].ResponseType != ResponseType.Bulk ||
 				!Enum.TryParse(((byte[])response[0].AsBulk()).AsString(), true, out messageType)) 
 			{
 				tcs.SetResult(new ChannelMessage(ChannelMessageType.Unknown, readTask.Result, new string[0]));

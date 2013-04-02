@@ -47,11 +47,14 @@
     <Compile Include="Bulk.cs" />
     <Compile Include="ChannelMessage.cs" />
     <Compile Include="ChannelMessageType.cs" />
+    <Compile Include="ClientState.cs" />
     <Compile Include="Core\AsyncSocket\AsyncSocketWrapper.cs" />
     <Compile Include="Core\AsyncSocket\AsyncSocketEventArgs.cs" />
     <Compile Include="Core\AsyncSocket\IAsyncSocket.cs" />
     <Compile Include="Core\AsyncSocket\ISocket.cs" />
     <Compile Include="Core\AsyncSocket\SocketWrapper.cs" />
+    <Compile Include="Core\Channel\IRedisChannel.cs" />
+    <Compile Include="Core\Channel\RedisChannel.cs" />
     <Compile Include="Core\EventArgsBase.cs" />
     <Compile Include="Core\IPrepareSupportRedisClient.cs" />
     <Compile Include="Core\ISerializerDependent.cs" />
@@ -120,7 +123,7 @@
     <Compile Include="RedisConnectionStringBuilder.cs" />
     <Compile Include="RedisException.cs" />
     <Compile Include="RedisResponse.cs" />
-    <Compile Include="RedisResponseType.cs" />
+    <Compile Include="ResponseType.cs" />
     <Compile Include="ZAddArgs.cs" />
     <Compile Include="ZAggrStoreArgs.cs" />
   </ItemGroup>

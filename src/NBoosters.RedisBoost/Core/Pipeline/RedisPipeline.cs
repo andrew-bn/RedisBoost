@@ -32,6 +32,7 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 		private readonly IAsyncSocket _asyncSocket;
 		private readonly IRedisSender _redisSender;
 		private readonly IRedisReceiver _redisReceiver;
+		private ISocket _socket;
 		private ConcurrentQueue<PipelineItem> _requestsQueue = new ConcurrentQueue<PipelineItem>();
 		private ConcurrentQueue<PipelineItem> _responsesQueue = new ConcurrentQueue<PipelineItem>(); 
 
@@ -84,7 +85,7 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 		private void TryStartSendProcess()
 		{
 			if (Interlocked.CompareExchange(ref _sendIsRunning, 1, 0) == 0)
-				RunSendProcess(); // start send process if not yet started
+				RunSendProcess();
 		}
 
 		private void RunSendProcess()
@@ -152,7 +153,6 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 		}
 		private void TryRunReceiveProcess()
 		{
-			// start receive process if not yet started
 			if (Interlocked.CompareExchange(ref _receiveIsRunning, 1, 0) == 0)
 				RunReceiveProcess();
 		}
@@ -205,7 +205,6 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 			SpinWait.SpinUntil(() => _requestsQueue.Count == 0 && _responsesQueue.Count == 0);
 		}
 
-		private ISocket _socket;
 		public void EngageWith(ISocket socket)
 		{
 			_socket = socket;
@@ -230,7 +229,7 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 		public void CloseConnection(Action<Exception> callBack)
 		{
 			_notIoArgs.Completed = a => callBack(a.Error);
-			if (!_asyncSocket.Disconnect(_notIoArgs))
+			if (!_asyncSocket.Disconnect(_notIoArgs)) 
 				callBack(_notIoArgs.Error);
 		}
 

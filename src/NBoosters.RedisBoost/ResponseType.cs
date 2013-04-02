@@ -18,7 +18,7 @@
 
 namespace NBoosters.RedisBoost
 {
-	public enum RedisResponseType
+	public enum ResponseType
 	{
 		Status,
 		Error,

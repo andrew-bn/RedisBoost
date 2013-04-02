@@ -22,7 +22,7 @@ namespace NBoosters.RedisBoost.Core
 {
 	internal interface IPrepareSupportRedisClient: IRedisClient
 	{
-		RedisClient.ClientState State { get; }
+		ClientState State { get; }
 		Task<IRedisClient> PrepareClientConnection();
 	}
 }
