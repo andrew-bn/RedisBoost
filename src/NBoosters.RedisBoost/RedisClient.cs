@@ -24,6 +24,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
 using NBoosters.RedisBoost.Core.AsyncSocket;
+using NBoosters.RedisBoost.Core.Channel;
 using NBoosters.RedisBoost.Core.Pipeline;
 using NBoosters.RedisBoost.Core.Pool;
 using NBoosters.RedisBoost.Core.Receiver;
@@ -35,7 +36,7 @@ namespace NBoosters.RedisBoost
 {
 	public partial class RedisClient : IPrepareSupportRedisClient, IRedisSubscription
 	{
-		static readonly ObjectsPool<IRedisPipeline> _redisPipelinePool = new ObjectsPool<IRedisPipeline>();
+		static readonly ObjectsPool<IRedisChannel> _redisPipelinePool = new ObjectsPool<IRedisChannel>();
 		static BasicRedisSerializer _defaultSerializer = new BasicRedisSerializer();
 		public static BasicRedisSerializer DefaultSerializer
 		{
@@ -95,11 +96,10 @@ namespace NBoosters.RedisBoost
 		public IRedisSerializer Serializer { get; private set; }
 
 		private int _disposed;
-		private volatile ClientState _state;
-		private IRedisPipeline _redisPipeline;
+		private readonly IRedisChannel _channel;
 		private readonly RedisConnectionStringBuilder _connectionStringBuilder;
 
-		ClientState IPrepareSupportRedisClient.State { get { return _state; } }
+		ClientState IPrepareSupportRedisClient.State { get { return _channel.State; } }
 
 		protected RedisClient(RedisConnectionStringBuilder connectionString, IRedisSerializer serializer)
 		{
@@ -107,25 +107,26 @@ namespace NBoosters.RedisBoost
 			_connectionStringBuilder = connectionString;
 			Serializer = serializer ?? DefaultSerializer;
 
-			var sock = new Socket(_connectionStringBuilder.EndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-			var socketWrapper = new SocketWrapper(sock);
-
-			_redisPipeline = PrepareRedisPipeline(socketWrapper);
+			var socket = new Socket(_connectionStringBuilder.EndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+			_channel = PrepareRedisChannel(socket);
 		}
 
-		private IRedisPipeline PrepareRedisPipeline(SocketWrapper socketWrapper)
+		private IRedisChannel PrepareRedisChannel(Socket socket)
 		{
-			var pipeline = _redisPipelinePool.GetOrCreate(() =>
+			var socketWrapper = new SocketWrapper(socket);
+
+			var channel = _redisPipelinePool.GetOrCreate(() =>
 				{
 					var asyncSocket = new AsyncSocketWrapper();
-					return new RedisPipeline(asyncSocket, new RedisSender(asyncSocket, false), new RedisReceiver(asyncSocket));
+					var pipeline = new RedisPipeline(asyncSocket, new RedisSender(asyncSocket, false), new RedisReceiver(asyncSocket));
+					return new RedisChannel(pipeline);
 				});
 
-			pipeline.ResetState();
-			pipeline.EngageWith(socketWrapper);
-			pipeline.EngageWith(Serializer);
+			channel.ResetState();
+			channel.EngageWith(socketWrapper);
+			channel.EngageWith(Serializer);
 
-			return pipeline;
+			return channel;
 		}
 
 		#region request composers
@@ -217,128 +218,64 @@ namespace NBoosters.RedisBoost
 		#endregion
 
 		#region read response
-		private Task<MultiBulk> MultiBulkResponseCommand(params byte[][] args)
+		private Task<MultiBulk> MultiBulkCommand(params byte[][] args)
 		{
-			return ExecutePipelinedCommand(args).ContinueWithIfNoError(
-				t => t.Result.ResponseType != ResponseType.MultiBulk ? null : t.Result.AsMultiBulk());
+			return _channel.MultiBulkCommand(args);
 		}
 
-		private Task<string> StatusResponseCommand(params byte[][] args)
+		private Task<string> StatusCommand(params byte[][] args)
 		{
-			return ExecutePipelinedCommand(args).ContinueWithIfNoError(
-					t => t.Result.ResponseType != ResponseType.Status ? string.Empty : t.Result.AsStatus());
+			return _channel.StatusCommand(args);
 		}
 
-		private Task<long> IntegerResponseCommand(params byte[][] args)
+		private Task<long> IntegerCommand(params byte[][] args)
 		{
-			return ExecutePipelinedCommand(args).ContinueWithIfNoError(t =>
-					t.Result.ResponseType != ResponseType.Integer ? default(long) : t.Result.AsInteger());
+			return _channel.IntegerCommand(args);
 		}
 
-		private Task<long?> IntegerOrBulkNullResponseCommand(params byte[][] args)
+		private Task<long?> IntegerOrBulkNullCommand(params byte[][] args)
 		{
-			return ExecutePipelinedCommand(args).ContinueWithIfNoError(
-				t => t.Result.ResponseType == ResponseType.Integer ? t.Result.AsInteger() : (long?)null);
+			return _channel.IntegerOrBulkNullCommand(args);
 		}
 
-		private Task<Bulk> BulkResponseCommand(params byte[][] args)
+		private Task<Bulk> BulkCommand(params byte[][] args)
 		{
-			return ExecutePipelinedCommand(args).ContinueWithIfNoError(
-				t => t.Result.ResponseType != ResponseType.Bulk ? null : t.Result.AsBulk());
+			return _channel.BulkCommand(args);
+		}
+
+		private Task<RedisResponse> ExecuteRedisCommand(params byte[][] args)
+		{
+			return _channel.ExecuteRedisCommand(args);
 		}
 		#endregion
 
 		#region commands execution
 
-		private Task<RedisResponse> ExecutePipelinedCommand(params byte[][] args)
-		{
-			var tcs = new TaskCompletionSource<RedisResponse>();
-			_redisPipeline.ExecuteCommandAsync(args, (ex, r) => ProcessRedisResponse(tcs, ex, r));
-			return tcs.Task;
-		}
-
 		public Task<RedisResponse> ReadDirectResponse()
 		{
-			var tcs = new TaskCompletionSource<RedisResponse>();
-			_redisPipeline.ReadResponseAsync((ex, r) => ProcessRedisResponse(tcs, ex, r));
-			return tcs.Task;
+			return _channel.ReadDirectResponse();
 		}
 
 		private Task SendDirectRequest(params byte[][] args)
 		{
-			var tcs = new TaskCompletionSource<bool>();
-
-			_redisPipeline.SendRequestAsync(args,
-				(ex, r) =>
-				{
-					if (ex != null)
-						tcs.SetException(ProcessException(ex));
-					else tcs.SetResult(true);
-				});
-
-			return tcs.Task;
+			return _channel.SendDirectRequest(args);
 		}
-
-		private void ProcessRedisResponse(TaskCompletionSource<RedisResponse> tcs, Exception ex, RedisResponse response)
-		{
-			if (ex != null)
-				tcs.SetException(ProcessException(ex));
-			else if (response.ResponseType == ResponseType.Error)
-				tcs.SetException(new RedisException(response.AsError()));
-			else
-				tcs.SetResult(response);
-		}
-
 		#endregion
 
 		#region connection
 		public Task ConnectAsync()
 		{
-			var tcs = new TaskCompletionSource<bool>();
-			_redisPipeline.OpenConnection( _connectionStringBuilder.EndPoint,
-				ex =>
-				{
-					_state = ClientState.Connect;
-					if (ex != null)
-						tcs.SetException(ProcessException(ex));
-					else
-						tcs.SetResult(true);
-				});
-			return tcs.Task;
+			return _channel.Connect(_connectionStringBuilder.EndPoint);
 		}
 
 		public Task DisconnectAsync()
 		{
-			var tcs = new TaskCompletionSource<bool>();
-			_redisPipeline.CloseConnection(
-				ex =>
-				{
-					_state = ClientState.Disconnect;
-					if (ex != null) 
-						tcs.SetException(ProcessException(ex));
-					else 
-						tcs.SetResult(true);
-				});
-			return tcs.Task;
+			return _channel.Disconnect();
 		}
 
 		#endregion
 
 		#region disposing
-		private Exception ProcessException(Exception ex)
-		{
-			DisposeIfFatalError(ex);
-			if (!(ex is RedisException))
-				ex = new RedisException(ex.Message,ex);
-			return ex;
-		}
-		private void DisposeIfFatalError(Exception ex)
-		{
-			if (ex is RedisException) return;
-			_state = ClientState.FatalError;
-			Dispose();
-		}
-
 		protected virtual void Dispose(bool disposing)
 		{
 			if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
@@ -346,8 +283,8 @@ namespace NBoosters.RedisBoost
 
 			if (!disposing) return;
 
-			_redisPipeline.DisposeAndReuse();
-			_redisPipelinePool.Release(_redisPipeline);
+			_channel.Dispose();
+			_redisPipelinePool.Release(_channel);
 		}
 
 		public void Dispose()
@@ -358,7 +295,12 @@ namespace NBoosters.RedisBoost
 
 		private void OneWayMode()
 		{
-			_redisPipeline.OneWayMode();
+			_channel.SwitchToOneWay();
+		}
+
+		private void SetQuitState()
+		{
+			_channel.SetQuitState();
 		}
 	}
 }

@@ -27,17 +27,17 @@ namespace NBoosters.RedisBoost
 	{
 		public Task<MultiBulk> KeysAsync(string pattern)
 		{
-			return MultiBulkResponseCommand(RedisConstants.Keys, pattern.ToBytes());
+			return MultiBulkCommand(RedisConstants.Keys, pattern.ToBytes());
 		}
 
 		public Task<long> DelAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.Del, key.ToBytes());
+			return IntegerCommand(RedisConstants.Del, key.ToBytes());
 		}
 
 		public Task<string> MigrateAsync(string host,int port, string key, int destinationDb, int timeout)
 		{
-			return StatusResponseCommand(RedisConstants.Migrate,
+			return StatusCommand(RedisConstants.Migrate,
 										 host.ToBytes(), port.ToBytes(),
 										 key.ToBytes(), destinationDb.ToBytes(),
 										 timeout.ToBytes());
@@ -45,60 +45,60 @@ namespace NBoosters.RedisBoost
 
 		public Task<Bulk> DumpAsync(string key)
 		{
-			return BulkResponseCommand(RedisConstants.Dump, key.ToBytes());
+			return BulkCommand(RedisConstants.Dump, key.ToBytes());
 		}
 
 		public Task<string> RestoreAsync(string key, int ttlInMilliseconds, byte[] serializedValue)
 		{
-			return StatusResponseCommand(RedisConstants.Restore, key.ToBytes(),
+			return StatusCommand(RedisConstants.Restore, key.ToBytes(),
 				ttlInMilliseconds.ToBytes(), serializedValue);
 		}
 
 		public Task<long> ExistsAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.Exists, key.ToBytes());
+			return IntegerCommand(RedisConstants.Exists, key.ToBytes());
 		}
 
 		public Task<long> ExpireAsync(string key, int seconds)
 		{
-			return IntegerResponseCommand(RedisConstants.Expire, key.ToBytes(), seconds.ToBytes());
+			return IntegerCommand(RedisConstants.Expire, key.ToBytes(), seconds.ToBytes());
 		}
 
 		public Task<long> PExpireAsync(string key, int milliseconds)
 		{
-			return IntegerResponseCommand(RedisConstants.PExpire, key.ToBytes(), milliseconds.ToBytes());
+			return IntegerCommand(RedisConstants.PExpire, key.ToBytes(), milliseconds.ToBytes());
 		}
 
 		public Task<long> ExpireAtAsync(string key, DateTime timestamp)
 		{
 			var seconds = (int)(timestamp - RedisConstants.InitialUnixTime).TotalSeconds;
-			return IntegerResponseCommand(RedisConstants.ExpireAt, key.ToBytes(),
+			return IntegerCommand(RedisConstants.ExpireAt, key.ToBytes(),
 				seconds.ToBytes());
 		}
 
 		public Task<long> PersistAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.Persist, key.ToBytes());
+			return IntegerCommand(RedisConstants.Persist, key.ToBytes());
 		}
 
 		public Task<long> PttlAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.Pttl, key.ToBytes());
+			return IntegerCommand(RedisConstants.Pttl, key.ToBytes());
 		}
 
 		public Task<long> TtlAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.Ttl, key.ToBytes());
+			return IntegerCommand(RedisConstants.Ttl, key.ToBytes());
 		}
 
 		public Task<string> TypeAsync(string key)
 		{
-			return StatusResponseCommand(RedisConstants.Type, key.ToBytes());
+			return StatusCommand(RedisConstants.Type, key.ToBytes());
 		}
 
 		public Task<string> RandomKeyAsync()
 		{
-			return BulkResponseCommand(RedisConstants.RandomKey)
+			return BulkCommand(RedisConstants.RandomKey)
 				.ContinueWithIfNoError(t =>
 					{
 						var result = t.Result;
@@ -110,23 +110,23 @@ namespace NBoosters.RedisBoost
 
 		public Task<string> RenameAsync(string key, string newKey)
 		{
-			return StatusResponseCommand(RedisConstants.Rename, key.ToBytes(), newKey.ToBytes());
+			return StatusCommand(RedisConstants.Rename, key.ToBytes(), newKey.ToBytes());
 		}
 
 		public Task<long> RenameNxAsync(string key, string newKey)
 		{
-			return IntegerResponseCommand(RedisConstants.RenameNx, key.ToBytes(), newKey.ToBytes());
+			return IntegerCommand(RedisConstants.RenameNx, key.ToBytes(), newKey.ToBytes());
 		}
 
 		public Task<long> MoveAsync(string key, int db)
 		{
-			return IntegerResponseCommand(RedisConstants.Move, key.ToBytes(), db.ToBytes());
+			return IntegerCommand(RedisConstants.Move, key.ToBytes(), db.ToBytes());
 		}
 
 		public Task<RedisResponse> ObjectAsync(Subcommand subcommand, params string[] args)
 		{
 			var request = ComposeRequest(RedisConstants.Object, subcommand.ToBytes(), args);
-			return ExecutePipelinedCommand(request);
+			return ExecuteRedisCommand(request);
 		}
 
 		public Task<RedisResponse> SortAsync(string key, string by = null, long? limitOffset = null,
@@ -134,7 +134,7 @@ namespace NBoosters.RedisBoost
 								 string[] getPatterns = null)
 		{
 			var request = ComposeRequest(key, by, limitOffset, limitCount, asc, alpha, destination, getPatterns);
-			return ExecutePipelinedCommand(request);
+			return ExecuteRedisCommand(request);
 		}
 
 		#region request composing

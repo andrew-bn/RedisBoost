@@ -32,7 +32,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> PublishAsync(string channel, byte[] message)
 		{
-			return IntegerResponseCommand(RedisConstants.Publish, channel.ToBytes(), message);
+			return IntegerCommand(RedisConstants.Publish, channel.ToBytes(), message);
 		}
 
 		public Task<IRedisSubscription> SubscribeAsync(params string[] channels)
@@ -69,7 +69,7 @@ namespace NBoosters.RedisBoost
 
 		private Task<IRedisSubscription> SubscriptionCommandAsync(byte[] commandName, string[] channels)
 		{
-			_state = ClientState.Subscription;
+			SetQuitState();
 			var request = ComposeRequest(commandName, channels);
 			return SendDirectRequest(request).ContinueWithIfNoError(t => (IRedisSubscription)this);
 		}
@@ -139,7 +139,7 @@ namespace NBoosters.RedisBoost
 
 		Task IRedisSubscription.QuitAsync()
 		{
-			_state = ClientState.Quit;
+			SetQuitState();
 			return SendDirectRequest(RedisConstants.Quit);
 		}
 	}

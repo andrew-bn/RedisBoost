@@ -13,6 +13,7 @@ namespace NBoosters.RedisBoost.Core.Channel
 	{
 		private readonly IRedisPipeline _pipeline;
 		private volatile ClientState _state;
+		public ClientState State { get { return _state; }}
 
 		public RedisChannel(IRedisPipeline pipeline)
 		{
@@ -22,31 +23,31 @@ namespace NBoosters.RedisBoost.Core.Channel
 		#region read response
 		public Task<MultiBulk> MultiBulkCommand(byte[][] args)
 		{
-			return ExecutePipelinedCommand(args).ContinueWithIfNoError(
+			return ExecuteRedisCommand(args).ContinueWithIfNoError(
 				t => t.Result.ResponseType != ResponseType.MultiBulk ? null : t.Result.AsMultiBulk());
 		}
 
 		public Task<string> StatusCommand(byte[][] args)
 		{
-			return ExecutePipelinedCommand(args).ContinueWithIfNoError(
+			return ExecuteRedisCommand(args).ContinueWithIfNoError(
 					t => t.Result.ResponseType != ResponseType.Status ? string.Empty : t.Result.AsStatus());
 		}
 
 		public Task<long> IntegerCommand(byte[][] args)
 		{
-			return ExecutePipelinedCommand(args).ContinueWithIfNoError(t =>
+			return ExecuteRedisCommand(args).ContinueWithIfNoError(t =>
 					t.Result.ResponseType != ResponseType.Integer ? default(long) : t.Result.AsInteger());
 		}
 
 		public Task<long?> IntegerOrBulkNullCommand(byte[][] args)
 		{
-			return ExecutePipelinedCommand(args).ContinueWithIfNoError(
+			return ExecuteRedisCommand(args).ContinueWithIfNoError(
 				t => t.Result.ResponseType == ResponseType.Integer ? t.Result.AsInteger() : (long?)null);
 		}
 
 		public Task<Bulk> BulkCommand(params byte[][] args)
 		{
-			return ExecutePipelinedCommand(args).ContinueWithIfNoError(
+			return ExecuteRedisCommand(args).ContinueWithIfNoError(
 				t => t.Result.ResponseType != ResponseType.Bulk ? null : t.Result.AsBulk());
 		}
 
@@ -54,7 +55,7 @@ namespace NBoosters.RedisBoost.Core.Channel
 
 		#region commands execution
 
-		private Task<RedisResponse> ExecutePipelinedCommand(params byte[][] args)
+		public Task<RedisResponse> ExecuteRedisCommand(byte[][] args)
 		{
 			var tcs = new TaskCompletionSource<RedisResponse>();
 			_pipeline.ExecuteCommandAsync(args, (ex, r) => ProcessRedisResponse(tcs, ex, r));
@@ -155,6 +156,21 @@ namespace NBoosters.RedisBoost.Core.Channel
 		public void Dispose()
 		{
 			_pipeline.DisposeAndReuse();
+		}
+
+		public void ResetState()
+		{
+			_pipeline.ResetState();
+		}
+
+		public void SwitchToOneWay()
+		{
+			_pipeline.OneWayMode();
+		}
+
+		public void SetQuitState()
+		{
+			_state = ClientState.Quit;
 		}
 	}
 }

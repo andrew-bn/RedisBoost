@@ -46,21 +46,21 @@ namespace NBoosters.RedisBoost
 
 		public Task<Bulk> ScriptLoadAsync(string script)
 		{
-			return BulkResponseCommand(RedisConstants.Script, RedisConstants.Load, script.ToBytes());
+			return BulkCommand(RedisConstants.Script, RedisConstants.Load, script.ToBytes());
 		}
 
 		public Task<MultiBulk> ScriptExistsAsync(params byte[][] sha1)
 		{
 			var request = ComposeRequest(RedisConstants.Script, RedisConstants.Exists, sha1);
-			return MultiBulkResponseCommand(request);
+			return MultiBulkCommand(request);
 		}
 		public Task<string> ScriptFlushAsync()
 		{
-			return StatusResponseCommand(RedisConstants.Script, RedisConstants.Flush);
+			return StatusCommand(RedisConstants.Script, RedisConstants.Flush);
 		}
 		public Task<string> ScriptKillAsync()
 		{
-			return StatusResponseCommand(RedisConstants.Script, RedisConstants.Kill);
+			return StatusCommand(RedisConstants.Script, RedisConstants.Kill);
 		}
 		private Task<RedisResponse> Eval(byte[] commandName, byte[] script, string[] keys, params byte[][] arguments)
 		{
@@ -74,7 +74,7 @@ namespace NBoosters.RedisBoost
 			for (int i = 0; i < arguments.Length; i++)
 				request[3 + keys.Length + i] = arguments[i];
 
-			return ExecutePipelinedCommand(request);
+			return ExecuteRedisCommand(request);
 		}
 	}
 }

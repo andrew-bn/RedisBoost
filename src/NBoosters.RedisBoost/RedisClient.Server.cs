@@ -26,47 +26,47 @@ namespace NBoosters.RedisBoost
 	{
 		public Task<string> FlushDbAsync()
 		{
-			return StatusResponseCommand(RedisConstants.FlushDb);
+			return StatusCommand(RedisConstants.FlushDb);
 		}
 
 		public Task<string> FlushAllAsync()
 		{
-			return StatusResponseCommand(RedisConstants.FlushAll);
+			return StatusCommand(RedisConstants.FlushAll);
 		}
 
 		public Task<string> BgRewriteAofAsync()
 		{
-			return StatusResponseCommand(RedisConstants.BgRewriteAof);
+			return StatusCommand(RedisConstants.BgRewriteAof);
 		}
 
 		public Task<string> BgSaveAsync()
 		{
-			return StatusResponseCommand(RedisConstants.BgSave);
+			return StatusCommand(RedisConstants.BgSave);
 		}
 
 		public Task<Bulk> ClientListAsync()
 		{
-			return BulkResponseCommand(RedisConstants.Client,RedisConstants.List);
+			return BulkCommand(RedisConstants.Client,RedisConstants.List);
 		}
 
 		internal Task<string> ClientSetNameAsync(byte[] connectionName)
 		{
-			return StatusResponseCommand(RedisConstants.Client, RedisConstants.SetName, connectionName);
+			return StatusCommand(RedisConstants.Client, RedisConstants.SetName, connectionName);
 		}
 
 		internal Task<Bulk> ClientGetNameAsync()
 		{
-			return BulkResponseCommand(RedisConstants.Client, RedisConstants.GetName);
+			return BulkCommand(RedisConstants.Client, RedisConstants.GetName);
 		}
 
 		public Task<long> DbSizeAsync()
 		{
-			return IntegerResponseCommand(RedisConstants.DbSize);
+			return IntegerCommand(RedisConstants.DbSize);
 		}
 
 		public Task<RedisResponse> ConfigGetAsync(string parameter)
 		{
-			return ExecutePipelinedCommand(RedisConstants.Config, RedisConstants.Get, parameter.ToBytes());
+			return ExecuteRedisCommand(RedisConstants.Config, RedisConstants.Get, parameter.ToBytes());
 		}
 
 		public Task<string> ConfigSetAsync<T>(string parameter, T value)
@@ -76,17 +76,17 @@ namespace NBoosters.RedisBoost
 
 		public Task<string> ConfigSetAsync(string parameter,byte[] value)
 		{
-			return StatusResponseCommand(RedisConstants.Config, RedisConstants.Set, parameter.ToBytes(), value);
+			return StatusCommand(RedisConstants.Config, RedisConstants.Set, parameter.ToBytes(), value);
 		}
 
 		public Task<string> ConfigResetStatAsync()
 		{
-			return StatusResponseCommand(RedisConstants.Config, RedisConstants.ResetStat);
+			return StatusCommand(RedisConstants.Config, RedisConstants.ResetStat);
 		}
 
 		public Task<string> ClientKillAsync(string ip, int port)
 		{
-			return StatusResponseCommand(RedisConstants.Client, RedisConstants.Kill, string.Format("{0}:{1}", ip, port).ToBytes());
+			return StatusCommand(RedisConstants.Client, RedisConstants.Kill, string.Format("{0}:{1}", ip, port).ToBytes());
 		}
 
 		public Task<Bulk> InfoAsync()
@@ -97,38 +97,38 @@ namespace NBoosters.RedisBoost
 		public Task<Bulk> InfoAsync(string section)
 		{
 			return section == null
-					? BulkResponseCommand(RedisConstants.Info)
-					: BulkResponseCommand(RedisConstants.Info, section.ToBytes());
+					? BulkCommand(RedisConstants.Info)
+					: BulkCommand(RedisConstants.Info, section.ToBytes());
 		}
 
 		public Task<long> LastSaveAsync()
 		{
-			return IntegerResponseCommand(RedisConstants.LastSave);
+			return IntegerCommand(RedisConstants.LastSave);
 		}
 
 		public Task<string> SaveAsync()
 		{
-			return StatusResponseCommand(RedisConstants.Save);
+			return StatusCommand(RedisConstants.Save);
 		}
 
 		public Task<string> ShutDownAsync()
 		{
-			return StatusResponseCommand(RedisConstants.ShutDown);
+			return StatusCommand(RedisConstants.ShutDown);
 		}
 
 		public Task<string> ShutDownAsync(bool save)
 		{
-			return StatusResponseCommand(RedisConstants.ShutDown,save?RedisConstants.Save:RedisConstants.NoSave);
+			return StatusCommand(RedisConstants.ShutDown,save?RedisConstants.Save:RedisConstants.NoSave);
 		}
 
 		public Task<string> SlaveOfAsync(string host,int port)
 		{
-			return StatusResponseCommand(RedisConstants.SlaveOf, host.ToBytes(), port.ToBytes());
+			return StatusCommand(RedisConstants.SlaveOf, host.ToBytes(), port.ToBytes());
 		}
 
 		public Task<MultiBulk> TimeAsync()
 		{
-			return MultiBulkResponseCommand(RedisConstants.Time);
+			return MultiBulkCommand(RedisConstants.Time);
 		}
 	}
 }
