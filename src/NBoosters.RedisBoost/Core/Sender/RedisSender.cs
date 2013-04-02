@@ -17,8 +17,6 @@
 #endregion
 
 using System;
-using System.Globalization;
-using System.Text;
 using NBoosters.RedisBoost.Core.AsyncSocket;
 using NBoosters.RedisBoost.Misk;
 

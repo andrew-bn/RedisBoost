@@ -129,6 +129,92 @@ namespace NBoosters.RedisBoost
 			return channel;
 		}
 
+		#region read response
+		private Task<MultiBulk> MultiBulkCommand(params byte[][] args)
+		{
+			return _channel.MultiBulkCommand(args);
+		}
+
+		private Task<string> StatusCommand(params byte[][] args)
+		{
+			return _channel.StatusCommand(args);
+		}
+
+		private Task<long> IntegerCommand(params byte[][] args)
+		{
+			return _channel.IntegerCommand(args);
+		}
+
+		private Task<long?> IntegerOrBulkNullCommand(params byte[][] args)
+		{
+			return _channel.IntegerOrBulkNullCommand(args);
+		}
+
+		private Task<Bulk> BulkCommand(params byte[][] args)
+		{
+			return _channel.BulkCommand(args);
+		}
+
+		private Task<RedisResponse> ExecuteRedisCommand(params byte[][] args)
+		{
+			return _channel.ExecuteRedisCommand(args);
+		}
+		#endregion
+
+		#region commands execution
+
+		public Task<RedisResponse> ReadDirectResponse()
+		{
+			return _channel.ReadDirectResponse();
+		}
+
+		private Task SendDirectRequest(params byte[][] args)
+		{
+			return _channel.SendDirectRequest(args);
+		}
+		#endregion
+
+		#region connection
+		public Task ConnectAsync()
+		{
+			return _channel.Connect(_connectionStringBuilder.EndPoint);
+		}
+
+		public Task DisconnectAsync()
+		{
+			return _channel.Disconnect();
+		}
+
+		#endregion
+
+		#region disposing
+		protected virtual void Dispose(bool disposing)
+		{
+			if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
+				return;
+
+			if (!disposing) return;
+
+			_channel.Dispose();
+			_redisPipelinePool.Release(_channel);
+		}
+
+		public void Dispose()
+		{
+			Dispose(true);
+		}
+		#endregion
+
+		private void OneWayMode()
+		{
+			_channel.SwitchToOneWay();
+		}
+
+		private void SetQuitState()
+		{
+			_channel.SetQuitState();
+		}
+
 		#region request composers
 		private byte[][] ComposeRequest(byte[] commandName, byte[] arg1, MSetArgs[] args)
 		{
@@ -217,90 +303,5 @@ namespace NBoosters.RedisBoost
 		}
 		#endregion
 
-		#region read response
-		private Task<MultiBulk> MultiBulkCommand(params byte[][] args)
-		{
-			return _channel.MultiBulkCommand(args);
-		}
-
-		private Task<string> StatusCommand(params byte[][] args)
-		{
-			return _channel.StatusCommand(args);
-		}
-
-		private Task<long> IntegerCommand(params byte[][] args)
-		{
-			return _channel.IntegerCommand(args);
-		}
-
-		private Task<long?> IntegerOrBulkNullCommand(params byte[][] args)
-		{
-			return _channel.IntegerOrBulkNullCommand(args);
-		}
-
-		private Task<Bulk> BulkCommand(params byte[][] args)
-		{
-			return _channel.BulkCommand(args);
-		}
-
-		private Task<RedisResponse> ExecuteRedisCommand(params byte[][] args)
-		{
-			return _channel.ExecuteRedisCommand(args);
-		}
-		#endregion
-
-		#region commands execution
-
-		public Task<RedisResponse> ReadDirectResponse()
-		{
-			return _channel.ReadDirectResponse();
-		}
-
-		private Task SendDirectRequest(params byte[][] args)
-		{
-			return _channel.SendDirectRequest(args);
-		}
-		#endregion
-
-		#region connection
-		public Task ConnectAsync()
-		{
-			return _channel.Connect(_connectionStringBuilder.EndPoint);
-		}
-
-		public Task DisconnectAsync()
-		{
-			return _channel.Disconnect();
-		}
-
-		#endregion
-
-		#region disposing
-		protected virtual void Dispose(bool disposing)
-		{
-			if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
-				return;
-
-			if (!disposing) return;
-
-			_channel.Dispose();
-			_redisPipelinePool.Release(_channel);
-		}
-
-		public void Dispose()
-		{
-			Dispose(true);
-		}
-		#endregion
-
-		private void OneWayMode()
-		{
-			_channel.SwitchToOneWay();
-		}
-
-		private void SetQuitState()
-		{
-			_channel.SetQuitState();
-		}
 	}
 }
