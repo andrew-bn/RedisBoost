@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NBoosters.RedisBoost.Tests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NBoosters.RedisBoost.ConsoleLoadTest", "tests\NBoosters.RedisBoost.ConsoleLoadTest\NBoosters.RedisBoost.ConsoleLoadTest.csproj", "{A0D4BEC5-9704-4031-A9DF-DE71265F4540}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NBoosters.RedisBoost.ConsoleBenchmark", "tests\NBoosters.RedisBoost.ConsoleBenchmark\NBoosters.RedisBoost.ConsoleBenchmark.csproj", "{4CA84076-FA0C-410F-B04B-CD10D9E8BBFF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{A0D4BEC5-9704-4031-A9DF-DE71265F4540}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A0D4BEC5-9704-4031-A9DF-DE71265F4540}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A0D4BEC5-9704-4031-A9DF-DE71265F4540}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4CA84076-FA0C-410F-B04B-CD10D9E8BBFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4CA84076-FA0C-410F-B04B-CD10D9E8BBFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4CA84076-FA0C-410F-B04B-CD10D9E8BBFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4CA84076-FA0C-410F-B04B-CD10D9E8BBFF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
