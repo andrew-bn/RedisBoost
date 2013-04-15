@@ -1,5 +1,11 @@
 Release Notes
 ==============
+1.5.6
+--------------
+- pipeline was redesigned. Now it is more robust and reliable.
+- Pub/Sub commands now are executed through pipeline environment which is thread safe and fast. 
+So, now concurrent pub/sub commands could be sent.
+
 1.5.5
 --------------
 - fixed pipeline issue with big amount of commands: pipeline failed to process all pipelined commands 
