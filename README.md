@@ -3,7 +3,6 @@ RedisBoost (.NET 4.0)
 
 * [Redis 2.6 commands set](http://redis.io/commands) support
 * Thread-safe asynchronous architecture
-* Is [very fast] (#benchmark)
 * Easy to use [pub/sub api](#pubsub-support). Works directly on the level of Redis commands.
 * [Pipelining](#pipelining-support) support
 * [Serialization](#serialization) support
@@ -235,21 +234,6 @@ At the end all responses are checked.
 In the test library NBoosters.RedisBoost.Tests there is a 
 IntegrationTests.PipelineTest_ParallelPipelining test that shows 
 parallel work with the same redis client in pipeline style
-
-Benchmark
-----------
-There was performed a very simple benchmarking test that reveals the efficiency of pipelining engine.
-100000 INCR commands for the same key were pipelined and then after loop ended test waited for a GET response.
-The test conditions, I hope, were fair for all participants. This test case was performed 5 times for each client.
-Actually exactly the same test case was benchmarked by ctstone for csredis, 
-details [here] (https://github.com/ctstone/csredis#benchmarks), but results are 
-slightly different. Only clients with support of async execution were tested.
-
-* redisboost ~614.2ms
-* csredis ~7399.6ms
-* booksleeve ~5320.2ms
-
-The source code of this benchmark can be found in this repository in tests folder.
 
 Error handling
 ----------
