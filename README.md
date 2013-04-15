@@ -2,16 +2,14 @@ RedisBoost (.NET 4.0)
 ==========
 
 * [Redis 2.6 commands set](http://redis.io/commands) support
-* [Serialization](#serialization) support
 * Thread-safe asynchronous architecture
-* Supports [pipelining](#pipelining-support) that will tremendously boost your commands performance
-* Tightly bound to Redis api. Does not expose high level abstractions
+* Is very fast. Benchmark results could be found [here] (#benchmark)
 * Easy to use [pub/sub api](#pubsub-support). Works directly on the level of Redis commands.
+* [Pipelining](#pipelining-support) support
+* [Serialization](#serialization) support
 * [Clients pool](#clients-pool-support) support
 * [Connection string] (#connection-string-support) support
 
-Benchmark results could be found [here] (#benchmark)
- 
 Installation
 ----------
 You can install RedisBoost via NuGet:
@@ -250,6 +248,8 @@ slightly different. Only clients with support of async execution were tested.
 * redisboost ~614.2ms
 * csredis ~7399.6ms
 * booksleeve ~5320.2ms
+
+The source code of this benchmark can be found in this repository in tests folder.
 
 Error handling
 ----------
