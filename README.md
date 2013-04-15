@@ -3,7 +3,7 @@ RedisBoost (.NET 4.0)
 
 * [Redis 2.6 commands set](http://redis.io/commands) support
 * Thread-safe asynchronous architecture
-* Is very fast. Benchmark results could be found [here] (#benchmark)
+* Is [very fast] (#benchmark)
 * Easy to use [pub/sub api](#pubsub-support). Works directly on the level of Redis commands.
 * [Pipelining](#pipelining-support) support
 * [Serialization](#serialization) support
