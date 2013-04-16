@@ -20,6 +20,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core.Receiver;
 using NBoosters.RedisBoost.Core.AsyncSocket;
 using NBoosters.RedisBoost.Core.Sender;
@@ -29,6 +30,8 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 {
 	internal class RedisPipeline: IRedisPipeline
 	{
+		private const int MaxQueueSize = 800;
+
 		private readonly IAsyncSocket _asyncSocket;
 		private readonly IRedisSender _redisSender;
 		private readonly IRedisReceiver _redisReceiver;
@@ -71,6 +74,9 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 
 		public void ExecuteCommandAsync(byte[][] args,PipelineItem item)
 		{
+			if (_requestsQueue.Count > MaxQueueSize)
+				SpinWait.SpinUntil(() => _requestsQueue.Count < MaxQueueSize);
+
 			if (_pipelineException != null)
 				item.CallBack(_pipelineException, null);
 			else if (_pipelineIsInOneWayMode != 0 && !item.IsOneWay)

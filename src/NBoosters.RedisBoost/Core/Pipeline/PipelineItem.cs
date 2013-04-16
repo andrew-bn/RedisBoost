@@ -38,6 +38,5 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 		public bool IsOneWay;
 		public byte[][] Request;
 		public Action<Exception, RedisResponse> CallBack;
-	
 	}
 }

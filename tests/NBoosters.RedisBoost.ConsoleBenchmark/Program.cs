@@ -11,82 +11,115 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 {
 	class Program
 	{
-		private const int Iter = 100000;
-		private static NBoosters.RedisBoost.RedisConnectionStringBuilder _cs;
+		private const int Iterations = 1;
+		private const string KeyName = "K";
+		private const int Iter = 5000;
+		private static RedisConnectionStringBuilder _cs;
 		static void Main(string[] args)
 		{
 			_cs = new RedisConnectionStringBuilder(ConfigurationManager.ConnectionStrings["Redis"].ConnectionString);
 
-			Console.WriteLine("BookSleeve = " + RunBookSleeveTest());
-			Console.WriteLine("Csredis = " + RunCsredisTest());
-			Console.WriteLine("NBoosters = " + RunNBoostersTest());
-
+			RunTestCase(Payloads.SmallPayload);
+			RunTestCase(Payloads.MediumPayload);
+			RunTestCase(Payloads.LargePayload);
 			Console.ReadKey();
 		}
-		private static int RunNBoostersTest()
+
+		private static void RunTestCase(string payload)
 		{
-			var conn = RedisClient.ConnectAsync(_cs.EndPoint, _cs.DbIndex).Result;
-			
-			conn.FlushDbAsync().Wait();
-			conn.IncrAsync("NBoosters").Wait();
-			conn.FlushDbAsync().Wait();
+			int bs = 0;
+			int nb = 0;
+			int cs = 0;
+			for (int i = 0; i < Iterations; i++)
+			{
+				Console.WriteLine("Iteration " + i);
+				var tmp = RunBookSleeveTest(payload);
+				Console.WriteLine("booksleeve ~{0}ms", tmp);
+				bs += tmp;
 
-			var sw = new Stopwatch();
-			sw.Start();
+				tmp = RunNBoostersTest(payload);
+				Console.WriteLine("redisboost ~{0}ms", tmp);
+				nb += tmp;
 
-			for (int i = 0; i < Iter; i++)
-				conn.IncrAsync("NBoosters");
+				tmp = RunCsredisTest(payload);
+				Console.WriteLine("csredis    ~{0}ms", tmp);
+				cs += tmp;
 
-			var result = conn.GetAsync("NBoosters").Result.As<int>();
-			if (result != Iter)
-				Console.WriteLine("NBoosters result error");
-
-			sw.Stop();
-			return (int)sw.ElapsedMilliseconds;
+				Console.WriteLine("---------");
+			}
+			Console.WriteLine("Avg:");
+			Console.WriteLine("booksleeve ~{0}ms", bs/Iterations);
+			Console.WriteLine("redisboost ~{0}ms", nb/Iterations);
+			Console.WriteLine("csredis    ~{0}ms", cs/Iterations);
+			Console.WriteLine("=============");
+			Console.WriteLine();
 		}
 
-		private static int RunBookSleeveTest()
+		private static int RunNBoostersTest(string payload)
 		{
-			var conn = new BookSleeve.RedisConnection(((IPEndPoint)_cs.EndPoint).Address.ToString(), allowAdmin: true);
-			conn.Open();
-			conn.Server.FlushDb(_cs.DbIndex).Wait();
-			conn.Strings.Increment(_cs.DbIndex, "BookSleeve").Wait();
-			conn.Server.FlushDb(_cs.DbIndex);
+			using (var conn = RedisClient.ConnectAsync(_cs.EndPoint, _cs.DbIndex).Result)
+			{
+				conn.FlushDbAsync().Wait();
 
-			var sw = new Stopwatch();
-			sw.Start();
+				var sw = new Stopwatch();
+				sw.Start();
 
-			for (int i = 0; i < Iter; i++)
-				conn.Strings.Increment(_cs.DbIndex, "BookSleeve");
+				for (int i = 0; i < Iter; i++)
+					conn.SetAsync(KeyName, payload);
 
-			var result = conn.Strings.GetInt64(_cs.DbIndex, "BookSleeve").Result;
-			if (result != Iter)
-				Console.WriteLine("BookSleeve result error");
+				var result = conn.GetAsync(KeyName).Result.As<string>();
+				if (result != payload)
+					Console.WriteLine("NBoosters result error");
 
-			sw.Stop();
-			return (int)sw.ElapsedMilliseconds;
+				sw.Stop();
+				return (int) sw.ElapsedMilliseconds;
+			}
 		}
 
-		private static int RunCsredisTest()
+		private static int RunBookSleeveTest(string payload)
 		{
-			var conn = new ctstone.Redis.RedisClientAsync(((IPEndPoint)_cs.EndPoint).Address.ToString(), ((IPEndPoint)_cs.EndPoint).Port,10000);
-			
-			conn.FlushDb().Wait();
-			conn.Incr("Csredis").Wait();
-			conn.FlushDb().Wait();
+			using (var conn = new BookSleeve.RedisConnection(((IPEndPoint) _cs.EndPoint).Address.ToString(), allowAdmin: true))
+			{
+				conn.Open();
+				conn.Server.FlushDb(_cs.DbIndex);
 
-			var sw = new Stopwatch();
-			sw.Start();
+				var sw = new Stopwatch();
+				sw.Start();
 
-			for (int i = 0; i < Iter; i++)
-				conn.Incr("Csredis");
+				for (int i = 0; i < Iter; i++)
+					conn.Strings.Set(_cs.DbIndex, KeyName, payload);
 
-			var result = int.Parse(conn.Get("Csredis").Result);
-			if (result != Iter)
-				Console.WriteLine("csredis result error");
+				var result = conn.Strings.GetString(_cs.DbIndex, KeyName).Result;
+				if (result != payload)
+					Console.WriteLine("BookSleeve result error");
 
-			sw.Stop();
-			return (int)sw.ElapsedMilliseconds;
+				sw.Stop();
+				return (int) sw.ElapsedMilliseconds;
+			}
+		}
+
+		private static int RunCsredisTest(string payload)
+		{
+			using (
+				var conn = new ctstone.Redis.RedisClientAsync(((IPEndPoint) _cs.EndPoint).Address.ToString(),
+				                                              ((IPEndPoint) _cs.EndPoint).Port, 10000))
+			{
+
+				conn.FlushDb().Wait();
+
+				var sw = new Stopwatch();
+				sw.Start();
+
+				for (int i = 0; i < Iter; i++)
+					conn.Set(KeyName,payload);
+
+				var result = conn.Get(KeyName).Result;
+				if (result != payload)
+					Console.WriteLine("csredis result error");
+
+				sw.Stop();
+				return (int) sw.ElapsedMilliseconds;
+			}
 		}
 	}
 }
