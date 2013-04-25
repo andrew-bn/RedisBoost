@@ -13,7 +13,8 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 	{
 		private const int Iterations = 1;
 		private const string KeyName = "K";
-		private const int Iter = 5000;
+		private const string KeyName2 = "K2";
+		private const int Iter = 50000;
 		private static RedisConnectionStringBuilder _cs;
 		static void Main(string[] args)
 		{
@@ -41,7 +42,7 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 				Console.WriteLine("redisboost ~{0}ms", tmp);
 				nb += tmp;
 
-				tmp = RunCsredisTest(payload);
+				 tmp = RunCsredisTest(payload);
 				Console.WriteLine("csredis    ~{0}ms", tmp);
 				cs += tmp;
 
@@ -111,10 +112,18 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 				sw.Start();
 
 				for (int i = 0; i < Iter; i++)
-					conn.Set(KeyName,payload);
+				{
+					conn.Set(KeyName, payload);
+					conn.Incr(KeyName2);
+				}
 
 				var result = conn.Get(KeyName).Result;
+				var count = int.Parse(conn.Get(KeyName2).Result);
+				
 				if (result != payload)
+					Console.WriteLine("csredis result error");
+
+				if (count != Iter)
 					Console.WriteLine("csredis result error");
 
 				sw.Stop();
