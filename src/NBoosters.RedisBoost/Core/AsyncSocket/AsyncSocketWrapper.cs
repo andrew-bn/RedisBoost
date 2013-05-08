@@ -68,9 +68,13 @@ namespace NBoosters.RedisBoost.Core.AsyncSocket
 			_sendAllContext.EventArgs = eventArgs;
 			eventArgs.Error = null;
 
-			_sendArgs.SetBuffer(eventArgs.DataToSend, 0, eventArgs.DataLength);
+			if (eventArgs.DataToSend!=null)
+				_sendArgs.SetBuffer(eventArgs.DataToSend, 0, eventArgs.DataLength);
+			else
+				_sendArgs.BufferList = eventArgs.BufferList;
+
 			_sendArgs.UserToken = _sendAllContext;
-			var isAsync = SendAll(false, _sendArgs);
+			var isAsync = _socket.SendAsync(_sendArgs);// SendAll(false, _sendArgs);
 			if (!isAsync) SendAllCallBack(false,_sendAllContext);
 			return isAsync;
 		}
@@ -100,7 +104,9 @@ namespace NBoosters.RedisBoost.Core.AsyncSocket
 			var context = (SendAllContext)args.UserToken;
 			context.SentBytes += args.BytesTransferred;
 			context.EventArgs.Error = GetExceptionIfError(args);
-			return SendAll(async,args);
+			if (async)
+				context.SendCallBack(context);
+			return async;// SendAll(async, args);
 		}
 
 		private void SendAllCallBack(SendAllContext context)
@@ -111,6 +117,7 @@ namespace NBoosters.RedisBoost.Core.AsyncSocket
 		private void SendAllCallBack(bool async, SendAllContext context)
 		{
 			context.SocketArgs.SetBuffer(null,0,0);
+			context.SocketArgs.BufferList = null;
 			context.SocketArgs.UserToken = null;
 			if (async) context.EventArgs.Completed(context.EventArgs);
 		}

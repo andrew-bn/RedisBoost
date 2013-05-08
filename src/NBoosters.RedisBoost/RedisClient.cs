@@ -36,7 +36,9 @@ namespace NBoosters.RedisBoost
 {
 	public partial class RedisClient : IPrepareSupportRedisClient, IRedisSubscription
 	{
-		static readonly ObjectsPool<IRedisChannel> _redisPipelinePool = new ObjectsPool<IRedisChannel>();
+		private static readonly BuffersPool _buffersPool;
+		static readonly ObjectsPool<IRedisChannel> _redisPipelinePool;
+		
 		static BasicRedisSerializer _defaultSerializer = new BasicRedisSerializer();
 		public static BasicRedisSerializer DefaultSerializer
 		{
@@ -44,6 +46,33 @@ namespace NBoosters.RedisBoost
 			set { _defaultSerializer = value; }
 		}
 
+		private static int _ioBuffersCount = 100;
+		private static int _ioBufferSize = 1024 * 8;
+
+		public static int IoBuffersCount
+		{
+			get { return _ioBuffersCount; }
+			set 
+			{ 
+				_ioBuffersCount = value;
+				_buffersPool.MaxPoolSize = value;
+			}
+		}
+		public static int IoBufferSize
+		{
+			get { return _ioBufferSize; }
+			set
+			{
+				_ioBufferSize = value;
+				_buffersPool.BufferSize = value;
+			}
+		}
+		
+		static RedisClient()
+		{
+			_buffersPool = new BuffersPool(IoBufferSize, IoBuffersCount);
+			_redisPipelinePool = new ObjectsPool<IRedisChannel>();
+		}
 		#region factory
 
 		public static IRedisClientsPool CreateClientsPool()
@@ -118,7 +147,7 @@ namespace NBoosters.RedisBoost
 			var channel = _redisPipelinePool.GetOrCreate(() =>
 				{
 					var asyncSocket = new AsyncSocketWrapper();
-					var pipeline = new RedisPipeline(asyncSocket, new RedisSender(asyncSocket, false), new RedisReceiver(asyncSocket));
+					var pipeline = new RedisPipeline(asyncSocket, new RedisSender(_buffersPool, asyncSocket, false), new RedisReceiver(asyncSocket));
 					return new RedisChannel(pipeline);
 				});
 

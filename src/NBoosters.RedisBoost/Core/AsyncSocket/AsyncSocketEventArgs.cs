@@ -16,6 +16,8 @@
  */
 #endregion
 
+using System;
+using System.Collections.Generic;
 using System.Net;
 
 namespace NBoosters.RedisBoost.Core.AsyncSocket
@@ -25,6 +27,7 @@ namespace NBoosters.RedisBoost.Core.AsyncSocket
 		public EndPoint RemoteEndPoint { get; set; }
 		public byte[] BufferToReceive { get; set; }
 		public byte[] DataToSend { get; set; }
+		public IList<ArraySegment<byte>> BufferList { get; set; }
 		public int DataLength { get; set; }
 	}
 }

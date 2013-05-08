@@ -32,11 +32,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BookSleeve">
-      <HintPath>..\..\packages\BookSleeve.1.3.25\lib\BookSleeve.dll</HintPath>
+    <Reference Include="BookSleeve, Version=1.3.35.0, Culture=neutral, PublicKeyToken=9056fda458ff61cf, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\packages\BookSleeve.1.3.35\lib\BookSleeve.dll</HintPath>
     </Reference>
-    <Reference Include="csredis">
-      <HintPath>..\..\packages\csredis.1.4.6.0\lib\net40\csredis.dll</HintPath>
+    <Reference Include="csredis, Version=1.4.7.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\packages\csredis.1.4.7.0\lib\net40\csredis.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />

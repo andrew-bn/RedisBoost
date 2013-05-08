@@ -257,26 +257,6 @@
             Prompt all clients to reconnect.
             </summary>
         </member>
-        <member name="T:BookSleeve.IScriptingCommands">
-            <summary>
-            Commands that apply to Redis scripting (Lua).
-            </summary>
-            <remarks>http://redis.io/commands#scripting</remarks>
-        </member>
-        <member name="M:BookSleeve.IScriptingCommands.Eval(System.Int32,System.String,System.String[],System.Object[],System.Boolean,System.Boolean,System.Boolean)">
-            <summary>
-            Execute a Lua 5.1 script. The script does not need to define a Lua function (and should not). It is just a Lua program that will run in the context of the Redis server.
-            All key-names should be passed via the keyArgs parameter, which allows necessary checks by Redis. Note that Lua scripts in Redis have a range of features and
-            limitations - be sure to review the documentation.
-            </summary>
-            <remarks>http://redis.io/commands/eval</remarks>
-        </member>
-        <member name="M:BookSleeve.IScriptingCommands.Prepare(System.String[])">
-            <summary>
-            Ensures that the given script exists
-            </summary>
-            <remarks>http://redis.io/commands/script-exists and http://redis.io/commands/script-load</remarks>
-        </member>
         <member name="T:BookSleeve.RedisConnection">
             <summary>
             A thread-safe, multiplexed connection to a Redis server; each connection
@@ -300,7 +280,7 @@
             Explicitly specify the server version; this is useful when INFO is not available
             </summary>
         </member>
-        <member name="M:BookSleeve.RedisConnectionBase.GetCounterValues(System.Int32@,System.Int32@,System.Int32@,System.Int32@,System.Int32@,System.Int32@,System.Int32@,System.Int32@,System.Int32@)">
+        <member name="M:BookSleeve.RedisConnectionBase.GetCounterValues(System.Int32@,System.Int32@,System.Int32@,System.Int32@,System.Int32@,System.Int32@,System.Int32@,System.Int32@,System.Int32@,System.Int32@,System.Int32@)">
             <summary>
             Obtains fresh statistics on the usage of the connection
             </summary>
@@ -437,6 +417,11 @@
             this method minimises the numbers of packets by preventing flush until all are written
             </summary>
         </member>
+        <member name="M:BookSleeve.RedisConnectionBase.GetCannotSendMessage">
+            <summary>
+            The message to supply to callers when rejecting messages
+            </summary>
+        </member>
         <member name="M:BookSleeve.RedisConnectionBase.Wait``1(System.Threading.Tasks.Task{``0})">
             <summary>
             If the task is not yet completed, blocks the caller until completion up to a maximum of SyncTimeout milliseconds.
@@ -560,9 +545,14 @@
             Should a QUIT be sent when closing the connection?
             </summary>
         </member>
+        <member name="P:BookSleeve.RedisConnectionBase.KeepAliveSeconds">
+            <summary>
+            How frequently should keep-alives be sent?
+            </summary>
+        </member>
         <member name="E:BookSleeve.RedisConnectionBase.Shutdown">
             <summary>
-            Invoked when any error message is received on the connection.
+            Invoked when the server is shutting down; includes any error information
             </summary>
         </member>
         <member name="E:BookSleeve.RedisConnectionBase.Error">
@@ -626,6 +616,26 @@
             <summary>
             A connection that is now closed and cannot be used
             </summary>
+        </member>
+        <member name="T:BookSleeve.IScriptingCommands">
+            <summary>
+            Commands that apply to Redis scripting (Lua).
+            </summary>
+            <remarks>http://redis.io/commands#scripting</remarks>
+        </member>
+        <member name="M:BookSleeve.IScriptingCommands.Eval(System.Int32,System.String,System.String[],System.Object[],System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            Execute a Lua 5.1 script. The script does not need to define a Lua function (and should not). It is just a Lua program that will run in the context of the Redis server.
+            All key-names should be passed via the keyArgs parameter, which allows necessary checks by Redis. Note that Lua scripts in Redis have a range of features and
+            limitations - be sure to review the documentation.
+            </summary>
+            <remarks>http://redis.io/commands/eval</remarks>
+        </member>
+        <member name="M:BookSleeve.IScriptingCommands.Prepare(System.String[])">
+            <summary>
+            Ensures that the given script exists
+            </summary>
+            <remarks>http://redis.io/commands/script-exists and http://redis.io/commands/script-load</remarks>
         </member>
         <member name="T:BookSleeve.IServerCommands">
             <summary>
@@ -2418,6 +2428,11 @@
             useful if CONFIG GET is not available.
             </summary>
         </member>
+        <member name="M:BookSleeve.RedisConnection.GetCannotSendMessage">
+            <summary>
+            The message to supply to callers when rejecting messages
+            </summary>
+        </member>
         <member name="M:BookSleeve.RedisConnection.CloseAsync(System.Boolean)">
             <summary>
             Closes the connection; either draining the unsent queue (to completion), or abandoning the unsent queue.
@@ -2439,6 +2454,11 @@
             </summary>
         </member>
         <member name="M:BookSleeve.RedisConnection.GetCounters">
+            <summary>
+            Query usage metrics for this connection
+            </summary>
+        </member>
+        <member name="M:BookSleeve.RedisConnection.GetCounters(System.Boolean)">
             <summary>
             Query usage metrics for this connection
             </summary>
@@ -2545,6 +2565,16 @@
             are allowed)
             </summary>
             <remarks>http://redis.io/commands#list</remarks>
+        </member>
+        <member name="P:BookSleeve.RedisConnection.KeepAliveSeconds">
+            <summary>
+            How frequently should keep-alives be sent?
+            </summary>
+        </member>
+        <member name="P:BookSleeve.RedisConnection.LastSentMillisecondsAgo">
+            <summary>
+            Time (in milliseconds) since the last command was sent
+            </summary>
         </member>
         <member name="P:BookSleeve.RedisConnection.OutstandingCount">
             <summary>
@@ -2657,6 +2687,11 @@
             and failover
             </summary>
         </member>
+        <member name="F:BookSleeve.ServerType.Cluster">
+            <summary>
+            The server is part of a cluster
+            </summary>
+        </member>
         <member name="T:BookSleeve.Counters">
             <summary>
             Summary statistics for the RedisConnection
@@ -2668,14 +2703,44 @@
             </summary>
             <returns></returns>
         </member>
+        <member name="P:BookSleeve.Counters.KeepAliveSeconds">
+            <summary>
+            How frequently should keep-alives be sent?
+            </summary>
+        </member>
+        <member name="P:BookSleeve.Counters.LastSentMillisecondsAgo">
+            <summary>
+            Time (in milliseconds) since the last command was sent
+            </summary>
+        </member>
+        <member name="P:BookSleeve.Counters.LastKeepAliveMillisecondsAgo">
+            <summary>
+            Time (in milliseconds) since the last command was sent explicitly because of a keep-alive
+            </summary>
+        </member>
+        <member name="P:BookSleeve.Counters.State">
+            <summary>
+            The state of the server connection
+            </summary>
+        </member>
         <member name="P:BookSleeve.Counters.SyncCallbacks">
             <summary>
-            The number of messages sent to the Redis server
+            The number of callbacks executed (total) synchronously
             </summary>
         </member>
         <member name="P:BookSleeve.Counters.AsyncCallbacks">
             <summary>
-            The number of messages sent to the Redis server
+            The number of callbacks executed (total) asynchronously
+            </summary>
+        </member>
+        <member name="P:BookSleeve.Counters.SyncCallbacksInProgress">
+            <summary>
+            The number of callbacks executing (currently) synchronously
+            </summary>
+        </member>
+        <member name="P:BookSleeve.Counters.AsyncCallbacksInProgress">
+            <summary>
+            The number of callbacks executing (currently) asynchronously
             </summary>
         </member>
         <member name="P:BookSleeve.Counters.MessagesSent">

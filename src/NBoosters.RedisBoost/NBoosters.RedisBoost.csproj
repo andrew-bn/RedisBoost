@@ -76,7 +76,9 @@
     <Compile Include="Core\Serialization\IRedisSerializer.cs" />
     <Compile Include="IRedisClientsPool.cs" />
     <Compile Include="IRedisSubscription.cs" />
+    <Compile Include="Misk\BuffersPool.cs" />
     <Compile Include="Misk\DataConvertionEnxtensions.cs" />
+    <Compile Include="Misk\IBuffersPool.cs" />
     <Compile Include="Misk\TaskExtensions.cs" />
     <Compile Include="Misk\IObjectsPool.cs" />
     <Compile Include="Misk\ObjectsPool.cs" />

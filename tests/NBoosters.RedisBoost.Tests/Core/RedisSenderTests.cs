@@ -3,6 +3,7 @@ using System.Text;
 using Moq;
 using NBoosters.RedisBoost.Core.AsyncSocket;
 using NBoosters.RedisBoost.Core.Sender;
+using NBoosters.RedisBoost.Misk;
 using NUnit.Framework;
 
 namespace NBoosters.RedisBoost.Tests.Core
@@ -11,11 +12,13 @@ namespace NBoosters.RedisBoost.Tests.Core
 	public class RedisSenderTests
 	{
 		private Mock<IAsyncSocket> _asyncSocket;
+		private Mock<IBuffersPool> _buffersPool;
 		private byte[][] _dataToSend;
 		private string _expectedSentData;
 		[SetUp]
 		public void Setup()
 		{
+			_buffersPool = new Mock<IBuffersPool>();
 			_asyncSocket = new Mock<IAsyncSocket>();
 			_dataToSend = new[]
 				{
@@ -168,7 +171,7 @@ namespace NBoosters.RedisBoost.Tests.Core
 
 		private RedisSender CreateSender(int bufferSize = 1000, bool autoFlush = true)
 		{
-			return new RedisSender(_asyncSocket.Object, bufferSize, autoFlush);
+			return new RedisSender(_buffersPool.Object, _asyncSocket.Object, bufferSize, autoFlush);
 		}
 
 		private byte[] ConvertToBytes(string data)

@@ -469,6 +469,7 @@
             Open connection to the Redis server
             </summary>
             <param name="millisecondsTimeout">Timeout to wait for connection (0 for no timeout)</param>
+            <param name="readTimeout">Time to wait for reading (0 for no timeout)</param>
             <returns>True if connected</returns>
         </member>
         <member name="M:ctstone.Redis.RedisConnection.Read(System.IO.Stream,System.Int32)">
