@@ -40,22 +40,23 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 		private const int BUFFER_SIZE = 1024 * 8;
 
-		private ConcurrentQueue<ArraySegment<byte>> _sendingQueue;
+		private readonly ConcurrentQueue<ArraySegment<byte>> _sendingQueue;
 
 		private byte[] _writingBuffer;
 		private int _writingOffset;
+		private int _writingBufferIsFlushed = 0;
 
 		private readonly IBuffersPool _buffersPool;
 		private readonly IAsyncSocket _asyncSocket;
 		private readonly bool _autoFlush;
 		private readonly AsyncSocketEventArgs _flushArgs;
 		private readonly SenderContext _senderContext;
-		private int _flushInQueue;
+		private int _flushingInProgress;
 		private Exception _socketException;
 
-		public RedisSender(IBuffersPool buffersPool,IAsyncSocket asyncSocket, bool autoFlush)
+		public RedisSender(IBuffersPool buffersPool, IAsyncSocket asyncSocket, bool autoFlush)
 			: this(buffersPool, asyncSocket, BUFFER_SIZE, autoFlush)
-		{}
+		{ }
 
 		public RedisSender(IBuffersPool buffersPool, IAsyncSocket asyncSocket, int bufferSize, bool autoFlush)
 		{
@@ -74,7 +75,7 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 		public bool Send(SenderAsyncEventArgs args)
 		{
-			args.Error = null;
+			args.Error = _socketException;
 
 			_senderContext.SendState = 0;
 			_senderContext.PartIndex = 0;
@@ -96,13 +97,18 @@ namespace NBoosters.RedisBoost.Core.Sender
 		{
 			var context = (SenderContext)args.UserToken;
 
+		TryAgain:
+
 			if (context.EventArgs.HasError)
 				return CallOnSendCompleted(async, context);
 
 			if (context.SendState == 0)
 			{
-				while (!WriteArgumentsCountLine(context.EventArgs.DataToSend.Length))
+				if (!WriteArgumentsCountLine(context.EventArgs.DataToSend.Length))
+				{
 					if (Flush(context.EventArgs)) return true;
+					goto TryAgain;
+				}
 				context.SendState = 1;
 			}
 
@@ -112,9 +118,11 @@ namespace NBoosters.RedisBoost.Core.Sender
 				{
 					if (context.SendState == 1)
 					{
-						while (!WriteDataSizeLine(context.EventArgs.DataToSend[context.PartIndex].Length))
+						if (!WriteDataSizeLine(context.EventArgs.DataToSend[context.PartIndex].Length))
+						{
 							if (Flush(context.EventArgs)) return true;
-
+							goto TryAgain;
+						}
 						context.SendState = 2;
 						context.ArraySegment = new ArraySegment<byte>(context.EventArgs.DataToSend[context.PartIndex], 0,
 																	  context.EventArgs.DataToSend[context.PartIndex].Length);
@@ -122,24 +130,23 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 					if (context.SendState == 2)
 					{
-						while (true)
+						context.ArraySegment = WriteData(context.ArraySegment);
+						if (context.ArraySegment.Count > 0)
 						{
-							context.ArraySegment = WriteData(context.ArraySegment);
-							if (context.ArraySegment.Count > 0)
-							{
-								if (Flush(context.EventArgs)) return true;
-								continue;
-							}
-
-							context.SendState = 3;
-							break;
+							if (Flush(context.EventArgs)) return true;
+							goto TryAgain;
 						}
+
+						context.SendState = 3;
 					}
 
 					if (context.SendState == 3)
 					{
-						while (!WriteNewLine())
+						if (!WriteNewLine())
+						{
 							if (Flush(context.EventArgs)) return true;
+							goto TryAgain;
+						}
 						context.SendState = 1;
 					}
 				}
@@ -149,64 +156,52 @@ namespace NBoosters.RedisBoost.Core.Sender
 			{
 				context.SendState = 4;
 				if (Flush(context.EventArgs)) return true;
+				goto TryAgain;
 			}
 
 			return CallOnSendCompleted(async, context);
 		}
 
-		private bool CallOnSendCompleted(bool async, SenderContext context)
+		private static bool CallOnSendCompleted(bool async, SenderContext context)
 		{
 			context.EventArgs.Completed = context.CallBack;
 			if (async) context.CallBack(context.EventArgs);
 			return async;
 		}
 
-		private SenderAsyncEventArgs _flushingArgs;
-		private int _isWaiting = 0;
-		private int _flushed = 0;
+		private SenderAsyncEventArgs _waitingArgs;
+		private int _hasPendingFlush = 0;
 		public bool Flush(SenderAsyncEventArgs args)
 		{
-			int queueSize = 0;
-			bool hasWritingBuffer = false;
-
-			lock (this)
+			if (_socketException != null)
 			{
-				if (_flushed==0)
-					queueSize = Interlocked.Increment(ref _flushInQueue);
-				EnqueueFlush();
-				hasWritingBuffer = CreateWritingBuffer();
-				if (!hasWritingBuffer)
-				{
-					Interlocked.Exchange(ref _isWaiting, 1);
-					_flushingArgs = args;
-				}
+				args.Error = _socketException;
+				return false;
 			}
 
-			if (!hasWritingBuffer)
+			EnqueueWritingBufferForFlushing();
+
+			if (!GetNewWritingBuffer())
+			{
+				Interlocked.Exchange(ref _hasPendingFlush, 1);
+				_waitingArgs = args;
 				return true;
-			if (queueSize == 0)
-				return false;
-			if (queueSize > 1)
-				return false;
-			if (queueSize == 1)
-			{
-				DoFlushing();
-				return false;
 			}
 
-			throw new InvalidOperationException("Invalid flush state");
+			EnterFlushing();
+			return false;
 		}
 
-		private void EnqueueFlush()
+		private void EnqueueWritingBufferForFlushing()
 		{
-			if (_flushed == 1)
+			if (_writingBufferIsFlushed == 1)
 				return;
 
-			_sendingQueue.Enqueue(new ArraySegment<byte>(_writingBuffer,0,_writingOffset));
-			Interlocked.Exchange(ref _flushed, 1);
+			_sendingQueue.Enqueue(new ArraySegment<byte>(_writingBuffer, 0, _writingOffset));
+			Interlocked.Exchange(ref _writingBufferIsFlushed, 1);
 		}
 
-		private bool CreateWritingBuffer()
+		private bool GetNewWritingBuffer()
 		{
 			byte[] buffer;
 			if (!_buffersPool.TryGet(out buffer))
@@ -214,41 +209,60 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 			Interlocked.Exchange(ref _writingBuffer, buffer);
 			Interlocked.Exchange(ref _writingOffset, 0);
-			Interlocked.Exchange(ref _flushed, 0);
+			Interlocked.Exchange(ref _writingBufferIsFlushed, 0);
 			return true;
 		}
-		private bool DoFlushing()
+		private void EnterFlushing()
 		{
-			ArraySegment<byte> sendingBuffer;
-			var asyncExecution = false;
-			
-			var buffers =new List<ArraySegment<byte>>();
-			
-			NextIteration:
-			
-			buffers.Clear();
-			
-			while (_sendingQueue.TryDequeue(out sendingBuffer))
-				buffers.Add(sendingBuffer);
+			if (Interlocked.CompareExchange(ref _flushingInProgress, 1, 0) == 0)
+				DoFlushing();
+		}
+		private void DoFlushing()
+		{
+			var buffers = new List<ArraySegment<byte>>();
 
-			if (buffers.Count > 0)
+			while (true)
+			{
+				buffers.Clear();
+
+				ArraySegment<byte> sendingBuffer;
+				while (_sendingQueue.TryDequeue(out sendingBuffer))
+					buffers.Add(sendingBuffer);
+
+				if (buffers.Count > 0)
+				{
+					if (CallAsyncSocketSend(buffers)) 
+						return;
+					
+					FlushCallBack(false, _flushArgs);
+					
+					continue;
+				}
+
+				if (LeaveFlushing())
+					break;
+			}
+		}
+		private bool CallAsyncSocketSend(IList<ArraySegment<byte>> buffers)
+		{
+			try
 			{
 				_flushArgs.Error = _socketException;
 				_flushArgs.DataToSend = null;
 				_flushArgs.BufferList = buffers;
 				_flushArgs.UserToken = buffers;
-
-				var isAsync = _asyncSocket.Send(_flushArgs);
-				asyncExecution = asyncExecution || isAsync;
-
-				if (isAsync)
-					return asyncExecution;
-
-				FlushCallBack(false, _flushArgs);
-
-				goto NextIteration;
+				return !_flushArgs.HasError && _asyncSocket.Send(_flushArgs);
 			}
-			return asyncExecution;
+			catch (Exception ex)
+			{
+				_flushArgs.Error = ex;
+				return false;
+			}
+		}
+		private bool LeaveFlushing()
+		{
+			Interlocked.Exchange(ref _flushingInProgress, 0);
+			return _sendingQueue.Count == 0 || Interlocked.CompareExchange(ref _flushingInProgress, 1, 0) != 0;
 		}
 
 		private void FlushCallBack(AsyncSocketEventArgs args)
@@ -258,27 +272,32 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 		private void FlushCallBack(bool async, AsyncSocketEventArgs args)
 		{
-			lock (this)
+			var buffers = (List<ArraySegment<byte>>)args.UserToken;
+
+			Interlocked.Exchange(ref _socketException, args.Error);
+
+			ReleaseBuffers(buffers);
+
+			if (async) DoFlushing();
+
+			if (async && Interlocked.CompareExchange(ref _hasPendingFlush, 0, 1) == 1)
 			{
-				var buffers = (List<ArraySegment<byte>>) args.UserToken;
-
-				Interlocked.Exchange(ref _socketException, args.Error);
-				_flushInQueue -= buffers.Count;
-
-				foreach (var buf in buffers)
-					_buffersPool.Release(buf.Array);
-
-				if (_flushInQueue > 0 && async) // flush was pending. call back should be called
-					DoFlushing();
-
-				if (async && Interlocked.CompareExchange(ref _isWaiting, 0, 1) == 1)
-					_flushingArgs.Completed(_flushingArgs);
+				_waitingArgs.Error = _socketException;
+				_waitingArgs.Completed(_waitingArgs);
 			}
 		}
 
+		private void ReleaseBuffers(IEnumerable<ArraySegment<byte>> buffers)
+		{
+			foreach (var buf in buffers)
+				_buffersPool.Release(buf.Array);
+		}
 
 		public void EngageWith(ISocket socket)
 		{
+			Interlocked.Exchange(ref _flushingInProgress, 0);
+			Interlocked.Exchange(ref _hasPendingFlush, 0);
+			Interlocked.Exchange(ref _writingOffset, 0);
 			Interlocked.Exchange(ref _socketException, null);
 			_asyncSocket.EngageWith(socket);
 		}
@@ -333,7 +352,7 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 		private bool HasSpace(int dataLengthToWrite)
 		{
-			return _flushed == 0 && (_writingBuffer.Length) >= (_writingOffset + dataLengthToWrite);
+			return _writingBufferIsFlushed == 0 && (_writingBuffer.Length) >= (_writingOffset + dataLengthToWrite);
 		}
 		private void WriteNewLineToBuffer()
 		{

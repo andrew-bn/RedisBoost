@@ -11,17 +11,17 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 {
 	class Program
 	{
-		private const int Iterations = 1;
+		private const int Iterations = 5;
 		private const string KeyName = "K";
 		private const string KeyName2 = "K2";
-		private const int Iter = 5000000;
+		private const int Iter = 50000;
 		private static RedisConnectionStringBuilder _cs;	
 		static void Main(string[] args)
 		{
 			_cs = new RedisConnectionStringBuilder(ConfigurationManager.ConnectionStrings["Redis"].ConnectionString);
 
-			RunTestCase(Payloads.SmallPayload);
-			//RunTestCase(Payloads.MediumPayload);
+			//RunTestCase(Payloads.SmallPayload);
+			RunTestCase(Payloads.MediumPayload);
 			//RunTestCase(Payloads.LargePayload);
 			Console.ReadKey();
 		}
