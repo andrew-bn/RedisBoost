@@ -126,7 +126,7 @@ namespace NBoosters.RedisBoost.Tests.Core
 
 		private RedisReceiver CreateReceiver()
 		{
-			return new RedisReceiver(_asyncSocket.Object);
+			return new RedisReceiver(null,_asyncSocket.Object);
 		}
 	}
 }

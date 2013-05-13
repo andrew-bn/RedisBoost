@@ -38,13 +38,12 @@ namespace NBoosters.RedisBoost.Core.Sender
 			public Action<SenderAsyncEventArgs> CallBack { get; set; }
 		}
 
-		private const int BUFFER_SIZE = 1024 * 8;
-
 		private readonly ConcurrentQueue<ArraySegment<byte>> _sendingQueue;
 
 		private byte[] _writingBuffer;
 		private int _writingOffset;
-		private int _writingBufferIsFlushed = 0;
+		private int _writingBufferIsFlushed = 1;
+		private int _waitingForWritingBuffer = 0;
 
 		private readonly IBuffersPool _buffersPool;
 		private readonly IAsyncSocket _asyncSocket;
@@ -55,10 +54,6 @@ namespace NBoosters.RedisBoost.Core.Sender
 		private Exception _socketException;
 
 		public RedisSender(IBuffersPool buffersPool, IAsyncSocket asyncSocket, bool autoFlush)
-			: this(buffersPool, asyncSocket, BUFFER_SIZE, autoFlush)
-		{ }
-
-		public RedisSender(IBuffersPool buffersPool, IAsyncSocket asyncSocket, int bufferSize, bool autoFlush)
 		{
 			_buffersPool = buffersPool;
 			_asyncSocket = asyncSocket;
@@ -67,8 +62,6 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 			_flushArgs = new AsyncSocketEventArgs();
 			_flushArgs.Completed = FlushCallBack;
-
-			_writingBuffer = new byte[bufferSize];
 
 			_sendingQueue = new ConcurrentQueue<ArraySegment<byte>>();
 		}
@@ -142,7 +135,7 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 					if (context.SendState == 3)
 					{
-						if (!WriteNewLine())
+						if (!WriteNewLineToBuffer())
 						{
 							if (Flush(context.EventArgs)) return true;
 							goto TryAgain;
@@ -171,6 +164,7 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 		private SenderAsyncEventArgs _waitingArgs;
 		private int _hasPendingFlush = 0;
+
 		public bool Flush(SenderAsyncEventArgs args)
 		{
 			if (_socketException != null)
@@ -179,39 +173,23 @@ namespace NBoosters.RedisBoost.Core.Sender
 				return false;
 			}
 
-			EnqueueWritingBufferForFlushing();
-
-			if (!GetNewWritingBuffer())
+			if (_waitingForWritingBuffer == 1)
 			{
 				Interlocked.Exchange(ref _hasPendingFlush, 1);
 				_waitingArgs = args;
 				return true;
 			}
 
+			if (_writingBufferIsFlushed == 0)
+			{
+				_sendingQueue.Enqueue(new ArraySegment<byte>(_writingBuffer, 0, _writingOffset));
+				Interlocked.Exchange(ref _writingBufferIsFlushed, 1);
+			}
+
 			EnterFlushing();
 			return false;
 		}
 
-		private void EnqueueWritingBufferForFlushing()
-		{
-			if (_writingBufferIsFlushed == 1)
-				return;
-
-			_sendingQueue.Enqueue(new ArraySegment<byte>(_writingBuffer, 0, _writingOffset));
-			Interlocked.Exchange(ref _writingBufferIsFlushed, 1);
-		}
-
-		private bool GetNewWritingBuffer()
-		{
-			byte[] buffer;
-			if (!_buffersPool.TryGet(out buffer))
-				return false;
-
-			Interlocked.Exchange(ref _writingBuffer, buffer);
-			Interlocked.Exchange(ref _writingOffset, 0);
-			Interlocked.Exchange(ref _writingBufferIsFlushed, 0);
-			return true;
-		}
 		private void EnterFlushing()
 		{
 			if (Interlocked.CompareExchange(ref _flushingInProgress, 1, 0) == 0)
@@ -303,12 +281,7 @@ namespace NBoosters.RedisBoost.Core.Sender
 		}
 
 		#region write helpers
-		private bool WriteNewLine()
-		{
-			if (!HasSpace(2)) return false;
-			WriteNewLineToBuffer();
-			return true;
-		}
+
 		private bool WriteArgumentsCountLine(int argsCount)
 		{
 			return WriteCountLine(RedisConstants.Asterix, argsCount);
@@ -317,24 +290,18 @@ namespace NBoosters.RedisBoost.Core.Sender
 		{
 			return WriteCountLine(RedisConstants.Dollar, argsCount);
 		}
+
 		private bool WriteCountLine(byte startSimbol, int argsCount)
 		{
 			var part = argsCount.ToBytes();
-			var length = ADDITIONAL_LINE_BYTES + part.Length;
-
-			if (!HasSpace(length)) return false;
-
-			_writingBuffer[_writingOffset++] = startSimbol;
-
-			Array.Copy(part, 0, _writingBuffer, _writingOffset, part.Length);
-			_writingOffset += part.Length;
-
-			WriteNewLineToBuffer();
-
-			return true;
+			return WriteLineToBuffer(startSimbol, part, 0, part.Length);
 		}
+
 		private ArraySegment<byte> WriteData(ArraySegment<byte> data)
 		{
+			if (!GetNewWritingBuffer())
+				return data;
+
 			var bytesToWrite = _writingBuffer.Length - _writingOffset;
 
 			if (bytesToWrite == 0)
@@ -343,27 +310,66 @@ namespace NBoosters.RedisBoost.Core.Sender
 			if (data.Count < bytesToWrite)
 				bytesToWrite = data.Count;
 
-			Array.Copy(data.Array, data.Offset, _writingBuffer, _writingOffset, bytesToWrite);
-
+			if (bytesToWrite > 0)
+				Array.Copy(data.Array, data.Offset, _writingBuffer, _writingOffset, bytesToWrite);
+			
 			_writingOffset += bytesToWrite;
 
 			return new ArraySegment<byte>(data.Array, data.Offset + bytesToWrite, data.Count - bytesToWrite);
+		}
+
+		private bool WriteLineToBuffer(byte startSimbol, byte[] lineData, int sourceOffset, int length)
+		{
+			if (!GetNewWritingBuffer())
+				return false;
+
+			if (!HasSpace(length + ADDITIONAL_LINE_BYTES)) return false;
+			_writingBuffer[_writingOffset++] = startSimbol;
+			Array.Copy(lineData, sourceOffset, _writingBuffer, _writingOffset, length);
+
+			_writingOffset += length;
+
+			WriteNewLineToBuffer();
+
+			return true;
+		}
+		private bool WriteNewLineToBuffer()
+		{
+			if (!GetNewWritingBuffer())
+				return false;
+
+			if (!HasSpace(2)) return false;
+			_writingBuffer[_writingOffset++] = RedisConstants.NewLine[0];
+			_writingBuffer[_writingOffset++] = RedisConstants.NewLine[1];
+			return true;
 		}
 
 		private bool HasSpace(int dataLengthToWrite)
 		{
 			return _writingBufferIsFlushed == 0 && (_writingBuffer.Length) >= (_writingOffset + dataLengthToWrite);
 		}
-		private void WriteNewLineToBuffer()
+		private bool GetNewWritingBuffer()
 		{
-			_writingBuffer[_writingOffset++] = RedisConstants.NewLine[0];
-			_writingBuffer[_writingOffset++] = RedisConstants.NewLine[1];
+			if (_writingBufferIsFlushed == 0)
+				return true;
+
+			byte[] buffer;
+			if (!_buffersPool.TryGet(out buffer))
+			{
+				Interlocked.Exchange(ref _waitingForWritingBuffer, 1);
+				return false;
+			}
+			Interlocked.Exchange(ref _writingBuffer, buffer);
+			Interlocked.Exchange(ref _writingOffset, 0);
+			Interlocked.Exchange(ref _writingBufferIsFlushed, 0);
+			Interlocked.Exchange(ref _waitingForWritingBuffer, 0);
+			return true;
 		}
 		#endregion
 
 		public int BytesInBuffer
 		{
-			get { return _writingOffset; }
+			get { return _writingBufferIsFlushed==0? _writingOffset:0; }
 		}
 	}
 }

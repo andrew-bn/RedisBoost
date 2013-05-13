@@ -1,4 +1,8 @@
-﻿namespace NBoosters.RedisBoost.Misk
+﻿using System;
+using System.Collections.Concurrent;
+using System.Threading;
+
+namespace NBoosters.RedisBoost.Misk
 {
 	internal class BuffersPool: IBuffersPool
 	{
@@ -20,7 +24,12 @@
 				(++_poolSize > MaxPoolSize) ? null : new byte[BufferSize]);
 			return buffer != null;
 		}
-
+		public byte[] Get()
+		{
+			byte[] buffer = null;
+			SpinWait.SpinUntil(() => TryGet(out buffer));
+			return buffer;
+		}
 		public void Release(byte[] buffer)
 		{
 			_pool.Release(buffer);

@@ -171,7 +171,7 @@ namespace NBoosters.RedisBoost.Tests.Core
 
 		private RedisSender CreateSender(int bufferSize = 1000, bool autoFlush = true)
 		{
-			return new RedisSender(_buffersPool.Object, _asyncSocket.Object, bufferSize, autoFlush);
+			return null;// new RedisSender(_buffersPool.Object, _asyncSocket.Object, bufferSize, autoFlush);
 		}
 
 		private byte[] ConvertToBytes(string data)

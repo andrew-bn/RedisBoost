@@ -26,11 +26,10 @@ namespace NBoosters.RedisBoost.Core.Receiver
 {
 	internal class RedisReceiver : IRedisReceiver
 	{
-		private const int BUFFER_SIZE = 1024 * 8;
-
 		private IRedisSerializer _serializer;
+		private readonly IBuffersPool _buffersPool;
 		private readonly IAsyncSocket _asyncSocket;
-		private readonly byte[] _readSocketBuffer;
+		private byte[] _readSocketBuffer;
 		private readonly AsyncSocketEventArgs _socketArgs;
 
 		#region context
@@ -46,12 +45,11 @@ namespace NBoosters.RedisBoost.Core.Receiver
 		private int _bufferSize;
 		#endregion
 
-		public RedisReceiver(IAsyncSocket asyncSocket)
+		public RedisReceiver(IBuffersPool buffersPool, IAsyncSocket asyncSocket)
 		{
-			_readSocketBuffer = new byte[BUFFER_SIZE];
+			_buffersPool = buffersPool;
 			_asyncSocket = asyncSocket;
 			_socketArgs = new AsyncSocketEventArgs();
-			_socketArgs.BufferToReceive = _readSocketBuffer;
 			_lineBuffer = new StringBuilder();
 			_offset = 0;
 		}
@@ -178,8 +176,18 @@ namespace NBoosters.RedisBoost.Core.Receiver
 		}
 		private bool ReadLineCallBack(bool async,AsyncSocketEventArgs args)
 		{
+			args.BufferToReceive = null;
 			RecalculateBufferSize(args);
+			
+			if (args.HasError)
+				ReleaseBuffer();
+
 			return ReadLineTask(async, args);
+		}
+
+		private void ReleaseBuffer()
+		{
+			_buffersPool.Release(_readSocketBuffer);
 		}
 
 		private void RecalculateBufferSize(AsyncSocketEventArgs args)
@@ -196,22 +204,23 @@ namespace NBoosters.RedisBoost.Core.Receiver
 			while (true)
 			{
 				if (_offset >= _bufferSize)
-					return _asyncSocket.Receive(args) || ReadLineCallBack(async, args);
+					return ReceiveDataFromSocket(args) || ReadLineCallBack(async, args);
 
-				if (_readSocketBuffer[_offset] == '\r')
+				var dataByte = _readSocketBuffer[_offset];
+				IncrementOffset(1);
+				if (dataByte == '\r')
 				{
-					_offset += 2;
+					IncrementOffset(1);
 					return CallSocketOpCompleted(async, args);
 				}
 
 				if (_firstChar == 0)
-					_firstChar = _readSocketBuffer[_offset];
+					_firstChar = dataByte;
 				else
-					_lineBuffer.Append((char)_readSocketBuffer[_offset]);
-
-				++_offset;
+					_lineBuffer.Append((char)dataByte);
 			}
 		}
+
 		#endregion
 
 		#region read block
@@ -232,7 +241,10 @@ namespace NBoosters.RedisBoost.Core.Receiver
 		}
 		private bool ReadBlockFromSocketCallBack(bool async, AsyncSocketEventArgs args)
 		{
+			args.BufferToReceive = null;
 			RecalculateBufferSize(args);
+			if (args.HasError)
+				ReleaseBuffer();
 			return ReadBlockLineTask(async, args);
 		}
 		private bool ReadBlockLineTask(bool async, AsyncSocketEventArgs args)
@@ -243,7 +255,7 @@ namespace NBoosters.RedisBoost.Core.Receiver
 			while (_readBytes < _block.Length)
 			{
 				if (_offset >= _bufferSize)
-					return _asyncSocket.Receive(args) || ReadBlockFromSocketCallBack(async, args);
+					return ReceiveDataFromSocket(args) || ReadBlockFromSocketCallBack(async, args);
 
 				var bytesToCopy = _block.Length - _readBytes;
 
@@ -252,13 +264,38 @@ namespace NBoosters.RedisBoost.Core.Receiver
 
 				Array.Copy(_readSocketBuffer, _offset, _block, _readBytes, bytesToCopy);
 
-				_offset += bytesToCopy;
 				_readBytes += bytesToCopy;
+				IncrementOffset(bytesToCopy);
 			}
-			_offset += 2;
+			IncrementOffset(2);
 			return CallSocketOpCompleted(async,args);
 		}
 		#endregion
+		private bool ReceiveDataFromSocket(AsyncSocketEventArgs args)
+		{
+			try
+			{
+				_readSocketBuffer = _buffersPool.Get();
+				args.BufferToReceive = _readSocketBuffer;
+				return _asyncSocket.Receive(args);
+			}
+			catch (Exception ex)
+			{
+				args.Error = ex;
+				return false;
+			}
+		}
+
+		private void IncrementOffset(int value)
+		{
+			_offset += value;
+			if (_offset >= _bufferSize && _readSocketBuffer != null)
+			{
+				_buffersPool.Release(_readSocketBuffer);
+				_readSocketBuffer = null;
+			}
+		}
+
 		private bool CallSocketOpCompleted(bool async, AsyncSocketEventArgs eventArgs)
 		{
 			_curEventArgs.Error = eventArgs.Error;

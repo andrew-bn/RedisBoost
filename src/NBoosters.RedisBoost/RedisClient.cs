@@ -147,7 +147,7 @@ namespace NBoosters.RedisBoost
 			var channel = _redisPipelinePool.GetOrCreate(() =>
 				{
 					var asyncSocket = new AsyncSocketWrapper();
-					var pipeline = new RedisPipeline(asyncSocket, new RedisSender(_buffersPool, asyncSocket, false), new RedisReceiver(asyncSocket));
+					var pipeline = new RedisPipeline(asyncSocket, new RedisSender(_buffersPool, asyncSocket, false), new RedisReceiver(_buffersPool, asyncSocket));
 					return new RedisChannel(pipeline);
 				});
 
