@@ -1,5 +1,10 @@
 Release Notes
 ==============
+1.5.7
+--------------
+- max pipeline size was introduced. Now pipeline can not be oversized, 
+so the commands sequence of any size can be processed by redisboost without memory penalties.
+
 1.5.6
 --------------
 - pipeline was redesigned. Now it is more robust and reliable.
