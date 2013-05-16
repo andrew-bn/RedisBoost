@@ -6,143 +6,92 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using NBoosters.RedisBoost.ConsoleBenchmark.Clients;
 
 namespace NBoosters.RedisBoost.ConsoleBenchmark
 {
 	class Program
 	{
-		private const int Iterations = 5;
+		private static int Iterations = 5;
 		private const string KeyName = "K";
-		private const string KeyName2 = "K2";
-		private const int Iter = 50000;
-		private static RedisConnectionStringBuilder _cs;	
+		private static int LoopSize = 2000000;
+		private static RedisConnectionStringBuilder _cs;
+		private static ITestClient[] _clients;
+		private const int MediumPayloadCoef = 50;
+		private const int LargePayloadCoef = 100;
 		static void Main(string[] args)
 		{
+			InteractiveInitialization();
 			_cs = new RedisConnectionStringBuilder(ConfigurationManager.ConnectionStrings["Redis"].ConnectionString);
 
-			//RunTestCase(Payloads.SmallPayload);
-			RunTestCase(Payloads.MediumPayload);
-			//RunTestCase(Payloads.LargePayload);
+			_clients = new ITestClient[]
+				{
+					new BookSleeveTestClient(),
+					new RedisBoostTestClient(),
+					new CsredisTestClient(),
+				};
+
+			Console.WriteLine("======== SMALL PAYLOAD ({0} chars, {1} iterations) =========",Payloads.SmallPayload.Length, LoopSize);
+			RunTestCase(Payloads.SmallPayload, LoopSize);
+			Console.WriteLine("======= MEDIUM PAYLOAD ({0} chars, {1} iterations) =========", Payloads.MediumPayload.Length, LoopSize / MediumPayloadCoef);
+			RunTestCase(Payloads.MediumPayload, LoopSize / MediumPayloadCoef);
+			Console.WriteLine("======== LARGE PAYLOAD ({0} chars, {1} iterations) =========", Payloads.LargePayload.Length, LoopSize / LargePayloadCoef);
+			RunTestCase(Payloads.LargePayload, LoopSize / LargePayloadCoef);
 			Console.ReadKey();
 		}
 
-		private static void RunTestCase(string payload)
+		private static void InteractiveInitialization()
 		{
-			int bs = 0;
-			int nb = 0;
-			int cs = 0;
+			int temp;
+			Console.WriteLine("Enter times the test will be executed /default is " + Iterations);
+			if (int.TryParse(Console.ReadLine(), out temp)) Iterations = temp;
+
+			Console.WriteLine("Enter iterations count in each per test for smallPacketTest /default is " + LoopSize);
+			if (int.TryParse(Console.ReadLine(), out temp)) LoopSize = temp;
+		}
+
+		private static void RunTestCase(string payload, int loopSize)
+		{
+			int[] avg = new int[_clients.Count()];
+
 			for (int i = 0; i < Iterations; i++)
 			{
-				Console.WriteLine("Iteration " + i);
-				Console.Write("booksleeve ~");
-				var tmp = RunBookSleeveTest(payload);
-				Console.WriteLine("{0}ms", tmp);
-				bs += tmp;
-
-				Console.Write("redisboost ~");
-				tmp = RunNBoostersTest(payload);
-				Console.WriteLine("{0}ms", tmp);
-				nb += tmp;
-
-				Console.Write("csredis    ~");
-				tmp = RunCsredisTest(payload);
-				Console.WriteLine("{0}ms", tmp);
-				cs += tmp;
+				Console.WriteLine(i);
+				for (int j = 0;j<_clients.Length;j++)
+				{
+					Console.Write(_clients[j].ClientName+" ~");
+					var tmp = RunBasicTest(_clients[j], payload, loopSize);
+					Console.WriteLine("{0}ms", tmp);
+					avg[j] += tmp;
+				}
 
 				Console.WriteLine("---------");
 			}
 			Console.WriteLine("Avg:");
-			Console.WriteLine("booksleeve ~{0}ms", bs/Iterations);
-			Console.WriteLine("redisboost ~{0}ms", nb/Iterations);
-			Console.WriteLine("csredis    ~{0}ms", cs/Iterations);
-			Console.WriteLine("=============");
+			for (int i = 0; i < avg.Length;i++ )
+				Console.WriteLine("{0} ~{1}ms", _clients[i].ClientName,avg[i]/Iterations);
 			Console.WriteLine();
 		}
-
-		private static int RunNBoostersTest(string payload)
+		private static int RunBasicTest(ITestClient testClient, string payload, int loopSize)
 		{
-			using (var conn = RedisClient.ConnectAsync(_cs.EndPoint, _cs.DbIndex).Result)
-			{
-				conn.FlushDbAsync().Wait();
+			testClient.Connect(_cs);
 
-				var sw = new Stopwatch();
-				sw.Start();
+			testClient.FlushDb();
+			var sw = new Stopwatch();
+			sw.Start();
 
-				for (int i = 0; i < Iter; i++)
-				{
-					conn.SetAsync(KeyName, payload);
-				//	conn.IncrAsync(KeyName2);
-				}
-				var result = conn.GetAsync(KeyName).Result.As<string>();
-				//var count = conn.GetAsync(KeyName2).Result.As<int>();
+			for (var i = 0; i < loopSize; i++)
+				testClient.SetAsync(KeyName, payload);
+		
+			var result = testClient.GetString(KeyName);
 
-				if (result != payload)
-					Console.WriteLine("redisboost result error");
-				//if (count != Iter)
-				//	Console.WriteLine("redisboost result error");
-				sw.Stop();
-				return (int) sw.ElapsedMilliseconds;
-			}
-		}
+			if (result != payload)
+				Console.Write("[condition failed Result != Payload] ");
 
-		private static int RunBookSleeveTest(string payload)
-		{
-			using (var conn = new BookSleeve.RedisConnection(((IPEndPoint) _cs.EndPoint).Address.ToString(), allowAdmin: true))
-			{
-				conn.Open();
-				conn.Server.FlushDb(_cs.DbIndex);
-
-				var sw = new Stopwatch();
-				sw.Start();
-
-				for (int i = 0; i < Iter; i++)
-				{
-					conn.Strings.Set(_cs.DbIndex, KeyName, payload);
-				//	conn.Strings.Increment(_cs.DbIndex, KeyName2);
-				}
-				
-				var result = conn.Strings.GetString(_cs.DbIndex, KeyName).Result;
-				//var count = conn.Strings.GetInt64(_cs.DbIndex,KeyName2).Result;
-
-				if (result != payload)
-					Console.WriteLine("booksleeve result error");
-				//if (count != Iter)
-				//	Console.WriteLine("booksleeve result error");
-
-				sw.Stop();
-				return (int) sw.ElapsedMilliseconds;
-			}
-		}
-
-		private static int RunCsredisTest(string payload)
-		{
-			using (var conn = new ctstone.Redis.RedisClientAsync(((IPEndPoint) _cs.EndPoint).Address.ToString(),
-				                                              ((IPEndPoint) _cs.EndPoint).Port, 10000))
-			{
-
-				conn.FlushDb().Wait();
-
-				var sw = new Stopwatch();
-				sw.Start();
-
-				for (int i = 0; i < Iter; i++)
-				{
-					conn.Set(KeyName, payload);
-					//conn.Incr(KeyName2);
-				}
-
-				var result = conn.Get(KeyName).Result;
-				//var count = int.Parse(conn.Get(KeyName2).Result);
-				
-				if (result != payload)
-					Console.WriteLine("csredis result error");
-
-				//if (count != Iter)
-				//	Console.WriteLine("csredis result error");
-
-				sw.Stop();
-				return (int) sw.ElapsedMilliseconds;
-			}
+			sw.Stop();
+			testClient.Dispose();
+			return (int)sw.ElapsedMilliseconds;
+			
 		}
 	}
 }

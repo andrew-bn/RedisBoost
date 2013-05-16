@@ -56,6 +56,8 @@ namespace NBoosters.RedisBoost.Core.Receiver
 
 		public void EngageWith(ISocket socket)
 		{
+			_offset = 0;
+			_bufferSize = 0;
 			_asyncSocket.EngageWith(socket);
 		}
 

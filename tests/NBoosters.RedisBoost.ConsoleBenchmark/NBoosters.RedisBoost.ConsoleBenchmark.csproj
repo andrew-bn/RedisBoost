@@ -32,9 +32,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BookSleeve, Version=1.3.35.0, Culture=neutral, PublicKeyToken=9056fda458ff61cf, processorArchitecture=MSIL">
+    <Reference Include="BookSleeve, Version=1.3.37.0, Culture=neutral, PublicKeyToken=9056fda458ff61cf, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\BookSleeve.1.3.35\lib\BookSleeve.dll</HintPath>
+      <HintPath>..\..\packages\BookSleeve.1.3.37\lib\BookSleeve.dll</HintPath>
     </Reference>
     <Reference Include="csredis, Version=1.4.7.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -50,6 +50,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Clients\BookSleeveTestClient.cs" />
+    <Compile Include="Clients\CsredisTestClient.cs" />
+    <Compile Include="Clients\ITestClient.cs" />
+    <Compile Include="Clients\RedisBoostTestClient.cs" />
     <Compile Include="Payloads.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
