@@ -86,7 +86,7 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 			var result = testClient.GetString(KeyName);
 
 			if (result != payload)
-				Console.Write("[condition failed Result != Payload] ");
+				Console.Write("[condition failed Result == Payload] ");
 
 			sw.Stop();
 			testClient.Dispose();
