@@ -61,7 +61,6 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 					RunTestCase(Payloads.LargePayload, LoopSize, testCase);
 					break;
 			}
-			Console.ReadKey();
 		}
 
 		private static TestCase InteractiveInitialization()

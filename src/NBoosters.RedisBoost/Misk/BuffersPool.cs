@@ -10,6 +10,7 @@ namespace NBoosters.RedisBoost.Misk
 		public int BufferSize { get; set; }
 		private readonly ObjectsPool<byte[]> _pool = new ObjectsPool<byte[]>();
 		private readonly ConcurrentQueue<Action<byte[]>> _callbacks = new ConcurrentQueue<Action<byte[]>>(); 
+		
 		private int _poolSize;
 
 		public int MaxPoolSize { get; set; }

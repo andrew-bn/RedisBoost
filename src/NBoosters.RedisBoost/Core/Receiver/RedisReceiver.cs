@@ -187,11 +187,7 @@ namespace NBoosters.RedisBoost.Core.Receiver
 			return ReadLineTask(async, args);
 		}
 
-		private void ReleaseBuffer()
-		{
-			_buffersPool.Release(_readSocketBuffer);
-			_readSocketBuffer = null;
-		}
+
 
 		private void RecalculateBufferSize(AsyncSocketEventArgs args)
 		{
@@ -274,11 +270,16 @@ namespace NBoosters.RedisBoost.Core.Receiver
 			return CallSocketOpCompleted(async, args);
 		}
 		#endregion
+		private void ReleaseBuffer()
+		{
+			_buffersPool.Release(_readSocketBuffer);
+			_readSocketBuffer = null;
+		}
+
 		private bool ReceiveDataFromSocket(AsyncSocketEventArgs args)
 		{
 			try
 			{
-
 				if (_buffersPool.TryGet(out _readSocketBuffer,
 					b =>
 					{

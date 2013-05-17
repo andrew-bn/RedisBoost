@@ -37,6 +37,7 @@ namespace NBoosters.RedisBoost
 	public partial class RedisClient : IPrepareSupportRedisClient, IRedisSubscription
 	{
 		private static readonly BuffersPool _buffersPool;
+		private static readonly BuffersPool _inputBuffersPool;
 		static readonly ObjectsPool<IRedisChannel> _redisPipelinePool;
 		
 		static BasicRedisSerializer _defaultSerializer = new BasicRedisSerializer();
@@ -45,32 +46,43 @@ namespace NBoosters.RedisBoost
 			get { return _defaultSerializer; }
 			set { _defaultSerializer = value; }
 		}
-
-		private static int _ioBuffersCount = 200;
 		private static int _ioBufferSize = 1024 * 8;
-
-		public static int IoBuffersCount
-		{
-			get { return _ioBuffersCount; }
-			set 
-			{ 
-				_ioBuffersCount = value;
-				_buffersPool.MaxPoolSize = value;
-			}
-		}
 		public static int IoBufferSize
 		{
 			get { return _ioBufferSize; }
 			set
 			{
 				_ioBufferSize = value;
+				_inputBuffersPool.BufferSize = value;
 				_buffersPool.BufferSize = value;
 			}
 		}
-		
+		private static int _outputBuffersCount = 100;
+
+		public static int OutputBuffersCount
+		{
+			get { return _outputBuffersCount; }
+			set
+			{
+				_outputBuffersCount = value;
+				_buffersPool.MaxPoolSize = value;
+			}
+		}
+		private static int _inputBuffersCount = 50;
+
+		public static int InputBuffersCount
+		{
+			get { return _inputBuffersCount; }
+			set
+			{
+				_inputBuffersCount = value;
+				_inputBuffersPool.MaxPoolSize = value;
+			}
+		}
 		static RedisClient()
 		{
-			_buffersPool = new BuffersPool(IoBufferSize, IoBuffersCount);
+			_buffersPool = new BuffersPool(IoBufferSize, OutputBuffersCount);
+			_inputBuffersPool = new BuffersPool(IoBufferSize, InputBuffersCount);
 			_redisPipelinePool = new ObjectsPool<IRedisChannel>();
 		}
 		#region factory
@@ -147,7 +159,7 @@ namespace NBoosters.RedisBoost
 			var channel = _redisPipelinePool.GetOrCreate(() =>
 				{
 					var asyncSocket = new AsyncSocketWrapper();
-					var pipeline = new RedisPipeline(asyncSocket, new RedisSender(_buffersPool, asyncSocket, false), new RedisReceiver(_buffersPool, asyncSocket));
+					var pipeline = new RedisPipeline(asyncSocket, new RedisSender(_buffersPool, asyncSocket, false), new RedisReceiver(_inputBuffersPool, asyncSocket));
 					return new RedisChannel(pipeline);
 				});
 
