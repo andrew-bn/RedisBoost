@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.ConsoleBenchmark.Clients;
 
@@ -18,6 +17,7 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 			MediumPack,
 			LargePack,
 			MixedPack,
+			ParallelCli,
 		}
 		private static int Iterations = 5;
 		private const string KeyName = "K";
@@ -33,15 +33,15 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 
 			_clients = new ITestClient[]
 				{
-					new BookSleeveTestClient(),
+					//new BookSleeveTestClient(),
 					new RedisBoostTestClient(),
-					new CsredisTestClient(),
+					//new CsredisTestClient(),
 				};
 
 			switch (testCase)
 			{
 				case TestCase.SmallPack:
-					Console.WriteLine("======== SMALL PAYLOAD ({0} chars) =========",Payloads.SmallPayload.Length);
+					Console.WriteLine("======== SMALL PAYLOAD ({0} chars) =========", Payloads.SmallPayload.Length);
 					RunTestCase(Payloads.SmallPayload, LoopSize, testCase);
 					break;
 				case TestCase.MediumPack:
@@ -53,8 +53,11 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 					RunTestCase(Payloads.LargePayload, LoopSize, testCase);
 					break;
 				case TestCase.MixedPack:
-					Console.WriteLine("======== MIXED PAYLOAD (INCR cmd and medium pack of size {1}) =========", 
-						Payloads.SmallPayload.Length, Payloads.MediumPayload.Length);
+					Console.WriteLine("======== MIXED PAYLOAD (INCR cmd and medium pack of size {0}) =========",Payloads.MediumPayload.Length);
+					RunTestCase(Payloads.LargePayload, LoopSize, testCase);
+					break;
+				case TestCase.ParallelCli:
+					Console.WriteLine("======== MIXED PAYLOAD (INCR cmd and medium pack of size {0}) =========", Payloads.MediumPayload.Length);
 					RunTestCase(Payloads.LargePayload, LoopSize, testCase);
 					break;
 			}
@@ -77,11 +80,12 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 1. Medium packets
 2. Large packets
 3. Mixed packets
+4. Parallel clients
 ");
 				int testCaseIndex;
 				if (int.TryParse(Console.ReadLine(), out testCaseIndex) &&
-				    testCaseIndex >= 0 && testCaseIndex <= Enum.GetNames(typeof (TestCase)).Length)
-					return (TestCase) testCaseIndex;
+					testCaseIndex >= 0 && testCaseIndex <= Enum.GetNames(typeof(TestCase)).Length)
+					return (TestCase)testCaseIndex;
 
 				Console.WriteLine("Unknown Test Case index. Try ones more");
 			}
@@ -94,12 +98,18 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 			for (int i = 0; i < Iterations; i++)
 			{
 				Console.WriteLine(i);
-				for (int j = 0;j<_clients.Length;j++)
+				for (int j = 0; j < _clients.Length; j++)
 				{
-					Console.Write(_clients[j].ClientName+" ~");
-					var tmp = testCase != TestCase.MixedPack
-								? RunBasicTest(_clients[j], payload, loopSize)
-								: RunMixedPackTest(_clients[j], loopSize);
+					Console.Write(_clients[j].ClientName + " ~");
+					int tmp = 0;
+
+					if (testCase == TestCase.MixedPack)
+						tmp = RunMixedPackTest(_clients[j], loopSize, KeyName, KeyName2);
+					else if (testCase == TestCase.ParallelCli)
+						tmp = RunManyClientsTest(_clients[j], loopSize);
+					else
+						tmp = RunBasicTest(_clients[j], payload, loopSize);
+ 
 					Console.WriteLine("{0}ms", tmp);
 					avg[j] += tmp;
 				}
@@ -107,60 +117,100 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 				Console.WriteLine("---------");
 			}
 			Console.WriteLine("Avg:");
-			for (int i = 0; i < avg.Length;i++ )
-				Console.WriteLine("{0} ~{1}ms", _clients[i].ClientName,avg[i]/Iterations);
+			for (int i = 0; i < avg.Length; i++)
+				Console.WriteLine("{0} ~{1}ms", _clients[i].ClientName, avg[i] / Iterations);
 			Console.WriteLine();
 		}
 
-		
+
 		private static int RunBasicTest(ITestClient testClient, string payload, int loopSize)
 		{
-			testClient.Connect(_cs);
+			using (testClient)
+			{
+				testClient.Connect(_cs);
 
-			testClient.FlushDb();
-			var sw = new Stopwatch();
-			sw.Start();
+				testClient.FlushDb();
+				var sw = new Stopwatch();
+				sw.Start();
 
-			for (var i = 0; i < loopSize; i++)
-				testClient.SetAsync(KeyName, payload);
-		
-			var result = testClient.GetString(KeyName);
+				for (var i = 0; i < loopSize; i++)
+					testClient.SetAsync(KeyName, payload);
 
-			if (result != payload)
-				Console.Write("[condition failed Result == Payload] ");
+				var result = testClient.GetString(KeyName);
 
-			sw.Stop();
-			testClient.Dispose();
-			return (int)sw.ElapsedMilliseconds;
-			
+				if (result != payload)
+					Console.Write("[condition failed Result == Payload] ");
+
+				sw.Stop();
+				return (int) sw.ElapsedMilliseconds;
+			}
 		}
 
-		private static int RunMixedPackTest(ITestClient testClient, int loopSize)
+		private static int RunMixedPackTest(ITestClient testClient, int loopSize, string key1, string key2, bool flushdb = true)
 		{
-			var payload = Payloads.MediumPayload;
-			testClient.Connect(_cs);
+			using (testClient)
+			{
+				var payload = Payloads.MediumPayload;
+				testClient.Connect(_cs);
+				if (flushdb)
+					testClient.FlushDb();
+				var sw = new Stopwatch();
+				sw.Start();
 
-			testClient.FlushDb();
+				for (var i = 0; i < loopSize; i++)
+				{
+					testClient.SetAsync(key1, payload);
+					testClient.IncrAsync(key2);
+				}
+
+				var result = testClient.GetString(key1);
+				var incrResult = testClient.GetInt(key2);
+
+				if (result != payload)
+					Console.Write("[condition failed Result == Payload] ");
+				if (incrResult != loopSize)
+					Console.Write("[condition failed IncrResult == LoopSize] ");
+
+				sw.Stop();
+				return (int) sw.ElapsedMilliseconds;
+			}
+		}
+
+		private static volatile int _clientsRunning = 0;
+		private const int MaxClients = 10;
+		private static int RunManyClientsTest(ITestClient client, int iterations)
+		{
+			var rand = new Random();
+			_clientsRunning = 0;
+			//warm up
 			var sw = new Stopwatch();
 			sw.Start();
-
-			for (var i = 0; i < loopSize; i++)
-			{
-				testClient.SetAsync(KeyName, payload);
-				testClient.IncrAsync(KeyName2);
-			}
-
-			var result = testClient.GetString(KeyName);
-			var incrResult = testClient.GetInt(KeyName2);
-
-			if (result != payload)
-				Console.Write("[condition failed Result == Payload] ");
-			if (incrResult != loopSize)
-				Console.Write("[condition failed IncrResult == LoopSize] ");
-
+			RunMixedPackTest(client.CreateOne(), iterations, KeyName, KeyName2);
 			sw.Stop();
-			testClient.Dispose();
-			return (int)sw.ElapsedMilliseconds;
+
+			var time = (int)sw.ElapsedMilliseconds;
+			int spawnTimes = 0;
+			int result = 0;
+			var tasks = new List<Task>();
+			for (var i = 0; i < Iterations; i++)
+			{
+				SpinWait.SpinUntil(() => _clientsRunning < MaxClients);
+
+				tasks.Add(Task.Run(() =>
+					{
+						spawnTimes++;
+						Console.WriteLine("Spawn new " + client.ClientName);
+						Interlocked.Increment(ref _clientsRunning);
+						var tmp = RunMixedPackTest(client.CreateOne(), iterations, KeyName + "_" + spawnTimes, KeyName2 + "_" + spawnTimes,false);
+						result += tmp;
+						Console.WriteLine("Client time ms = "+tmp);
+						Interlocked.Decrement(ref _clientsRunning);
+						Console.WriteLine("Destroy " + client.ClientName);
+					}));
+				Thread.Sleep(rand.Next(time));
+			}
+			Task.WaitAll(tasks.ToArray());
+			return result/spawnTimes;
 		}
 	}
 }

@@ -15,5 +15,6 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark.Clients
 		void FlushDb();
 		Task IncrAsync(string KeyName);
 		int GetInt(string key);
+		ITestClient CreateOne();
 	}
 }

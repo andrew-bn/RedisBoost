@@ -54,5 +54,15 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark.Clients
 		{
 			return (int)_client.Strings.GetInt64(_dbIndex, key).Result;
 		}
+
+		#region ITestClient Members
+
+
+		public ITestClient CreateOne()
+		{
+			return new BookSleeveTestClient();
+		}
+
+		#endregion
 	}
 }

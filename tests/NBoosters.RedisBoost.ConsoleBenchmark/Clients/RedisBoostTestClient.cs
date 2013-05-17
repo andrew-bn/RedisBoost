@@ -48,5 +48,15 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark.Clients
 		{
 			return _client.GetAsync(key).Result.As<int>();
 		}
+
+		#region ITestClient Members
+
+
+		public ITestClient CreateOne()
+		{
+			return new RedisBoostTestClient();
+		}
+
+		#endregion
 	}
 }
