@@ -12,16 +12,23 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 {
 	class Program
 	{
+		private enum TestCase
+		{
+			SmallPack,
+			MediumPack,
+			LargePack,
+			MixedPack,
+		}
 		private static int Iterations = 5;
 		private const string KeyName = "K";
+		private const string KeyName2 = "K2";
 		private static int LoopSize = 2000000;
 		private static RedisConnectionStringBuilder _cs;
 		private static ITestClient[] _clients;
-		private const int MediumPayloadCoef = 50;
-		private const int LargePayloadCoef = 100;
+
 		static void Main(string[] args)
 		{
-			InteractiveInitialization();
+			var testCase = InteractiveInitialization();
 			_cs = new RedisConnectionStringBuilder(ConfigurationManager.ConnectionStrings["Redis"].ConnectionString);
 
 			_clients = new ITestClient[]
@@ -31,26 +38,56 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 					new CsredisTestClient(),
 				};
 
-			Console.WriteLine("======== SMALL PAYLOAD ({0} chars, {1} iterations) =========",Payloads.SmallPayload.Length, LoopSize);
-			RunTestCase(Payloads.SmallPayload, LoopSize);
-			Console.WriteLine("======= MEDIUM PAYLOAD ({0} chars, {1} iterations) =========", Payloads.MediumPayload.Length, LoopSize / MediumPayloadCoef);
-			RunTestCase(Payloads.MediumPayload, LoopSize / MediumPayloadCoef);
-			Console.WriteLine("======== LARGE PAYLOAD ({0} chars, {1} iterations) =========", Payloads.LargePayload.Length, LoopSize / LargePayloadCoef);
-			RunTestCase(Payloads.LargePayload, LoopSize / LargePayloadCoef);
+			switch (testCase)
+			{
+				case TestCase.SmallPack:
+					Console.WriteLine("======== SMALL PAYLOAD ({0} chars) =========",Payloads.SmallPayload.Length);
+					RunTestCase(Payloads.SmallPayload, LoopSize, testCase);
+					break;
+				case TestCase.MediumPack:
+					Console.WriteLine("======= MEDIUM PAYLOAD ({0} chars) =========", Payloads.MediumPayload.Length);
+					RunTestCase(Payloads.MediumPayload, LoopSize, testCase);
+					break;
+				case TestCase.LargePack:
+					Console.WriteLine("======== LARGE PAYLOAD ({0} chars) =========", Payloads.LargePayload.Length);
+					RunTestCase(Payloads.LargePayload, LoopSize, testCase);
+					break;
+				case TestCase.MixedPack:
+					Console.WriteLine("======== MIXED PAYLOAD (INCR cmd and medium pack of size {1}) =========", 
+						Payloads.SmallPayload.Length, Payloads.MediumPayload.Length);
+					RunTestCase(Payloads.LargePayload, LoopSize, testCase);
+					break;
+			}
 			Console.ReadKey();
 		}
 
-		private static void InteractiveInitialization()
+		private static TestCase InteractiveInitialization()
 		{
 			int temp;
 			Console.WriteLine("Enter times the test will be executed /default is " + Iterations);
 			if (int.TryParse(Console.ReadLine(), out temp)) Iterations = temp;
 
-			Console.WriteLine("Enter iterations count in each per test for smallPacketTest /default is " + LoopSize);
+			Console.WriteLine("Enter iterations count in packet test /default is " + LoopSize);
 			if (int.TryParse(Console.ReadLine(), out temp)) LoopSize = temp;
+
+			while (true)
+			{
+				Console.Write(@"Choose one of these test cases:
+0. Small packet
+1. Medium packets
+2. Large packets
+3. Mixed packets
+");
+				int testCaseIndex;
+				if (int.TryParse(Console.ReadLine(), out testCaseIndex) &&
+				    testCaseIndex >= 0 && testCaseIndex <= Enum.GetNames(typeof (TestCase)).Length)
+					return (TestCase) testCaseIndex;
+
+				Console.WriteLine("Unknown Test Case index. Try ones more");
+			}
 		}
 
-		private static void RunTestCase(string payload, int loopSize)
+		private static void RunTestCase(string payload, int loopSize, TestCase testCase)
 		{
 			int[] avg = new int[_clients.Count()];
 
@@ -60,7 +97,9 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 				for (int j = 0;j<_clients.Length;j++)
 				{
 					Console.Write(_clients[j].ClientName+" ~");
-					var tmp = RunBasicTest(_clients[j], payload, loopSize);
+					var tmp = testCase != TestCase.MixedPack
+								? RunBasicTest(_clients[j], payload, loopSize)
+								: RunMixedPackTest(_clients[j], loopSize);
 					Console.WriteLine("{0}ms", tmp);
 					avg[j] += tmp;
 				}
@@ -72,6 +111,8 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 				Console.WriteLine("{0} ~{1}ms", _clients[i].ClientName,avg[i]/Iterations);
 			Console.WriteLine();
 		}
+
+		
 		private static int RunBasicTest(ITestClient testClient, string payload, int loopSize)
 		{
 			testClient.Connect(_cs);
@@ -92,6 +133,34 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 			testClient.Dispose();
 			return (int)sw.ElapsedMilliseconds;
 			
+		}
+
+		private static int RunMixedPackTest(ITestClient testClient, int loopSize)
+		{
+			var payload = Payloads.MediumPayload;
+			testClient.Connect(_cs);
+
+			testClient.FlushDb();
+			var sw = new Stopwatch();
+			sw.Start();
+
+			for (var i = 0; i < loopSize; i++)
+			{
+				testClient.SetAsync(KeyName, payload);
+				testClient.IncrAsync(KeyName2);
+			}
+
+			var result = testClient.GetString(KeyName);
+			var incrResult = testClient.GetInt(KeyName2);
+
+			if (result != payload)
+				Console.Write("[condition failed Result == Payload] ");
+			if (incrResult != loopSize)
+				Console.Write("[condition failed IncrResult == LoopSize] ");
+
+			sw.Stop();
+			testClient.Dispose();
+			return (int)sw.ElapsedMilliseconds;
 		}
 	}
 }

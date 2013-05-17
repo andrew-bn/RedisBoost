@@ -44,5 +44,15 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark.Clients
 		{
 			get { return "booksleeve"; }
 		}
+
+		public Task IncrAsync(string key)
+		{
+			return _client.Strings.Increment(_dbIndex, key);
+		}
+
+		public int GetInt(string key)
+		{
+			return (int)_client.Strings.GetInt64(_dbIndex, key).Result;
+		}
 	}
 }

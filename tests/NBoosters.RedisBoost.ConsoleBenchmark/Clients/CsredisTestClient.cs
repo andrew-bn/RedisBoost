@@ -42,6 +42,14 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark.Clients
 		{
 			get { return "csredis"; }
 		}
+		public Task IncrAsync(string key)
+		{
+			return _client.Incr(key);
+		}
 
+		public int GetInt(string key)
+		{
+			return int.Parse(_client.Get(key).Result);
+		}
 	}
 }
