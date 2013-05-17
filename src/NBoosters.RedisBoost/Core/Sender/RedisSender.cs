@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using NBoosters.RedisBoost.Core.AsyncSocket;
@@ -43,7 +44,6 @@ namespace NBoosters.RedisBoost.Core.Sender
 		private byte[] _writingBuffer;
 		private int _writingOffset;
 		private int _writingBufferIsFlushed = 1;
-		private int _waitingForWritingBuffer = 0;
 
 		private readonly IBuffersPool _buffersPool;
 		private readonly IAsyncSocket _asyncSocket;
@@ -97,7 +97,9 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 			if (context.SendState == 0)
 			{
-				if (!WriteArgumentsCountLine(context.EventArgs.DataToSend.Length))
+				var writeResult = WriteArgumentsCountLine(context.EventArgs.DataToSend.Length);
+				if (!writeResult.HasValue) return true;
+				if (!writeResult.Value)
 				{
 					if (Flush(context.EventArgs)) return true;
 					goto TryAgain;
@@ -111,7 +113,9 @@ namespace NBoosters.RedisBoost.Core.Sender
 				{
 					if (context.SendState == 1)
 					{
-						if (!WriteDataSizeLine(context.EventArgs.DataToSend[context.PartIndex].Length))
+						var writeResult = WriteDataSizeLine(context.EventArgs.DataToSend[context.PartIndex].Length);
+						if (!writeResult.HasValue) return true;
+						if (!writeResult.Value)
 						{
 							if (Flush(context.EventArgs)) return true;
 							goto TryAgain;
@@ -123,7 +127,9 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 					if (context.SendState == 2)
 					{
-						context.ArraySegment = WriteData(context.ArraySegment);
+						var writeResult = WriteData(context.ArraySegment);
+						if (!writeResult.HasValue) return true;
+						context.ArraySegment = writeResult.Value;
 						if (context.ArraySegment.Count > 0)
 						{
 							if (Flush(context.EventArgs)) return true;
@@ -135,7 +141,9 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 					if (context.SendState == 3)
 					{
-						if (!WriteNewLineToBuffer())
+						var writeResult = WriteNewLineToBuffer();
+						if (!writeResult.HasValue) return true;
+						if (!writeResult.Value)
 						{
 							if (Flush(context.EventArgs)) return true;
 							goto TryAgain;
@@ -162,7 +170,6 @@ namespace NBoosters.RedisBoost.Core.Sender
 			return async;
 		}
 
-		private SenderAsyncEventArgs _waitingArgs;
 		private int _hasPendingFlush = 0;
 
 		public bool Flush(SenderAsyncEventArgs args)
@@ -172,14 +179,6 @@ namespace NBoosters.RedisBoost.Core.Sender
 				args.Error = _socketException;
 				return false;
 			}
-
-			if (_waitingForWritingBuffer == 1)
-			{
-				Interlocked.Exchange(ref _hasPendingFlush, 1);
-				_waitingArgs = args;
-				return true;
-			}
-
 			if (_writingBufferIsFlushed == 0)
 			{
 				_sendingQueue.Enqueue(new ArraySegment<byte>(_writingBuffer, 0, _writingOffset));
@@ -211,9 +210,7 @@ namespace NBoosters.RedisBoost.Core.Sender
 				{
 					if (CallAsyncSocketSend(buffers)) 
 						return;
-					
 					FlushCallBack(false, _flushArgs);
-					
 					continue;
 				}
 
@@ -254,21 +251,12 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 			Interlocked.Exchange(ref _socketException, args.Error);
 
-			ReleaseBuffers(buffers);
+			foreach (var buf in buffers)
+				_buffersPool.ReleaseWithoutNotification(buf.Array);
 
 			if (async) DoFlushing();
-
-			if (async && Interlocked.CompareExchange(ref _hasPendingFlush, 0, 1) == 1)
-			{
-				_waitingArgs.Error = _socketException;
-				_waitingArgs.Completed(_waitingArgs);
-			}
-		}
-
-		private void ReleaseBuffers(IEnumerable<ArraySegment<byte>> buffers)
-		{
-			foreach (var buf in buffers)
-				_buffersPool.Release(buf.Array);
+			
+			_buffersPool.NotifyWaiters();
 		}
 
 		public void EngageWith(ISocket socket)
@@ -282,25 +270,25 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 		#region write helpers
 
-		private bool WriteArgumentsCountLine(int argsCount)
+		private bool? WriteArgumentsCountLine(int argsCount)
 		{
 			return WriteCountLine(RedisConstants.Asterix, argsCount);
 		}
-		private bool WriteDataSizeLine(int argsCount)
+		private bool? WriteDataSizeLine(int argsCount)
 		{
 			return WriteCountLine(RedisConstants.Dollar, argsCount);
 		}
 
-		private bool WriteCountLine(byte startSimbol, int argsCount)
+		private bool? WriteCountLine(byte startSimbol, int argsCount)
 		{
 			var part = argsCount.ToBytes();
 			return WriteLineToBuffer(startSimbol, part, 0, part.Length);
 		}
 
-		private ArraySegment<byte> WriteData(ArraySegment<byte> data)
+		private ArraySegment<byte>? WriteData(ArraySegment<byte> data)
 		{
 			if (!GetNewWritingBuffer())
-				return data;
+				return null;
 
 			var bytesToWrite = _writingBuffer.Length - _writingOffset;
 
@@ -318,10 +306,10 @@ namespace NBoosters.RedisBoost.Core.Sender
 			return new ArraySegment<byte>(data.Array, data.Offset + bytesToWrite, data.Count - bytesToWrite);
 		}
 
-		private bool WriteLineToBuffer(byte startSimbol, byte[] lineData, int sourceOffset, int length)
+		private bool? WriteLineToBuffer(byte startSimbol, byte[] lineData, int sourceOffset, int length)
 		{
 			if (!GetNewWritingBuffer())
-				return false;
+				return null;
 
 			if (!HasSpace(length + ADDITIONAL_LINE_BYTES)) return false;
 			_writingBuffer[_writingOffset++] = startSimbol;
@@ -333,10 +321,10 @@ namespace NBoosters.RedisBoost.Core.Sender
 
 			return true;
 		}
-		private bool WriteNewLineToBuffer()
+		private bool? WriteNewLineToBuffer()
 		{
 			if (!GetNewWritingBuffer())
-				return false;
+				return null;
 
 			if (!HasSpace(2)) return false;
 			_writingBuffer[_writingOffset++] = RedisConstants.NewLine[0];
@@ -354,16 +342,25 @@ namespace NBoosters.RedisBoost.Core.Sender
 				return true;
 
 			byte[] buffer;
-			if (!_buffersPool.TryGet(out buffer))
-			{
-				Interlocked.Exchange(ref _waitingForWritingBuffer, 1);
+
+			if (!_buffersPool.TryGet(out buffer, b => ApplyNewWritingBuffer(true,b)))
 				return false;
-			}
+
+			ApplyNewWritingBuffer(false, buffer);
+			return true;
+		}
+
+		private void ApplyNewWritingBuffer(bool async, byte[] buffer)
+		{
 			Interlocked.Exchange(ref _writingBuffer, buffer);
 			Interlocked.Exchange(ref _writingOffset, 0);
 			Interlocked.Exchange(ref _writingBufferIsFlushed, 0);
-			Interlocked.Exchange(ref _waitingForWritingBuffer, 0);
-			return true;
+
+			if (async)
+			{
+				_senderContext.EventArgs.Error = _socketException;
+				_senderContext.EventArgs.Completed(_senderContext.EventArgs);
+			}
 		}
 		#endregion
 

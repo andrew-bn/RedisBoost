@@ -46,7 +46,7 @@ namespace NBoosters.RedisBoost
 			set { _defaultSerializer = value; }
 		}
 
-		private static int _ioBuffersCount = 100;
+		private static int _ioBuffersCount = 200;
 		private static int _ioBufferSize = 1024 * 8;
 
 		public static int IoBuffersCount

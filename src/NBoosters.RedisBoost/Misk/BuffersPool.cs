@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace NBoosters.RedisBoost.Misk
@@ -8,6 +9,7 @@ namespace NBoosters.RedisBoost.Misk
 	{
 		public int BufferSize { get; set; }
 		private readonly ObjectsPool<byte[]> _pool = new ObjectsPool<byte[]>();
+		private readonly ConcurrentQueue<Action<byte[]>> _callbacks = new ConcurrentQueue<Action<byte[]>>(); 
 		private int _poolSize;
 
 		public int MaxPoolSize { get; set; }
@@ -18,21 +20,49 @@ namespace NBoosters.RedisBoost.Misk
 			MaxPoolSize = defaultMaxPoolSize;
 		}
 
-		public bool TryGet(out byte[] buffer)
+		public bool TryGet(out byte[] buffer, Action<byte[]> asyncBufferGetCallBack )
+		{
+			var sync = TryGet(out buffer);
+			if (!sync)
+			{
+				_callbacks.Enqueue(asyncBufferGetCallBack);
+				if (TryGet(out buffer))
+					Release(buffer);
+			}
+
+			return sync;
+		}
+
+		private bool TryGet(out byte[] buffer)
 		{
 			buffer = _pool.GetOrCreate(() => 
-				(++_poolSize > MaxPoolSize) ? null : new byte[BufferSize]);
+				(Interlocked.Increment(ref _poolSize) > MaxPoolSize) ? null : new byte[BufferSize]);
 			return buffer != null;
 		}
-		public byte[] Get()
-		{
-			byte[] buffer = null;
-			SpinWait.SpinUntil(() => TryGet(out buffer));
-			return buffer;
-		}
+
 		public void Release(byte[] buffer)
 		{
+			Action<byte[]> callBack;
+			if (_callbacks.TryDequeue(out callBack))
+				callBack(buffer);
+			else _pool.Release(buffer);
+		}
+		public void ReleaseWithoutNotification(byte[] buffer)
+		{
 			_pool.Release(buffer);
+		}
+		public void NotifyWaiters()
+		{
+			while (true)
+			{
+				Action<byte[]> callback;
+				if (!_callbacks.TryDequeue(out callback))
+					return;
+				byte[] tempBuffer;
+				if (!TryGet(out tempBuffer,callback))
+					return;
+				callback(tempBuffer);
+			}
 		}
 	}
 }

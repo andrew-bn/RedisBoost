@@ -33,9 +33,9 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 
 			_clients = new ITestClient[]
 				{
-					//new BookSleeveTestClient(),
+					new BookSleeveTestClient(),
 					new RedisBoostTestClient(),
-					//new CsredisTestClient(),
+					new CsredisTestClient(),
 				};
 
 			switch (testCase)
