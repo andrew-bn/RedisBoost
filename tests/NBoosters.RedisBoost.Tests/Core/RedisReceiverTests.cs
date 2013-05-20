@@ -7,6 +7,7 @@ using Moq;
 using NBoosters.RedisBoost.Core.AsyncSocket;
 using NBoosters.RedisBoost.Core.Receiver;
 using NBoosters.RedisBoost.Core.Serialization;
+using NBoosters.RedisBoost.Misk;
 using NUnit.Framework;
 
 namespace NBoosters.RedisBoost.Tests.Core
@@ -15,11 +16,14 @@ namespace NBoosters.RedisBoost.Tests.Core
 	public class RedisReceiverTests
 	{
 		private Mock<IAsyncSocket> _asyncSocket;
+		private Mock<IBuffersPool> _buffersPool;
 		private ReceiverAsyncEventArgs _args;
 		private byte[] _dataBuffer;
+		private byte[] _bufferFromPool;
 		[SetUp]
 		public void Setup()
 		{
+			_bufferFromPool = new byte[1024];
 			_args = new ReceiverAsyncEventArgs();
 			_asyncSocket= new Mock<IAsyncSocket>();
 
@@ -29,6 +33,10 @@ namespace NBoosters.RedisBoost.Tests.Core
 					            a.DataLength = _dataBuffer.Length;
 								Array.Copy(_dataBuffer,a.BufferToReceive,_dataBuffer.Length);
 				            });
+
+			_buffersPool = new Mock<IBuffersPool>();
+			_buffersPool.Setup(b => b.TryGet(out _bufferFromPool, It.IsAny<Action<byte[]>>()))
+			            .Returns(true);
 		}
 		[Test]
 		public void RedisInteger_ParsedCorrectly()
@@ -126,7 +134,7 @@ namespace NBoosters.RedisBoost.Tests.Core
 
 		private RedisReceiver CreateReceiver()
 		{
-			return new RedisReceiver(null,_asyncSocket.Object);
+			return new RedisReceiver(_buffersPool.Object, _asyncSocket.Object);
 		}
 	}
 }

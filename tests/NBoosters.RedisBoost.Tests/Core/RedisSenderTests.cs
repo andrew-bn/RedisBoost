@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Text;
 using Moq;
 using NBoosters.RedisBoost.Core.AsyncSocket;
@@ -15,9 +16,11 @@ namespace NBoosters.RedisBoost.Tests.Core
 		private Mock<IBuffersPool> _buffersPool;
 		private byte[][] _dataToSend;
 		private string _expectedSentData;
+		private byte[] _bufferFromPool;
 		[SetUp]
 		public void Setup()
 		{
+			_bufferFromPool = new byte[1024];
 			_buffersPool = new Mock<IBuffersPool>();
 			_asyncSocket = new Mock<IAsyncSocket>();
 			_dataToSend = new[]
@@ -32,6 +35,10 @@ namespace NBoosters.RedisBoost.Tests.Core
 				_expectedSentData += "$" + item.Length + "\r\n";
 				_expectedSentData += ConvertToString(item) + "\r\n";
 			}
+
+			_buffersPool = new Mock<IBuffersPool>();
+			_buffersPool.Setup(b => b.TryGet(out _bufferFromPool, It.IsAny<Action<byte[]>>()))
+					.Returns(true);
 		}
 
 		[Test]
@@ -46,18 +53,26 @@ namespace NBoosters.RedisBoost.Tests.Core
 		public void Send_DataSentCorrectly()
 		{
 			var args = new SenderAsyncEventArgs();
+			byte[] actualBuffer = null;
+			_asyncSocket.Setup(s => s.Send(It.IsAny<AsyncSocketEventArgs>())).Callback(
+				(AsyncSocketEventArgs a) => { actualBuffer = a.BufferList[0].Array; });
+
 			args.DataToSend = _dataToSend;
 
 			var sender = CreateSender();
 
 			sender.Send(args);
 
-			_asyncSocket.Verify(s => s.Send(
-				It.Is((AsyncSocketEventArgs a) => ArrayIsEqualTo(a.DataToSend, _expectedSentData))));
+			Assert.IsTrue(ArrayIsEqualTo(actualBuffer, _expectedSentData));
+			
 		}
 		[Test]
 		public void Flush()
 		{
+			byte[] actualBuffer = null;
+			_asyncSocket.Setup(s => s.Send(It.IsAny<AsyncSocketEventArgs>())).Callback(
+				(AsyncSocketEventArgs a) => { actualBuffer = a.BufferList[0].Array; });
+
 			var args = new SenderAsyncEventArgs();
 			args.DataToSend = _dataToSend;
 
@@ -66,8 +81,7 @@ namespace NBoosters.RedisBoost.Tests.Core
 			sender.Send(args);
 			sender.Flush(args);
 
-			_asyncSocket.Verify(s => s.Send(
-				It.Is((AsyncSocketEventArgs a) => ArrayIsEqualTo(a.DataToSend, _expectedSentData))));
+			Assert.IsTrue(ArrayIsEqualTo(actualBuffer, _expectedSentData));
 		}
 		[Test]
 		public void Send_AutoFlushIsOff_FillsBufferWithRedisArgumentsAmmountLine()
@@ -83,13 +97,16 @@ namespace NBoosters.RedisBoost.Tests.Core
 		[Test]
 		public void Send_AutoFlushIsOff_IfBufferIsFullThenWritingLineCount()
 		{
+			_bufferFromPool = new byte[5];
+			_buffersPool.Setup(b => b.TryGet(out _bufferFromPool, It.IsAny<Action<byte[]>>()))
+					.Returns(true);
 			var expectedLine = "*3\r\n";
 			string actual = null;
 			_asyncSocket.Setup(s => s.Send(It.IsAny<AsyncSocketEventArgs>()))
-						.Callback((AsyncSocketEventArgs a) => { actual = actual ?? ConvertToString(a.DataToSend, a.DataLength); });
+						.Callback((AsyncSocketEventArgs a) => { actual = actual ?? ConvertToString(a.BufferList[0].Array, a.BufferList[0].Count); });
 			var args = new SenderAsyncEventArgs();
 			args.DataToSend = _dataToSend;
-			var sender = CreateSender(5);
+			var sender = CreateSender();
 			sender.Send(args);
 
 			Assert.AreEqual(expectedLine, actual);
@@ -99,44 +116,51 @@ namespace NBoosters.RedisBoost.Tests.Core
 		[Test]
 		public void Send_AutoFlushIsOff_IfBufferIsFullThenWritingArrayItem()
 		{
+			_bufferFromPool = new byte[10];
+			_buffersPool.Setup(b => b.TryGet(out _bufferFromPool, It.IsAny<Action<byte[]>>()))
+					.Returns(true);
 			var expectedLine = "*3\r\n$9\r\nFi";
 			string actual = null;
 			_asyncSocket.Setup(s => s.Send(It.IsAny<AsyncSocketEventArgs>()))
-						.Callback((AsyncSocketEventArgs a) => { actual = actual ?? ConvertToString(a.DataToSend, a.DataLength); });
+						.Callback((AsyncSocketEventArgs a) => { actual = actual ?? ConvertToString(a.BufferList[0].Array, a.BufferList[0].Count); });
 			var args = new SenderAsyncEventArgs();
 			args.DataToSend = _dataToSend;
-			var sender = CreateSender(10);
+			var sender = CreateSender();
 			sender.Send(args);
 			Assert.AreEqual(expectedLine, actual);
 		}
 
 		[Test]
-		public void Send_AsyncExecution_CallbackIsCalled()
+		public void Send_SocketAsyncExecution_CallbackIsNotCalled()
 		{
-			SenderAsyncEventArgs actual = null;
+
+			var called = false;
 			_asyncSocket.Setup(s => s.Send(It.IsAny<AsyncSocketEventArgs>()))
 				.Callback((AsyncSocketEventArgs a) =>a.Completed(a))
 				.Returns(true);
 
 			var args = new SenderAsyncEventArgs();
 			args.DataToSend = _dataToSend;
-			args.Completed = a => { actual = a; };
+			args.Completed = a => { called = true; };
 			
 			var sender = CreateSender();
 
 			sender.Send(args);
 
-			Assert.AreEqual(args, actual);
+			Assert.IsFalse(called);
 		}
 
 		[Test]
 		public void Send_AutoFlushIsOn_LimitedBuffer_AsyncExecution_DataSentCorrectly()
 		{
+			_bufferFromPool = new byte[5];
+			_buffersPool.Setup(b => b.TryGet(out _bufferFromPool, It.IsAny<Action<byte[]>>()))
+					.Returns(true);
 			var actual = "";
 			_asyncSocket.Setup(s => s.Send(It.IsAny<AsyncSocketEventArgs>()))
 				.Callback((AsyncSocketEventArgs a) =>
 				{
-					actual += ConvertToString(a.DataToSend, a.DataLength);
+					actual += ConvertToString(a.BufferList[0].Array, a.BufferList[0].Count);
 					a.Completed(a);
 				})
 				.Returns(true);
@@ -144,7 +168,7 @@ namespace NBoosters.RedisBoost.Tests.Core
 			var args = new SenderAsyncEventArgs();
 			args.DataToSend = _dataToSend;
 			args.Completed = s => { };
-			var sender = CreateSender(5);
+			var sender = CreateSender();
 			sender.Send(args);
 
 			Assert.AreEqual(_expectedSentData, actual);
@@ -152,26 +176,29 @@ namespace NBoosters.RedisBoost.Tests.Core
 		[Test]
 		public void Send_AutoFlushIsOn_LimitedBuffer_SyncExecution_DataSentCorrectly()
 		{
+			_bufferFromPool = new byte[5];
+			_buffersPool.Setup(b => b.TryGet(out _bufferFromPool, It.IsAny<Action<byte[]>>()))
+					.Returns(true);
 			var actual = "";
 			_asyncSocket.Setup(s => s.Send(It.IsAny<AsyncSocketEventArgs>()))
 				.Callback((AsyncSocketEventArgs a) =>
 				{
-					actual += ConvertToString(a.DataToSend, a.DataLength);
+					actual += ConvertToString(a.BufferList[0].Array, a.BufferList[0].Count);
 				})
 				.Returns(false);
 
 			var args = new SenderAsyncEventArgs();
 			args.DataToSend = _dataToSend;
 			args.Completed = s => { };
-			var sender = CreateSender(5);
+			var sender = CreateSender();
 			sender.Send(args);
 
 			Assert.AreEqual(_expectedSentData, actual);
 		}
 
-		private RedisSender CreateSender(int bufferSize = 1000, bool autoFlush = true)
+		private RedisSender CreateSender(bool autoFlush = true)
 		{
-			return null;// new RedisSender(_buffersPool.Object, _asyncSocket.Object, bufferSize, autoFlush);
+			return new RedisSender(_buffersPool.Object, _asyncSocket.Object, autoFlush);
 		}
 
 		private byte[] ConvertToBytes(string data)

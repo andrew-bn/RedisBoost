@@ -68,10 +68,7 @@ namespace NBoosters.RedisBoost.Core.AsyncSocket
 			_sendAllContext.EventArgs = eventArgs;
 			eventArgs.Error = null;
 
-			if (eventArgs.DataToSend!=null)
-				_sendArgs.SetBuffer(eventArgs.DataToSend, 0, eventArgs.DataLength);
-			else
-				_sendArgs.BufferList = eventArgs.BufferList;
+			_sendArgs.BufferList = eventArgs.BufferList;
 
 			_sendArgs.UserToken = _sendAllContext;
 			var isAsync = _socket.SendAsync(_sendArgs);// SendAll(false, _sendArgs);

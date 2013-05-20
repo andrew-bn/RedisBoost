@@ -223,7 +223,6 @@ namespace NBoosters.RedisBoost.Core.Sender
 			try
 			{
 				_flushArgs.Error = _socketException;
-				_flushArgs.DataToSend = null;
 				_flushArgs.BufferList = buffers;
 				_flushArgs.UserToken = buffers;
 				return !_flushArgs.HasError && _asyncSocket.Send(_flushArgs);
