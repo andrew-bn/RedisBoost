@@ -168,8 +168,6 @@ namespace NBoosters.RedisBoost.Core.Sender
 			return async;
 		}
 
-		private int _hasPendingFlush = 0;
-
 		public bool Flush(SenderAsyncEventArgs args)
 		{
 			if (_socketException != null)
@@ -259,7 +257,6 @@ namespace NBoosters.RedisBoost.Core.Sender
 		public void EngageWith(ISocket socket)
 		{
 			Interlocked.Exchange(ref _flushingInProgress, 0);
-			Interlocked.Exchange(ref _hasPendingFlush, 0);
 			Interlocked.Exchange(ref _writingOffset, 0);
 			Interlocked.Exchange(ref _socketException, null);
 			_asyncSocket.EngageWith(socket);

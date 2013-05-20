@@ -28,7 +28,7 @@ namespace NBoosters.RedisBoost
 			public string Message { get; private set; }
 
 			public ErrorResponse(string message, IRedisSerializer serializer)
-				: base(RedisBoost.ResponseType.Error, serializer)
+				: base(ResponseType.Error, serializer)
 			{
 				Message = message;
 			}
