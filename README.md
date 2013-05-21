@@ -201,9 +201,9 @@ Pipelining support
 ----------
 Since Redis server supports pipelining, RedisBoost also supports it.
 
-Any command that is sent to Redis is pipelined. 
-Only Pub/Sub commands are sent directly to Redis and not pipelined. 
-Then you switch to Pub/Sub mode Redis pipeline is closed.
+Any command that is sent to Redis is pipelined. The pipeline is flushed to network as soon as possible. 
+Within redisboost there is a sort of competition between how fast the network is and how fast new commands are added
+to pipeline. The greater the density of commands is the more efficiently network is used.
 
 Let's see an example
 
