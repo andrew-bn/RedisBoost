@@ -7,10 +7,11 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark.Clients
 	{
 		string ClientName { get; }
 		void Connect(RedisConnectionStringBuilder connectionString);
-		Task SetAsync(string key, string value);
+		void SetAsync(string key, string value);
+		void Set(string key, string value);
 		string GetString(string key);
 		void FlushDb();
-		Task IncrAsync(string KeyName);
+		void IncrAsync(string KeyName);
 		int GetInt(string key);
 		ITestClient CreateOne();
 	}

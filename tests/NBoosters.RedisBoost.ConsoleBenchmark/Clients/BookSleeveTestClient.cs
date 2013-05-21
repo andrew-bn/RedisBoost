@@ -21,9 +21,9 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark.Clients
 			_dbIndex = connectionString.DbIndex;
 		}
 
-		public Task SetAsync(string key, string value)
+		public void SetAsync(string key, string value)
 		{
-			return _client.Strings.Set(_dbIndex, key, value);
+			_client.Strings.Set(_dbIndex, key, value);
 		}
 
 		public string GetString(string key)
@@ -41,9 +41,9 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark.Clients
 			get { return "booksleeve"; }
 		}
 
-		public Task IncrAsync(string key)
+		public void IncrAsync(string key)
 		{
-			return _client.Strings.Increment(_dbIndex, key);
+			_client.Strings.Increment(_dbIndex, key);
 		}
 
 		public int GetInt(string key)
@@ -51,14 +51,14 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark.Clients
 			return (int)_client.Strings.GetInt64(_dbIndex, key).Result;
 		}
 
-		#region ITestClient Members
-
-
 		public ITestClient CreateOne()
 		{
 			return new BookSleeveTestClient();
 		}
 
-		#endregion
+		public void Set(string key, string value)
+		{
+			_client.Strings.Set(_dbIndex, key, value).Wait();
+		}
 	}
 }

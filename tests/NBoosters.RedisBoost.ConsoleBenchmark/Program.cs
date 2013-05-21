@@ -18,6 +18,7 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 			LargePack,
 			MixedPack,
 			ParallelCli,
+			SyncExecution,
 		}
 		private static int Iterations = 5;
 		private const string KeyName = "K";
@@ -33,8 +34,9 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 
 			_clients = new ITestClient[]
 				{
-					new BookSleeveTestClient(),
 					new RedisBoostTestClient(),
+					new ServiceStackTestClient(),
+					new BookSleeveTestClient(),
 					new CsredisTestClient(),
 				};
 
@@ -53,12 +55,16 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 					RunTestCase(Payloads.LargePayload, LoopSize, testCase);
 					break;
 				case TestCase.MixedPack:
-					Console.WriteLine("======== MIXED PAYLOAD (INCR cmd and medium pack of size {0}) =========",Payloads.MediumPayload.Length);
+					Console.WriteLine("======== MIXED PAYLOAD (INCR cmd and medium payload of size {0}) =========", Payloads.MediumPayload.Length);
 					RunTestCase(Payloads.LargePayload, LoopSize, testCase);
 					break;
 				case TestCase.ParallelCli:
-					Console.WriteLine("======== MIXED PAYLOAD (INCR cmd and medium pack of size {0}) =========", Payloads.MediumPayload.Length);
+					Console.WriteLine("======== MIXED PAYLOAD (INCR cmd and medium payload of size {0}) =========", Payloads.MediumPayload.Length);
 					RunTestCase(Payloads.LargePayload, LoopSize, testCase);
+					break;
+				case TestCase.SyncExecution:
+					Console.WriteLine("======== SYNC EXECUTION (small payload of size {0}) =========", Payloads.SmallPayload.Length);
+					RunTestCase(Payloads.SmallPayload, LoopSize, testCase);
 					break;
 			}
 		}
@@ -80,6 +86,7 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 2. Large packets
 3. Mixed packets
 4. Parallel clients
+5. Sync execution
 ");
 				int testCaseIndex;
 				if (int.TryParse(Console.ReadLine(), out testCaseIndex) &&
@@ -106,6 +113,8 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 						tmp = RunMixedPackTest(_clients[j], loopSize, KeyName, KeyName2);
 					else if (testCase == TestCase.ParallelCli)
 						tmp = RunManyClientsTest(_clients[j], loopSize);
+					else if (testCase == TestCase.SyncExecution)
+						tmp = RunSyncExecutionTest(payload, _clients[j], loopSize);
 					else
 						tmp = RunBasicTest(_clients[j], payload, loopSize);
  
@@ -119,6 +128,29 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark
 			for (int i = 0; i < avg.Length; i++)
 				Console.WriteLine("{0} ~{1}ms", _clients[i].ClientName, avg[i] / Iterations);
 			Console.WriteLine();
+		}
+
+		private static int RunSyncExecutionTest(string payload, ITestClient testClient, int loopSize)
+		{
+			using (testClient)
+			{
+				testClient.Connect(_cs);
+
+				testClient.FlushDb();
+				var sw = new Stopwatch();
+				sw.Start();
+
+				for (var i = 0; i < loopSize; i++)
+					testClient.Set(KeyName, payload);
+
+				var result = testClient.GetString(KeyName);
+
+				if (result != payload)
+					Console.Write("[condition failed Result == Payload] ");
+
+				sw.Stop();
+				return (int)sw.ElapsedMilliseconds;
+			}
 		}
 
 

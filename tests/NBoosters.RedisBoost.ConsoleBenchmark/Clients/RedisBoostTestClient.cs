@@ -16,9 +16,9 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark.Clients
 			_client = RedisClient.ConnectAsync(connectionString.EndPoint, connectionString.DbIndex).Result;
 		}
 
-		public Task SetAsync(string key, string value)
+		public void SetAsync(string key, string value)
 		{
-			return _client.SetAsync(key, value);
+			_client.SetAsync(key, value);
 		}
 
 		public string GetString(string key)
@@ -35,9 +35,9 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark.Clients
 		{
 			get { return "redisboost"; }
 		}
-		public Task IncrAsync(string key)
+		public void IncrAsync(string key)
 		{
-			return _client.IncrAsync(key);
+			_client.IncrAsync(key);
 		}
 
 		public int GetInt(string key)
@@ -45,14 +45,15 @@ namespace NBoosters.RedisBoost.ConsoleBenchmark.Clients
 			return _client.GetAsync(key).Result.As<int>();
 		}
 
-		#region ITestClient Members
-
-
 		public ITestClient CreateOne()
 		{
 			return new RedisBoostTestClient();
 		}
 
-		#endregion
+		public void Set(string key, string value)
+		{
+			_client.SetAsync(key, value).Wait();
+		}
+
 	}
 }
