@@ -11,3 +11,7 @@ RedisBoost (.NET 4.0)
 * [Clients pool](https://github.com/andrew-bn/RedisBoost/wiki/Clients-pool) support
 * [Connection string] (#connection-string-support) support
 * [Benchmark tests] (https://github.com/andrew-bn/RedisBoost/wiki/Benchmark) provided
+
+You can install RedisBoost via NuGet:
+
+![Install-Pacakage NBoosters.RedisBoost](https://raw.github.com/andrew-bn/RedisBoost/master/images/nuget.png)
