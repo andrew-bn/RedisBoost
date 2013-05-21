@@ -10,4 +10,4 @@ RedisBoost (.NET 4.0)
 * [Serialization](#serialization) support
 * [Clients pool](#clients-pool-support) support
 * [Connection string] (#connection-string-support) support
-* Has [benchmark tests] (https://github.com/andrew-bn/RedisBoost/wiki/Benchmark)
+* [Benchmark tests] (https://github.com/andrew-bn/RedisBoost/wiki/Benchmark) provided
