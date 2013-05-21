@@ -9,6 +9,14 @@ RedisBoost (.NET 4.0)
 * [Clients pool](#clients-pool-support) support
 * [Connection string] (#connection-string-support) support
 
+RedisBoost is fast client for Redis database. 
+RedisBoost is asynchronous, does not spawn dedicated threads only for receiving responses or sending commands. 
+It uses async sockets and tries to send data as efficiently as possible.
+
+The stability of RedisBoost is verified by numerous integration tests.
+
+The performance is proved by [benchmark tests](https://github.com/andrew-bn/RedisBoost/wiki/Benchmark).
+
 Installation
 ----------
 You can install RedisBoost via NuGet:
