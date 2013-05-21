@@ -1,7 +1,7 @@
 RedisBoost (.NET 4.0)
 ==========
 
-[Visit our Wiki pages](https://github.com/andrew-bn/RedisBoost/wiki)
+[Wiki pages](https://github.com/andrew-bn/RedisBoost/wiki) are available
 
 * [Redis 2.6 commands set](http://redis.io/commands) support
 * Thread-safe asynchronous architecture
