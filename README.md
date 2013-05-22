@@ -9,7 +9,7 @@ RedisBoost (.NET 4.0)
 * [Pipelining](https://github.com/andrew-bn/RedisBoost/wiki/Pipelining) support
 * [Serialization](https://github.com/andrew-bn/RedisBoost/wiki/Serialization) support
 * [Clients pool](https://github.com/andrew-bn/RedisBoost/wiki/Clients-pool) support
-* [Connection string] (#connection-string-support) support
+* [Connection string] (https://github.com/andrew-bn/RedisBoost/wiki/Connection-strings) support
 * [Benchmark tests] (https://github.com/andrew-bn/RedisBoost/wiki/Benchmark) provided
 
 You can install RedisBoost via NuGet:
