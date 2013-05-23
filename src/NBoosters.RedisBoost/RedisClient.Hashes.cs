@@ -18,6 +18,7 @@
 
 using System.Threading.Tasks;
 using NBoosters.RedisBoost.Core;
+using NBoosters.RedisBoost.Misk;
 
 namespace NBoosters.RedisBoost
 {
@@ -30,7 +31,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> HSetAsync(string key, byte[] field, byte[] value)
 		{
-			return IntegerResponseCommand(RedisConstants.HSet, ConvertToByteArray(key),field,value);
+			return IntegerCommand(RedisConstants.HSet, key.ToBytes(), field, value);
 		}
 
 		public Task<long> HSetNxAsync<TFld, TVal>(string key, TFld field, TVal value)
@@ -40,7 +41,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> HSetNxAsync(string key, byte[] field, byte[] value)
 		{
-			return IntegerResponseCommand(RedisConstants.HSetNx, ConvertToByteArray(key), field, value);
+			return IntegerCommand(RedisConstants.HSetNx, key.ToBytes(), field, value);
 		}
 
 		public Task<long> HExistsAsync<TFld>(string key, TFld field)
@@ -50,7 +51,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> HExistsAsync(string key, byte[] field)
 		{
-			return IntegerResponseCommand(RedisConstants.HExists, ConvertToByteArray(key), field);
+			return IntegerCommand(RedisConstants.HExists, key.ToBytes(), field);
 		}
 
 		public Task<long> HDelAsync(string key, params object[] fields)
@@ -65,8 +66,8 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> HDelAsync(string key, params byte[][] fields)
 		{
-			var request = ComposeRequest(RedisConstants.HDel, ConvertToByteArray(key), fields);
-			return IntegerResponseCommand(request);
+			var request = ComposeRequest(RedisConstants.HDel, key.ToBytes(), fields);
+			return IntegerCommand(request);
 		}
 
 		public Task<Bulk> HGetAsync<TFld>(string key, TFld field)
@@ -76,12 +77,12 @@ namespace NBoosters.RedisBoost
 
 		public Task<Bulk> HGetAsync(string key, byte[] field)
 		{
-			return BulkResponseCommand(RedisConstants.HGet, ConvertToByteArray(key), field);
+			return BulkCommand(RedisConstants.HGet, key.ToBytes(), field);
 		}
 
 		public Task<MultiBulk> HGetAllAsync(string key)
 		{
-			return MultiBulkResponseCommand(RedisConstants.HGetAll, ConvertToByteArray(key));
+			return MultiBulkCommand(RedisConstants.HGetAll, key.ToBytes());
 		}
 
 		public Task<long> HIncrByAsync<TFld>(string key, TFld field, int increment)
@@ -91,8 +92,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> HIncrByAsync(string key, byte[] field, int increment)
 		{
-			return IntegerResponseCommand(RedisConstants.HIncrBy, ConvertToByteArray(key),
-				field,ConvertToByteArray(increment));
+			return IntegerCommand(RedisConstants.HIncrBy, key.ToBytes(), field, increment.ToBytes());
 		}
 
 		public Task<Bulk> HIncrByFloatAsync<TFld>(string key, TFld field, double increment)
@@ -102,23 +102,23 @@ namespace NBoosters.RedisBoost
 
 		public Task<Bulk> HIncrByFloatAsync(string key, byte[] field, double increment)
 		{
-			return BulkResponseCommand(RedisConstants.HIncrByFloat, ConvertToByteArray(key),
-				field, ConvertToByteArray(increment));
+			return BulkCommand(RedisConstants.HIncrByFloat, key.ToBytes(),
+				field, increment.ToBytes());
 		}
 
 		public Task<MultiBulk> HKeysAsync(string key)
 		{
-			return MultiBulkResponseCommand(RedisConstants.HKeys, ConvertToByteArray(key));
+			return MultiBulkCommand(RedisConstants.HKeys, key.ToBytes());
 		}
 
 		public Task<MultiBulk> HValsAsync(string key)
 		{
-			return MultiBulkResponseCommand(RedisConstants.HVals, ConvertToByteArray(key));
+			return MultiBulkCommand(RedisConstants.HVals, key.ToBytes());
 		}
 
 		public Task<long> HLenAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.HLen, ConvertToByteArray(key));
+			return IntegerCommand(RedisConstants.HLen, key.ToBytes());
 		}
 
 		public Task<MultiBulk> HMGetAsync<TFld>(string key, params TFld[] fields)
@@ -128,14 +128,14 @@ namespace NBoosters.RedisBoost
 
 		public Task<MultiBulk> HMGetAsync(string key, params byte[][] fields)
 		{
-			var request = ComposeRequest(RedisConstants.HMGet, ConvertToByteArray(key), fields);
-			return MultiBulkResponseCommand(request);
+			var request = ComposeRequest(RedisConstants.HMGet, key.ToBytes(), fields);
+			return MultiBulkCommand(request);
 		}
 
 		public Task<string> HMSetAsync(string key,params MSetArgs[] args)
 		{
-			var request = ComposeRequest(RedisConstants.HMSet, ConvertToByteArray(key), args);
-			return StatusResponseCommand(request);
+			var request = ComposeRequest(RedisConstants.HMSet, key.ToBytes(), args);
+			return StatusCommand(request);
 		}
 
 

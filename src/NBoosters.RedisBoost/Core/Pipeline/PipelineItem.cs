@@ -22,12 +22,20 @@ namespace NBoosters.RedisBoost.Core.Pipeline
 {
 	internal struct PipelineItem
 	{
-		public PipelineItem(byte[][] request, Action<Exception, RedisResponse> callBack)
+		public PipelineItem(byte[][] request, Action<Exception, RedisResponse> callBack, bool isOneWay)
 		{
 			CallBack = callBack;
 			Request = request;
+			IsOneWay = isOneWay;
+		}
+		public PipelineItem(Action<Exception, RedisResponse> callBack)
+		{
+			IsOneWay = true;
+			CallBack = callBack;
+			Request = null;
 		}
 
+		public bool IsOneWay;
 		public byte[][] Request;
 		public Action<Exception, RedisResponse> CallBack;
 	}

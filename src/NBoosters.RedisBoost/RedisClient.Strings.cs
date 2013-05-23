@@ -27,7 +27,7 @@ namespace NBoosters.RedisBoost
 	{
 		public Task<Bulk> GetAsync(string key)
 		{
-			return BulkResponseCommand(RedisConstants.Get, ConvertToByteArray(key));
+			return BulkCommand(RedisConstants.Get, key.ToBytes());
 		}
 
 		public Task<string> SetAsync<T>(string key, T value)
@@ -37,7 +37,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<string> SetAsync(string key, byte[] value)
 		{
-			return StatusResponseCommand(RedisConstants.Set, ConvertToByteArray(key), value);
+			return StatusCommand(RedisConstants.Set, key.ToBytes(), value);
 		}
 
 		public Task<long> AppendAsync<T>(string key, T value)
@@ -47,42 +47,42 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> AppendAsync(string key, byte[] value)
 		{
-			return IntegerResponseCommand(RedisConstants.Append, ConvertToByteArray(key), value);
+			return IntegerCommand(RedisConstants.Append, key.ToBytes(), value);
 		}
 
 		public Task<long> BitCountAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.BitCount);
+			return IntegerCommand(RedisConstants.BitCount);
 		}
 
 		public Task<long> BitCountAsync(string key, int start, int end)
 		{
-			return IntegerResponseCommand(RedisConstants.BitCount,ConvertToByteArray(start), ConvertToByteArray(end));
+			return IntegerCommand(RedisConstants.BitCount, start.ToBytes(), end.ToBytes());
 		}
 
 		public Task<long> DecrAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.Decr,ConvertToByteArray(key));
+			return IntegerCommand(RedisConstants.Decr, key.ToBytes());
 		}
 
 		public Task<long> IncrAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.Incr,ConvertToByteArray(key));
+			return IntegerCommand(RedisConstants.Incr, key.ToBytes());
 		}
 
 		public Task<long> DecrByAsync(string key, int decrement)
 		{
-			return IntegerResponseCommand(RedisConstants.DecrBy, ConvertToByteArray(key), ConvertToByteArray(decrement));
+			return IntegerCommand(RedisConstants.DecrBy, key.ToBytes(), decrement.ToBytes());
 		}
 
 		public Task<long> IncrByAsync(string key, int increment)
 		{
-			return IntegerResponseCommand(RedisConstants.IncrBy, ConvertToByteArray(key), ConvertToByteArray(increment));
+			return IntegerCommand(RedisConstants.IncrBy, key.ToBytes(), increment.ToBytes());
 		}
 
 		public Task<Bulk> IncrByFloatAsync(string key, double increment)
 		{
-			return BulkResponseCommand(RedisConstants.IncrByFloat, ConvertToByteArray(key), ConvertToByteArray(increment));
+			return BulkCommand(RedisConstants.IncrByFloat, key.ToBytes(), increment.ToBytes());
 		}
 
 		public Task<T> GetRangeAsync<T>(string key, int start, int end)
@@ -92,7 +92,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<Bulk> GetRangeAsync(string key, int start, int end)
 		{
-			return BulkResponseCommand(RedisConstants.GetRange, ConvertToByteArray(key), ConvertToByteArray(start),ConvertToByteArray(end));
+			return BulkCommand(RedisConstants.GetRange, key.ToBytes(), start.ToBytes(), end.ToBytes());
 		}
 
 		public Task<long> SetRangeAsync<T>(string key, int offset, T value)
@@ -102,12 +102,12 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> SetRangeAsync(string key, int offset, byte[] value)
 		{
-			return IntegerResponseCommand(RedisConstants.SetRange, ConvertToByteArray(key), ConvertToByteArray(offset), value);
+			return IntegerCommand(RedisConstants.SetRange, key.ToBytes(), offset.ToBytes(), value);
 		}
 
 		public Task<long> StrLenAsync(string key)
 		{
-			return IntegerResponseCommand(RedisConstants.StrLen, ConvertToByteArray(key));
+			return IntegerCommand(RedisConstants.StrLen, key.ToBytes());
 		}
 
 		public Task<Bulk> GetSetAsync<T>(string key, T value)
@@ -117,25 +117,25 @@ namespace NBoosters.RedisBoost
 
 		public Task<Bulk> GetSetAsync(string key, byte[] value)
 		{
-			return BulkResponseCommand(RedisConstants.GetSet, ConvertToByteArray(key), value);
+			return BulkCommand(RedisConstants.GetSet, key.ToBytes(), value);
 		}
 
 		public Task<MultiBulk> MGetAsync(params string[] keys)
 		{
 			var request = ComposeRequest(RedisConstants.MGet, keys);
-			return MultiBulkResponseCommand(request);
+			return MultiBulkCommand(request);
 		}
 
 		public Task<string> MSetAsync(params MSetArgs[] args)
 		{
 			var request = ComposeMSetRequest(RedisConstants.MSet, args);
-			return StatusResponseCommand(request);
+			return StatusCommand(request);
 		}
 
 		public Task<long> MSetNxAsync(params MSetArgs[] args)
 		{
 			var request = ComposeMSetRequest(RedisConstants.MSetNx, args);
-			return IntegerResponseCommand(request);
+			return IntegerCommand(request);
 		}
 
 		public Task<string> SetExAsync<T>(string key, int seconds, T value)
@@ -145,7 +145,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<string> SetExAsync(string key, int seconds, byte[] value)
 		{
-			return StatusResponseCommand(RedisConstants.SetEx, ConvertToByteArray(key), ConvertToByteArray(seconds), value);
+			return StatusCommand(RedisConstants.SetEx, key.ToBytes(), seconds.ToBytes(), value);
 		}
 
 		public Task<string> PSetExAsync<T>(string key, int milliseconds, T value)
@@ -155,7 +155,7 @@ namespace NBoosters.RedisBoost
 
 		public Task<string> PSetExAsync(string key, int milliseconds, byte[] value)
 		{
-			return StatusResponseCommand(RedisConstants.PSetEx, ConvertToByteArray(key), ConvertToByteArray(milliseconds), value);
+			return StatusCommand(RedisConstants.PSetEx, key.ToBytes(), milliseconds.ToBytes(), value);
 		}
 
 		public Task<long> SetNxAsync<T>(string key, T value)
@@ -165,23 +165,23 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> SetNxAsync(string key, byte[] value)
 		{
-			return IntegerResponseCommand(RedisConstants.SetNx, ConvertToByteArray(key), value);
+			return IntegerCommand(RedisConstants.SetNx, key.ToBytes(), value);
 		}
 
 		public Task<long> BitOpAsync(BitOpType bitOp, string destKey, params string[] keys)
 		{
-			var request = ComposeRequest(RedisConstants.BitOp, ConvertToByteArray(bitOp), ConvertToByteArray(destKey), keys);
-			return IntegerResponseCommand(request);
+			var request = ComposeRequest(RedisConstants.BitOp, bitOp.ToBytes(), destKey.ToBytes(), keys);
+			return IntegerCommand(request);
 		}
 
 		public Task<long> GetBitAsync(string key, long offset)
 		{
-			return IntegerResponseCommand(RedisConstants.GetBit,ConvertToByteArray(key), ConvertToByteArray(offset));
+			return IntegerCommand(RedisConstants.GetBit, key.ToBytes(), offset.ToBytes());
 		}
 
 		public Task<long> SetBitAsync(string key, long offset, int value)
 		{
-			return IntegerResponseCommand(RedisConstants.SetBit, ConvertToByteArray(key), ConvertToByteArray(offset), ConvertToByteArray(value));
+			return IntegerCommand(RedisConstants.SetBit, key.ToBytes(), offset.ToBytes(), value.ToBytes());
 		}
 
 		#region request composing
@@ -195,7 +195,7 @@ namespace NBoosters.RedisBoost
 			for (int i = 0; i < args.Length; i++)
 			{
 				var arg = args[i];
-				request[i * 2 + 1] = ConvertToByteArray(arg.KeyOrField);
+				request[i * 2 + 1] = arg.KeyOrField.ToBytes();
 				request[i * 2 + 2] = arg.IsArray ? (byte[])arg.Value : Serialize(arg.Value);
 			}
 			return request;

@@ -32,18 +32,18 @@ namespace NBoosters.RedisBoost
 
 		public Task<long> PublishAsync(string channel, byte[] message)
 		{
-			return IntegerResponseCommand(RedisConstants.Publish, ConvertToByteArray(channel), message);
+			return IntegerCommand(RedisConstants.Publish, channel.ToBytes(), message);
 		}
 
 		public Task<IRedisSubscription> SubscribeAsync(params string[] channels)
 		{
-			ClosePipeline();
+			OneWayMode();
 			return SubscriptionCommandAsync(RedisConstants.Subscribe, channels);
 		}
 
 		public Task<IRedisSubscription> PSubscribeAsync(params string[] pattern)
 		{
-			ClosePipeline();
+			OneWayMode();
 			return SubscriptionCommandAsync(RedisConstants.PSubscribe, pattern);
 		}
 
@@ -69,7 +69,7 @@ namespace NBoosters.RedisBoost
 
 		private Task<IRedisSubscription> SubscriptionCommandAsync(byte[] commandName, string[] channels)
 		{
-			_state = ClientState.Subscription;
+			SetQuitState();
 			var request = ComposeRequest(commandName, channels);
 			return SendDirectRequest(request).ContinueWithIfNoError(t => (IRedisSubscription)this);
 		}
@@ -105,7 +105,7 @@ namespace NBoosters.RedisBoost
 					RedisResponse.CreateError(readTask.Exception.UnwrapAggregation().Message, Serializer), new string[0]));
 				return;
 			}
-			if (readTask.Result.ResponseType != RedisResponseType.MultiBulk)
+			if (readTask.Result.ResponseType != ResponseType.MultiBulk)
 			{
 				tcs.SetResult(new ChannelMessage(ChannelMessageType.Unknown, readTask.Result, new string[0]));
 				return;
@@ -114,8 +114,8 @@ namespace NBoosters.RedisBoost
 			ChannelMessageType messageType;
 			var response = readTask.Result.AsMultiBulk();
 			if (response.Length < 3 || //1 - message type, 2.. - channel, ..3 - message
-				response[0].ResponseType != RedisResponseType.Bulk ||
-				!Enum.TryParse(ConvertToString(response[0].AsBulk()), true, out messageType)) 
+				response[0].ResponseType != ResponseType.Bulk ||
+				!Enum.TryParse(((byte[])response[0].AsBulk()).AsString(), true, out messageType)) 
 			{
 				tcs.SetResult(new ChannelMessage(ChannelMessageType.Unknown, readTask.Result, new string[0]));
 				return;
@@ -130,7 +130,7 @@ namespace NBoosters.RedisBoost
 			var channels = new string[response.Length - 2];
 
 			for (var i = 1; i < (response.Length - 1); i++)
-				channels[i - 1] = ConvertToString(response[i].AsBulk());
+				channels[i - 1] = ((byte[])response[i].AsBulk()).AsString();
 
 			var lastReply = response[response.Length - 1];
 
@@ -139,7 +139,7 @@ namespace NBoosters.RedisBoost
 
 		Task IRedisSubscription.QuitAsync()
 		{
-			_state = ClientState.Quit;
+			SetQuitState();
 			return SendDirectRequest(RedisConstants.Quit);
 		}
 	}

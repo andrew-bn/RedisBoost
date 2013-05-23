@@ -26,28 +26,28 @@ namespace NBoosters.RedisBoost
 	{
 		public Task<string> DiscardAsync()
 		{
-			return StatusResponseCommand(RedisConstants.Discard);
+			return StatusCommand(RedisConstants.Discard);
 		}
 
 		public Task<MultiBulk> ExecAsync()
 		{
-			return MultiBulkResponseCommand(RedisConstants.Exec);
+			return MultiBulkCommand(RedisConstants.Exec);
 		}
 
 		public Task<string> MultiAsync()
 		{
-			return StatusResponseCommand(RedisConstants.Multi);
+			return StatusCommand(RedisConstants.Multi);
 		}
 
 		public Task<string> UnwatchAsync()
 		{
-			return StatusResponseCommand(RedisConstants.Unwatch);
+			return StatusCommand(RedisConstants.Unwatch);
 		}
 
 		public Task<string> WatchAsync(params string[] keys)
 		{
 			var request = ComposeRequest(RedisConstants.Watch, keys);
-			return StatusResponseCommand(request);
+			return StatusCommand(request);
 		}
 	}
 }

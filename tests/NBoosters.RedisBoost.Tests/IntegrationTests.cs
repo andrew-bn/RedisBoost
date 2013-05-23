@@ -1344,7 +1344,7 @@ namespace NBoosters.RedisBoost.Tests
 				c1.Dispose();
 				var subResult = readTask.Result;
 				Assert.AreEqual(ChannelMessageType.Unknown, subResult.MessageType);
-				Assert.AreEqual(RedisResponseType.Error, subResult.Value.ResponseType);
+				Assert.AreEqual(ResponseType.Error, subResult.Value.ResponseType);
 			}
 		}
 		[Test]
@@ -1415,7 +1415,7 @@ namespace NBoosters.RedisBoost.Tests
 				cli1.QuitAsync().Wait();
 				var result = cli1.ReadMessageAsync(ChannelMessageType.Message).Result;
 				Assert.AreEqual(ChannelMessageType.Unknown, result.MessageType);
-				Assert.AreEqual(RedisResponseType.Status, result.Value.ResponseType);
+				Assert.AreEqual(ResponseType.Status, result.Value.ResponseType);
 			}
 		}
 
@@ -1428,7 +1428,7 @@ namespace NBoosters.RedisBoost.Tests
 				cli1.QuitAsync().Wait();
 				var result = cli1.ReadMessageAsync().Result;
 				Assert.AreEqual(ChannelMessageType.Unknown, result.MessageType);
-				Assert.AreEqual(RedisResponseType.Status, result.Value.ResponseType);
+				Assert.AreEqual(ResponseType.Status, result.Value.ResponseType);
 			}
 		}
 		#endregion
@@ -1453,7 +1453,7 @@ namespace NBoosters.RedisBoost.Tests
 				var result = cli.EvalAsync("return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
 											new[] { "key1", "key2" }, GetBytes("first"), GetBytes("second")).Result;
 
-				Assert.AreEqual(RedisResponseType.MultiBulk, result.ResponseType);
+				Assert.AreEqual(ResponseType.MultiBulk, result.ResponseType);
 				var mb = result.AsMultiBulk();
 				Assert.AreEqual("key1", GetString(mb[0].AsBulk()));
 				Assert.AreEqual("key2", GetString(mb[1].AsBulk()));
@@ -1469,7 +1469,7 @@ namespace NBoosters.RedisBoost.Tests
 				var sha1 = cli.ScriptLoadAsync("return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}").Result;
 
 				var result = cli.EvalShaAsync(sha1, new[] { "key1", "key2" }, GetBytes("first"), GetBytes("second")).Result;
-				Assert.AreEqual(RedisResponseType.MultiBulk, result.ResponseType);
+				Assert.AreEqual(ResponseType.MultiBulk, result.ResponseType);
 				var mb = result.AsMultiBulk();
 				Assert.AreEqual("key1", GetString(mb[0].AsBulk()));
 				Assert.AreEqual("key2", GetString(mb[1].AsBulk()));
@@ -1647,7 +1647,7 @@ namespace NBoosters.RedisBoost.Tests
 				catch (AggregateException ex)
 				{
 					Assert.AreEqual(typeof(RedisException), ex.InnerException.GetType());
-					Assert.AreEqual("Pipeline is closed", ex.InnerException.Message);
+					Assert.AreEqual("Pipeline is in OneWay mode", ex.InnerException.Message);
 				}
 
 			}

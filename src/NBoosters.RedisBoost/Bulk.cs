@@ -28,7 +28,7 @@ namespace NBoosters.RedisBoost
 			get { return Value == null; }
 		}
 		internal Bulk(byte[] value, IRedisSerializer serializer)
-			: base(RedisResponseType.Bulk, serializer)
+			: base(RedisBoost.ResponseType.Bulk, serializer)
 		{
 			Value = value;
 		}

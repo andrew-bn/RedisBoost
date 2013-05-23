@@ -207,6 +207,7 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreEqual("NewValue", cli.GetAsync("Key").Result.As<string>());
 			}
 		}
+
 		[Test]
 		public void Keys()
 		{
@@ -215,10 +216,12 @@ namespace NBoosters.RedisBoost.Tests
 				cli.SetAsync("Key1", "Val1").Wait();
 				cli.SetAsync("Key2", "Val2").Wait();
 				var result = cli.KeysAsync("*").Result;
-				Assert.AreEqual("Key2", result[0].As<string>());
-				Assert.AreEqual("Key1", result[1].As<string>());
+				Assert.AreEqual(2,result.Length);
+				Assert.IsTrue(result.Select(r=>r.As<string>()).Contains("Key2"));
+				Assert.IsTrue(result.Select(r => r.As<string>()).Contains("Key1"));
 			}
 		}
+
 		[Test]
 		public void Keys_Generic()
 		{
@@ -227,8 +230,9 @@ namespace NBoosters.RedisBoost.Tests
 				cli.SetAsync("Key1", "Val1").Wait();
 				cli.SetAsync("Key2", "Val2").Wait();
 				var result = cli.KeysAsync("*").Result.AsArray<string>();
-				Assert.AreEqual("Key2", result[0]);
-				Assert.AreEqual("Key1", result[1]);
+				Assert.AreEqual(2, result.Length);
+				Assert.IsTrue(result.Contains("Key2"));
+				Assert.IsTrue(result.Contains("Key1"));
 			}
 		}
 		[Test]
@@ -280,7 +284,7 @@ namespace NBoosters.RedisBoost.Tests
 			using (var cli = CreateClient())
 			{
 				cli.SetExAsync("Key", 2, "Value").Wait();
-				Thread.Sleep(2000);
+				Thread.Sleep(4000);
 				var exists = cli.ExistsAsync("Key").Result;
 				Assert.AreEqual(0, exists);
 			}
@@ -533,7 +537,7 @@ namespace NBoosters.RedisBoost.Tests
 				var result = cli.EvalAsync("return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
 											new[] { "key1", "key2" }, "first", second).Result;
 
-				Assert.AreEqual(RedisResponseType.MultiBulk, result.ResponseType);
+				Assert.AreEqual(ResponseType.MultiBulk, result.ResponseType);
 				var mb = result.AsMultiBulk();
 				Assert.AreEqual("key1", mb[0].As<string>());
 				Assert.AreEqual("key2", mb[1].As<string>());

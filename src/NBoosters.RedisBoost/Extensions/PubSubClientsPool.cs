@@ -34,7 +34,7 @@ namespace NBoosters.RedisBoost.Extensions
 			}
 			protected override bool DestroyClientCondition(IPooledRedisClient pooledRedisClient)
 			{
-				if (pooledRedisClient.State == RedisClient.ClientState.Subscription)
+				if (pooledRedisClient.State == ClientState.Subscription)
 					return false;
 				return base.DestroyClientCondition(pooledRedisClient);
 			}
