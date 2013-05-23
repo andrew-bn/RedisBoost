@@ -1,5 +1,11 @@
 Release Notes
 ==============
+1.5.8
+--------------
+- new pipeline strategy introduced. RedisBoost became faster, more reliable and robust. 
+[Benchmark tests](https://github.com/andrew-bn/RedisBoost/wiki/Benchmark) were provided for this version of RedisBoost.
+- minor bug fixes
+
 1.5.7
 --------------
 - max pipeline size was introduced. Now pipeline can not be oversized, 
