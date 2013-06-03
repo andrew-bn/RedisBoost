@@ -28,71 +28,447 @@ namespace NBoosters.RedisBoost
 		string ConnectionString { get; }
 
 		Task DisconnectAsync();
-
+		/// <summary>
+		/// Kill the connection of a client. 
+		/// Complexity: O(N) where N is the number of client connections
+		/// </summary>
+		/// <param name="ip"></param>
+		/// <param name="port"></param>
+		/// <returns></returns>
 		Task<string> ClientKillAsync(string ip, int port);
+		/// <summary>
+		/// Find all keys matching the given pattern.
+		/// Complexity: O(N) with N being the number of keys in the database, under the assumption that the key names in the database and the given pattern have limited length.
+		/// </summary>
+		/// <param name="pattern"></param>
+		/// <returns></returns>
 		Task<MultiBulk> KeysAsync(string pattern);
+		/// <summary>
+		/// Delete a key.
+		/// Complexity: O(N) where N is the number of keys that will be removed. When a key to remove holds a value other than a string, the individual complexity for this key is O(M) where M is the number of elements in the list, set, sorted set or hash. Removing a single key that holds a string value is O(1).
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<long> DelAsync(string key);
+		/// <summary>
+		/// Perform bitwise operations between strings.
+		/// Complexity: O(N)
+		/// </summary>
+		/// <param name="bitOp"></param>
+		/// <param name="destKey"></param>
+		/// <param name="keys"></param>
+		/// <returns></returns>
 		Task<long> BitOpAsync(BitOpType bitOp, string destKey, params string[] keys);
+		/// <summary>
+		/// Sets or clears the bit at offset in the string value stored at key. Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="offset"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> SetBitAsync(string key, long offset, int value);
+		/// <summary>
+		/// Returns the bit value at offset in the string value stored at key. Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="offset"></param>
+		/// <returns></returns>
 		Task<long> GetBitAsync(string key, long offset);
+		/// <summary>
+		/// Atomically transfer a key from a Redis instance to another one. 
+		/// Complexity: This command actually executes a DUMP+DEL in the source instance, and a RESTORE in the target instance. See the pages of these commands for time complexity. Also an O(N) data transfer between the two instances is performed.
+		/// </summary>
+		/// <param name="host"></param>
+		/// <param name="port"></param>
+		/// <param name="key"></param>
+		/// <param name="destinationDb"></param>
+		/// <param name="timeout"></param>
+		/// <returns></returns>
 		Task<string> MigrateAsync(string host, int port, string key, int destinationDb, int timeout);
+		/// <summary>
+		/// Return a serialized version of the value stored at the specified key.
+		/// Complexity: O(1) to access the key and additional O(N*M) to serialized it, where N is the number of Redis objects composing the value and M their average size. For small string values the time complexity is thus O(1)+O(1*M) where M is small, so simply O(1).
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<Bulk> DumpAsync(string key);
+		/// <summary>
+		/// Move a key to another database. Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="db"></param>
+		/// <returns></returns>
 		Task<long> MoveAsync(string key, int db);
+		/// <summary>
+		/// Inspect the internals of Redis objects. Complexity: O(1) for all the currently implemented subcommands.
+		/// </summary>
+		/// <param name="subcommand"></param>
+		/// <param name="args"></param>
+		/// <returns></returns>
 		Task<RedisResponse> ObjectAsync(Subcommand subcommand, params string[] args);
+		/// <summary>
+		/// Sort the elements in a list, set or sorted set.
+		/// Complexity: O(N+M*log(M)) where N is the number of elements in the list or set to sort, and M the number of returned elements. When the elements are not sorted, complexity is currently O(N) as there is a copy step that will be avoided in next releases.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="by"></param>
+		/// <param name="limitOffset"></param>
+		/// <param name="limitCount"></param>
+		/// <param name="asc"></param>
+		/// <param name="alpha"></param>
+		/// <param name="destination"></param>
+		/// <param name="getPatterns"></param>
+		/// <returns></returns>
 		Task<RedisResponse> SortAsync(string key, string by = null, long? limitOffset = null,
 		                         long? limitCount = null, bool? asc = null, bool alpha = false, string destination = null,
 		                         string[] getPatterns = null);
+		/// <summary>
+		/// Create a key using the provided serialized value, previously obtained using DUMP.
+		/// Complexity: O(1) to create the new key and additional O(N*M) to recostruct the serialized value, where N is the number of Redis objects composing the value and M their average size. For small string values the time complexity is thus O(1)+O(1*M) where M is small, so simply O(1). However for sorted set values the complexity is O(N*M*log(N)) because inserting values into sorted sets is O(log(N)).
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="ttlInMilliseconds"></param>
+		/// <param name="serializedValue"></param>
+		/// <returns></returns>
 		Task<string> RestoreAsync(string key, int ttlInMilliseconds, byte[] serializedValue);
+		/// <summary>
+		/// Determine if a key exists.
+		/// Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<long> ExistsAsync(string key);
+		/// <summary>
+		/// Set a key's time to live in seconds.
+		/// Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="seconds"></param>
+		/// <returns></returns>
 		Task<long> ExpireAsync(string key, int seconds);
+		/// <summary>
+		/// Set a key's time to live in milliseconds.
+		/// Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="milliseconds"></param>
+		/// <returns></returns>
 		Task<long> PExpireAsync(string key, int milliseconds);
+		/// <summary>
+		/// Set a key's time to live in seconds.
+		/// Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="timestamp"></param>
+		/// <returns></returns>
 		Task<long> ExpireAtAsync(string key, DateTime timestamp);
+		/// <summary>
+		/// Remove the expiration from a key. Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<long> PersistAsync(string key);
+		/// <summary>
+		/// Get the time to live for a key in milliseconds. Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<long> PttlAsync(string key);
+		/// <summary>
+		/// Get the time to live for a key. Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<long> TtlAsync(string key);
+		/// <summary>
+		/// Returns the string representation of the type of the value stored at key. The different types that can be returned are: string, list, set, zset and hash.
+		/// Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<string> TypeAsync(string key);
+		/// <summary>
+		/// Return a random key from the keyspace. Complexity: O(1)
+		/// </summary>
+		/// <returns></returns>
 		Task<string> RandomKeyAsync();
+		/// <summary>
+		/// Rename a key. Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="newKey"></param>
+		/// <returns></returns>
 		Task<string> RenameAsync(string key, string newKey);
+		/// <summary>
+		/// Rename a key, only if the new key does not exist.
+		/// Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="newKey"></param>
+		/// <returns></returns>
 		Task<long> RenameNxAsync(string key, string newKey);
+		/// <summary>
+		/// Remove all keys from the current database
+		/// </summary>
+		/// <returns></returns>
 		Task<string> FlushDbAsync();
+		/// <summary>
+		/// Remove all keys from all databases
+		/// </summary>
+		/// <returns></returns>
 		Task<string> FlushAllAsync();
+		/// <summary>
+		/// Asynchronously rewrite the append-only file
+		/// </summary>
+		/// <returns></returns>
 		Task<string> BgRewriteAofAsync();
+		/// <summary>
+		/// Asynchronously save the dataset to disk
+		/// </summary>
+		/// <returns></returns>
 		Task<string> BgSaveAsync();
+		/// <summary>
+		/// Get the list of client connections. Complexity: O(N) where N is the number of client connections.
+		/// </summary>
+		/// <returns></returns>
 		Task<Bulk> ClientListAsync();
+		/// <summary>
+		/// Return the number of keys in the selected database
+		/// </summary>
+		/// <returns></returns>
 		Task<long> DbSizeAsync();
+		/// <summary>
+		/// Get the value of a configuration parameter
+		/// </summary>
+		/// <param name="parameter"></param>
+		/// <returns></returns>
 		Task<RedisResponse> ConfigGetAsync(string parameter);
+		/// <summary>
+		/// Set a configuration parameter to the given value
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="parameter"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<string> ConfigSetAsync<T>(string parameter, T value);
+		/// <summary>
+		/// Set a configuration parameter to the given value
+		/// </summary>
+		/// <param name="parameter"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<string> ConfigSetAsync(string parameter, byte[] value);
+		/// <summary>
+		/// Reset the stats returned by INFO. Complexity: O(1)
+		/// </summary>
+		/// <returns></returns>
 		Task<string> ConfigResetStatAsync();
+		/// <summary>
+		/// Get information and statistics about the server
+		/// </summary>
+		/// <returns></returns>
 		Task<Bulk> InfoAsync();
+		/// <summary>
+		/// Get information and statistics about the server
+		/// </summary>
+		/// <param name="section"></param>
+		/// <returns></returns>
 		Task<Bulk> InfoAsync(string section);
+		/// <summary>
+		/// Get the UNIX time stamp of the last successful save to disk
+		/// </summary>
+		/// <returns></returns>
 		Task<long> LastSaveAsync();
+		/// <summary>
+		/// Synchronously save the dataset to disk
+		/// </summary>
+		/// <returns></returns>
 		Task<string> SaveAsync();
+		/// <summary>
+		/// Synchronously save the dataset to disk and then shut down the server
+		/// </summary>
+		/// <returns></returns>
 		Task<string> ShutDownAsync();
+		/// <summary>
+		/// Synchronously save the dataset to disk and then shut down the server
+		/// </summary>
+		/// <param name="save"></param>
+		/// <returns></returns>
 		Task<string> ShutDownAsync(bool save);
+		/// <summary>
+		/// Make the server a slave of another instance, or promote it as master
+		/// </summary>
+		/// <param name="host"></param>
+		/// <param name="port"></param>
+		/// <returns></returns>
 		Task<string> SlaveOfAsync(string host, int port);
+		/// <summary>
+		/// Return the current server time. Complexity: O(1)
+		/// </summary>
+		/// <returns></returns>
 		Task<MultiBulk> TimeAsync();
+		/// <summary>
+		/// Authenticate to the server
+		/// </summary>
+		/// <param name="password"></param>
+		/// <returns></returns>
 		Task<string> AuthAsync(string password);
+		/// <summary>
+		/// Echo the given string
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="message"></param>
+		/// <returns></returns>
 		Task<Bulk> EchoAsync<T>(T message);
+		/// <summary>
+		/// Echo the given string
+		/// </summary>
+		/// <param name="message"></param>
+		/// <returns></returns>
 		Task<Bulk> EchoAsync(byte[] message);
+		/// <summary>
+		/// Ping the server
+		/// </summary>
+		/// <returns></returns>
 		Task<string> PingAsync();
+		/// <summary>
+		/// Close the connection
+		/// </summary>
+		/// <returns></returns>
 		Task<string> QuitAsync();
+		/// <summary>
+		/// Change the selected database for the current connection
+		/// </summary>
+		/// <param name="index"></param>
+		/// <returns></returns>
 		Task<string> SelectAsync(int index);
+		/// <summary>
+		/// Set the string value of a hash field. Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="TFld"></typeparam>
+		/// <typeparam name="TVal"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="field"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> HSetAsync<TFld,TVal>(string key, TFld field, TVal value);
+		/// <summary>
+		/// Set the string value of a hash field. Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="field"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> HSetAsync(string key, byte[] field, byte[] value);
+		/// <summary>
+		/// Set the value of a hash field, only if the field does not exist. Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="TFld"></typeparam>
+		/// <typeparam name="TVal"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="field"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> HSetNxAsync<TFld,TVal>(string key, TFld field, TVal value);
+		/// <summary>
+		/// Set the value of a hash field, only if the field does not exist. Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="field"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> HSetNxAsync(string key, byte[] field, byte[] value);
+		/// <summary>
+		/// Determine if a hash field exists. Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="TFld"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="field"></param>
+		/// <returns></returns>
 		Task<long> HExistsAsync<TFld>(string key, TFld field);
+		/// <summary>
+		/// Determine if a hash field exists. Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="field"></param>
+		/// <returns></returns>
 		Task<long> HExistsAsync(string key, byte[] field);
+		/// <summary>
+		/// Delete one or more hash fields. Complexity: O(N) where N is the number of fields to be removed.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="fields"></param>
+		/// <returns></returns>
 		Task<long> HDelAsync(string key, params object[] fields);
+		/// <summary>
+		/// Delete one or more hash fields. Complexity: O(N) where N is the number of fields to be removed.
+		/// </summary>
+		/// <typeparam name="TFld"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="fields"></param>
+		/// <returns></returns>
 		Task<long> HDelAsync<TFld>(string key, params TFld[] fields);
+		/// <summary>
+		/// Delete one or more hash fields. Complexity: O(N) where N is the number of fields to be removed.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="fields"></param>
+		/// <returns></returns>
 		Task<long> HDelAsync(string key, params byte[][] fields);
+		/// <summary>
+		/// Get the value of a hash field. Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="TFld"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="field"></param>
+		/// <returns></returns>
 		Task<Bulk> HGetAsync<TFld>(string key, TFld field);
+		/// <summary>
+		/// Get the value of a hash field. Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="field"></param>
+		/// <returns></returns>
 		Task<Bulk> HGetAsync(string key, byte[] field);
+		/// <summary>
+		/// Get all the fields and values in a hash. Complexity: O(N) where N is the size of the hash.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<MultiBulk> HGetAllAsync(string key);
+		/// <summary>
+		/// Increment the integer value of a hash field by the given number. Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="TFld"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="field"></param>
+		/// <param name="increment"></param>
+		/// <returns></returns>
 		Task<long> HIncrByAsync<TFld>(string key, TFld field, int increment);
+		/// <summary>
+		/// Increment the integer value of a hash field by the given number. Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="field"></param>
+		/// <param name="increment"></param>
+		/// <returns></returns>
 		Task<long> HIncrByAsync(string key, byte[] field, int increment);
+		/// <summary>
+		/// Increment the float value of a hash field by the given amount. Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="TFld"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="field"></param>
+		/// <param name="increment"></param>
+		/// <returns></returns>
 		Task<Bulk> HIncrByFloatAsync<TFld>(string key, TFld field, double increment);
+		/// <summary>
+		/// Increment the float value of a hash field by the given amount. Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="field"></param>
+		/// <param name="increment"></param>
+		/// <returns></returns>
 		Task<Bulk> HIncrByFloatAsync(string key, byte[] field, double increment);
 		Task<MultiBulk> HKeysAsync(string key);
 		Task<MultiBulk> HValsAsync(string key);
