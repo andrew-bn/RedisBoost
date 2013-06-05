@@ -501,6 +501,7 @@ namespace NBoosters.RedisBoost.Tests
 		{
 			using (var cli = CreateClient())
 			{
+
 				cli.HSetAsync("Key", "Fld1", GetBytes("Val1")).Wait();
 				cli.HSetAsync("Key", "Fld2", GetBytes("Val2")).Wait();
 				var result = cli.HValsAsync("Key").Result;
