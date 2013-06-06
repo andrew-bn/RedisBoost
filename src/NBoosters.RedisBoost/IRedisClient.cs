@@ -26,7 +26,10 @@ namespace NBoosters.RedisBoost
 	{
 		IRedisSerializer Serializer { get; }
 		string ConnectionString { get; }
-
+		/// <summary>
+		/// Closes socket connection with Redis
+		/// </summary>
+		/// <returns></returns>
 		Task DisconnectAsync();
 		/// <summary>
 		/// Kill the connection of a client. 
@@ -975,87 +978,653 @@ namespace NBoosters.RedisBoost
 		/// <param name="value"></param>
 		/// <returns></returns>
 		Task<string> SetAsync(string key, byte[] value);
+		/// <summary>
+		/// Append a value to a key.
+		/// <br/> Complexity: O(1). The amortized time complexity is O(1) assuming the appended value is small and the already present value is of any size, since the dynamic string library used by Redis will double the free space available on every reallocation.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> AppendAsync<T>(string key, T value);
+		/// <summary>
+		/// Append a value to a key.
+		/// <br/> Complexity: O(1). The amortized time complexity is O(1) assuming the appended value is small and the already present value is of any size, since the dynamic string library used by Redis will double the free space available on every reallocation.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> AppendAsync(string key, byte[] value);
+		/// <summary>
+		/// Count set bits in a string.
+		/// <br/> Complexity: O(N)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<long> BitCountAsync(string key);
+		/// <summary>
+		/// Count set bits in a string.
+		/// <br/> Complexity: O(N)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="start"></param>
+		/// <param name="end"></param>
+		/// <returns></returns>
 		Task<long> BitCountAsync(string key, int start, int end);
+		/// <summary>
+		/// Decrement the integer value of a key by one.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<long> DecrAsync(string key);
+		/// <summary>
+		/// Increment the integer value of a key by one.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<long> IncrAsync(string key);
+		/// <summary>
+		/// Decrement the integer value of a key by the given number.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="decrement"></param>
+		/// <returns></returns>
 		Task<long> DecrByAsync(string key, int decrement);
+		/// <summary>
+		/// Increment the integer value of a key by the given amount.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="increment"></param>
+		/// <returns></returns>
 		Task<long> IncrByAsync(string key, int increment);
+		/// <summary>
+		/// Increment the float value of a key by the given amount.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="increment"></param>
+		/// <returns></returns>
 		Task<Bulk> IncrByFloatAsync(string key, double increment);
+		/// <summary>
+		/// Get a substring of the string stored at a key.
+		/// <br/> Complexity: O(N) where N is the length of the returned string. The complexity is ultimately determined by the returned length, but because creating a substring from an existing string is very cheap, it can be considered O(1) for small strings.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="start"></param>
+		/// <param name="end"></param>
+		/// <returns></returns>
 		Task<Bulk> GetRangeAsync(string key, int start, int end);
+		/// <summary>
+		/// Overwrite part of a string at key starting at the specified offset.
+		/// <br/> Complexity: O(1), not counting the time taken to copy the new string in place. Usually, this string is very small so the amortized complexity is O(1). Otherwise, complexity is O(M) with M being the length of the value argument.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="offset"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> SetRangeAsync<T>(string key, int offset, T value);
+		/// <summary>
+		/// Overwrite part of a string at key starting at the specified offset.
+		/// <br/> Complexity: O(1), not counting the time taken to copy the new string in place. Usually, this string is very small so the amortized complexity is O(1). Otherwise, complexity is O(M) with M being the length of the value argument.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="offset"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> SetRangeAsync(string key, int offset, byte[] value);
+		/// <summary>
+		/// Get the length of the value stored in a key.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<long> StrLenAsync(string key);
+		/// <summary>
+		/// Set the string value of a key and return its old value.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<Bulk> GetSetAsync<T>(string key, T value);
+		/// <summary>
+		/// Set the string value of a key and return its old value.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<Bulk> GetSetAsync(string key, byte[] value);
+		/// <summary>
+		/// Get the values of all the given keys.
+		/// <br/> Complexity: O(N) where N is the number of keys to retrieve.
+		/// </summary>
+		/// <param name="keys"></param>
+		/// <returns></returns>
 		Task<MultiBulk> MGetAsync(params string[] keys);
+		/// <summary>
+		/// Set multiple keys to multiple values.
+		/// <br/> Complexity: O(N) where N is the number of keys to set.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
 		Task<string> MSetAsync(params MSetArgs[] args);
+		/// <summary>
+		/// Set multiple keys to multiple values, only if none of the keys exist.
+		/// <br/> Complexity: O(N) where N is the number of keys to set.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
 		Task<long> MSetNxAsync(params MSetArgs[] args);
+		/// <summary>
+		/// Set the value and expiration of a key.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="seconds"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<string> SetExAsync<T>(string key, int seconds, T value);
+		/// <summary>
+		/// Set the value and expiration of a key.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="seconds"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<string> SetExAsync(string key, int seconds, byte[] value);
+		/// <summary>
+		/// Set the value and expiration in milliseconds of a key.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="milliseconds"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<string> PSetExAsync<T>(string key, int milliseconds, T value);
+		/// <summary>
+		/// Set the value and expiration in milliseconds of a key.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="milliseconds"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<string> PSetExAsync(string key, int milliseconds, byte[] value);
+		/// <summary>
+		/// Set the value of a key, only if the key does not exist.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> SetNxAsync<T>(string key, T value);
+		/// <summary>
+		/// Set the value of a key, only if the key does not exist.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> SetNxAsync(string key, byte[] value);
+		/// <summary>
+		/// Add one or more members to a set.
+		/// <br/> Complexity: O(N) where N is the number of members to be added.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="members"></param>
+		/// <returns></returns>
 		Task<long> SAddAsync(string key, params object[] members);
+		/// <summary>
+		/// Add one or more members to a set.
+		/// <br/> Complexity: O(N) where N is the number of members to be added.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="members"></param>
+		/// <returns></returns>
 		Task<long> SAddAsync<T>(string key, params T[] members);
+		/// <summary>
+		/// Add one or more members to a set.
+		/// <br/> Complexity: O(N) where N is the number of members to be added.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="members"></param>
+		/// <returns></returns>
 		Task<long> SAddAsync(string key, params byte[][] members);
+		/// <summary>
+		/// Remove one or more members from a set.
+		/// <br/> Complexity: O(N) where N is the number of members to be removed.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="members"></param>
+		/// <returns></returns>
 		Task<long> SRemAsync(string key, params object[] members);
+		/// <summary>
+		/// Remove one or more members from a set.
+		/// <br/> Complexity: O(N) where N is the number of members to be removed.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="members"></param>
+		/// <returns></returns>
 		Task<long> SRemAsync<T>(string key, params T[] members);
+		/// <summary>
+		/// Remove one or more members from a set.
+		/// <br/> Complexity: O(N) where N is the number of members to be removed.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="members"></param>
+		/// <returns></returns>
 		Task<long> SRemAsync(string key, params byte[][] members);
+		/// <summary>
+		/// Get the number of members in a set.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<long> SCardAsync(string key);
+		/// <summary>
+		/// Subtract multiple sets. 
+		/// <br/> O(N) where N is the total number of elements in all given sets.
+		/// </summary>
+		/// <param name="keys"></param>
+		/// <returns></returns>
 		Task<MultiBulk> SDiffAsync(params string[] keys);
+		/// <summary>
+		/// Subtract multiple sets and store the resulting set in a key.
+		/// <br/> Complexity: O(N) where N is the total number of elements in all given sets.
+		/// </summary>
+		/// <param name="destinationKey"></param>
+		/// <param name="keys"></param>
+		/// <returns></returns>
 		Task<long> SDiffStoreAsync(string destinationKey, params string[] keys);
+		/// <summary>
+		/// Add multiple sets.
+		/// <br/> Complexity: O(N) where N is the total number of elements in all given sets.
+		/// </summary>
+		/// <param name="keys"></param>
+		/// <returns></returns>
 		Task<MultiBulk> SUnionAsync(params string[] keys);
+		/// <summary>
+		/// Add multiple sets and store the resulting set in a key.
+		/// <br/> Complexity: O(N) where N is the total number of elements in all given sets.
+		/// </summary>
+		/// <param name="destinationKey"></param>
+		/// <param name="keys"></param>
+		/// <returns></returns>
 		Task<long> SUnionStoreAsync(string destinationKey, params string[] keys);
+		/// <summary>
+		/// Intersect multiple sets.
+		/// <br/> Complexity: O(N*M) worst case where N is the cardinality of the smallest set and M is the number of sets.
+		/// </summary>
+		/// <param name="keys"></param>
+		/// <returns></returns>
 		Task<MultiBulk> SInterAsync(params string[] keys);
+		/// <summary>
+		/// Intersect multiple sets and store the resulting set in a key.
+		/// <br/> Complexity: O(N*M) worst case where N is the cardinality of the smallest set and M is the number of sets.
+		/// </summary>
+		/// <param name="destinationKey"></param>
+		/// <param name="keys"></param>
+		/// <returns></returns>
 		Task<long> SInterStoreAsync(string destinationKey, params string[] keys);
+		/// <summary>
+		/// Determine if a given value is a member of a set.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> SIsMemberAsync<T>(string key, T value);
+		/// <summary>
+		/// Determine if a given value is a member of a set.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> SIsMemberAsync(string key, byte[] value);
+		/// <summary>
+		/// Get all the members in a set.
+		/// <br/> Complexity: O(N) where N is the set cardinality.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<MultiBulk> SMembersAsync(string key);
+		/// <summary>
+		/// Move a member from one set to another.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="sourceKey"></param>
+		/// <param name="destinationKey"></param>
+		/// <param name="member"></param>
+		/// <returns></returns>
 		Task<long> SMoveAsync<T>(string sourceKey, string destinationKey, T member);
+		/// <summary>
+		/// Move a member from one set to another.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="sourceKey"></param>
+		/// <param name="destinationKey"></param>
+		/// <param name="member"></param>
+		/// <returns></returns>
 		Task<long> SMoveAsync(string sourceKey, string destinationKey, byte[] member);
+		/// <summary>
+		/// Remove and return a random member from a set.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<Bulk> SPopAsync(string key);
+		/// <summary>
+		/// Get one or multiple random members from a set.
+		/// <br/> Without the count argument O(1), otherwise O(N) where N is the absolute value of the passed count.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<Bulk> SRandMemberAsync(string key);
+		/// <summary>
+		/// Get one or multiple random members from a set.
+		/// <br/> Without the count argument O(1), otherwise O(N) where N is the absolute value of the passed count.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="count"></param>
+		/// <returns></returns>
 		Task<MultiBulk> SRandMemberAsync(string key, int count);
+		/// <summary>
+		/// Remove and get the first element in a list, or block until one is available.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="timeoutInSeconds"></param>
+		/// <param name="keys"></param>
+		/// <returns></returns>
 		Task<MultiBulk> BlPopAsync(int timeoutInSeconds, params string[] keys);
+		/// <summary>
+		/// Prepend one or multiple values to a list.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="values"></param>
+		/// <returns></returns>
 		Task<long> LPushAsync(string key, params object[] values);
+		/// <summary>
+		/// Prepend one or multiple values to a list.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="values"></param>
+		/// <returns></returns>
 		Task<long> LPushAsync<T>(string key, params T[] values);
+		/// <summary>
+		/// Prepend one or multiple values to a list.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="values"></param>
+		/// <returns></returns>
 		Task<long> LPushAsync(string key, params byte[][] values);
+		/// <summary>
+		/// Remove and get the last element in a list, or block until one is available.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="timeoutInSeconds"></param>
+		/// <param name="keys"></param>
+		/// <returns></returns>
 		Task<MultiBulk> BrPopAsync(int timeoutInSeconds, params string[] keys);
+		/// <summary>
+		/// Append one or multiple values to a list.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="values"></param>
+		/// <returns></returns>
 		Task<long> RPushAsync(string key, params object[] values);
+		/// <summary>
+		/// Append one or multiple values to a list.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="values"></param>
+		/// <returns></returns>
 		Task<long> RPushAsync<T>(string key, params T[] values);
+		/// <summary>
+		/// Append one or multiple values to a list.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="values"></param>
+		/// <returns></returns>
 		Task<long> RPushAsync(string key, params byte[][] values);
+		/// <summary>
+		/// Remove and get the first element in a list.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<Bulk> LPopAsync(string key);
+		/// <summary>
+		/// Remove and get the last element in a list.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<Bulk> RPopAsync(string key);
+		/// <summary>
+		/// Remove the last element in a list, append it to another list and return it.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="source"></param>
+		/// <param name="destination"></param>
+		/// <returns></returns>
 		Task<Bulk> RPopLPushAsync(string source, string destination);
+		/// <summary>
+		/// Pop a value from a list, push it to another list and return it; or block until one is available.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="sourceKey"></param>
+		/// <param name="destinationKey"></param>
+		/// <param name="timeoutInSeconds"></param>
+		/// <returns></returns>
 		Task<Bulk> BRPopLPushAsync(string sourceKey, string destinationKey, int timeoutInSeconds);
+		/// <summary>
+		/// Get an element from a list by its index.
+		/// <br/> Complexity: O(N) where N is the number of elements to traverse to get to the element at index. This makes asking for the first or the last element of the list O(1).
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="index"></param>
+		/// <returns></returns>
 		Task<Bulk> LIndexAsync(string key, int index);
+		/// <summary>
+		/// Insert an element before or after another element in a list.
+		/// <br/> Complexity: O(N) where N is the number of elements to traverse before seeing the value pivot. This means that inserting somewhere on the left end on the list (head) can be considered O(1) and inserting somewhere on the right end (tail) is O(N).
+		/// </summary>
+		/// <typeparam name="TPivot"></typeparam>
+		/// <typeparam name="TValue"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="pivot"></param>
+		/// <param name="value"></param>
+		/// <param name="before"></param>
+		/// <returns></returns>
 		Task<long> LInsertAsync<TPivot,TValue>(string key, TPivot pivot, TValue value, bool before = true);
+		/// <summary>
+		/// Insert an element before or after another element in a list.
+		/// <br/> Complexity: O(N) where N is the number of elements to traverse before seeing the value pivot. This means that inserting somewhere on the left end on the list (head) can be considered O(1) and inserting somewhere on the right end (tail) is O(N).
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="pivot"></param>
+		/// <param name="value"></param>
+		/// <param name="before"></param>
+		/// <returns></returns>
 		Task<long> LInsertAsync(string key, byte[] pivot, byte[] value, bool before = true);
+		/// <summary>
+		/// Get the length of a list.
+		/// <br/> Complxity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		Task<long> LLenAsync(string key);
+		/// <summary>
+		/// Prepend a value to a list, only if the list exists.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> LPushXAsync<T>(string key, T value);
+		/// <summary>
+		/// Prepend a value to a list, only if the list exists.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> LPushXAsync(string key, byte[] value);
+		/// <summary>
+		/// Get a range of elements from a list.
+		/// <br/> Complexity: O(S+N) where S is the start offset and N is the number of elements in the specified range.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="start"></param>
+		/// <param name="stop"></param>
+		/// <returns></returns>
 		Task<MultiBulk> LRangeAsync(string key, int start, int stop);
+		/// <summary>
+		/// Remove elements from a list.
+		/// <br/> Complexity: O(N) where N is the length of the list.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="count"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> LRemAsync<T>(string key, int count, T value);
+		/// <summary>
+		/// Remove elements from a list.
+		/// <br/> Complexity: O(N) where N is the length of the list.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="count"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<long> LRemAsync(string key, int count, byte[] value);
+		/// <summary>
+		/// Set the value of an element in a list by its index.
+		/// <br/> Complexity: O(N) where N is the length of the list. Setting either the first or the last element of the list is O(1).
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="index"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<string> LSetAsync<T>(string key, int index, T value);
+		/// <summary>
+		/// Set the value of an element in a list by its index.
+		/// <br/> Complexity: O(N) where N is the length of the list. Setting either the first or the last element of the list is O(1).
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="index"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
 		Task<string> LSetAsync(string key, int index, byte[] value);
+		/// <summary>
+		/// Trim a list to the specified range.
+		/// <br/> Complexity: O(N) where N is the number of elements to be removed by the operation.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="start"></param>
+		/// <param name="stop"></param>
+		/// <returns></returns>
 		Task<string> LTrimAsync(string key, int start, int stop);
+		/// <summary>
+		/// Append one or multiple values to a list.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="key"></param>
+		/// <param name="values"></param>
+		/// <returns></returns>
 		Task<long> RPushXAsync<T>(string key, T values);
+		/// <summary>
+		/// Append one or multiple values to a list.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="values"></param>
+		/// <returns></returns>
 		Task<long> RPushXAsync(string key, byte[] values);
+		/// <summary>
+		/// Discard all commands issued after MULTI
+		/// </summary>
+		/// <returns></returns>
 		Task<string> DiscardAsync();
+		/// <summary>
+		/// Execute all commands issued after MULTI
+		/// </summary>
+		/// <returns></returns>
 		Task<MultiBulk> ExecAsync();
+		/// <summary>
+		/// Mark the start of a transaction block
+		/// </summary>
+		/// <returns></returns>
 		Task<string> MultiAsync();
+		/// <summary>
+		/// Forget about all watched keys
+		/// </summary>
+		/// <returns></returns>
 		Task<string> UnwatchAsync();
+		/// <summary>
+		/// Watch the given keys to determine execution of the MULTI/EXEC block.
+		/// <br/> Complexity: O(1) for every key.
+		/// </summary>
+		/// <param name="keys"></param>
+		/// <returns></returns>
 		Task<string> WatchAsync(params string[] keys);
+		/// <summary>
+		/// Post a message to a channel.
+		/// <br/> Complexity: O(N+M) where N is the number of clients subscribed to the receiving channel and M is the total number of subscribed patterns (by any client).
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="channel"></param>
+		/// <param name="message"></param>
+		/// <returns></returns>
 		Task<long> PublishAsync<T>(string channel, T message);
+		/// <summary>
+		/// Post a message to a channel.
+		/// <br/> Complexity: O(N+M) where N is the number of clients subscribed to the receiving channel and M is the total number of subscribed patterns (by any client).
+		/// </summary>
+		/// <param name="channel"></param>
+		/// <param name="message"></param>
+		/// <returns></returns>
 		Task<long> PublishAsync(string channel, byte[] message);
-
+		/// <summary>
+		/// Listen for messages published to the given channels.
+		/// <br/> Complexity: O(N) where N is the number of channels to subscribe to.
+		/// </summary>
+		/// <param name="channels"></param>
+		/// <returns></returns>
 		Task<IRedisSubscription> SubscribeAsync(params string[] channels);
+		/// <summary>
+		/// Listen for messages published to channels matching the given patterns.
+		/// <br/> Complexity: O(N) where N is the number of patterns the client is already subscribed to.
+		/// </summary>
+		/// <param name="pattern"></param>
+		/// <returns></returns>
 		Task<IRedisSubscription> PSubscribeAsync(params string[] pattern);
-
 	}
 }

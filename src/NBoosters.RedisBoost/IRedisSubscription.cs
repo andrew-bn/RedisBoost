@@ -23,15 +23,54 @@ namespace NBoosters.RedisBoost
 {
 	public interface IRedisSubscription : IDisposable
 	{
+		/// <summary>
+		/// Listen for messages published to the given channels.
+		/// <br/> Complexity: O(N) where N is the number of channels to subscribe to.
+		/// </summary>
+		/// <param name="channels"></param>
+		/// <returns></returns>
 		Task SubscribeAsync(params string[] channels);
+		/// <summary>
+		/// Listen for messages published to channels matching the given patterns.
+		/// <br/> Complexity: O(N) where N is the number of patterns the client is already subscribed to.
+		/// </summary>
+		/// <param name="pattern"></param>
+		/// <returns></returns>
 		Task PSubscribeAsync(params string[] pattern);
+		/// <summary>
+		/// Stop listening for messages posted to the given channels.
+		/// <br/> Complexity: O(N) where N is the number of clients already subscribed to a channel.
+		/// </summary>
+		/// <param name="channels"></param>
+		/// <returns></returns>
 		Task UnsubscribeAsync(params string[] channels);
+		/// <summary>
+		/// Stop listening for messages posted to channels matching the given patterns.
+		/// <br/> Complexity: O(N+M) where N is the number of patterns the client is already subscribed and M is the number of total patterns subscribed in the system (by any client).
+		/// </summary>
+		/// <param name="channels"></param>
+		/// <returns></returns>
 		Task PUnsubscribeAsync(params string[] channels);
-
+		/// <summary>
+		/// Read message from channel
+		/// </summary>
+		/// <returns></returns>
 		Task<ChannelMessage> ReadMessageAsync();
+		/// <summary>
+		/// Read and return first message from channel that fits filter
+		/// </summary>
+		/// <param name="messageTypeFilter"></param>
+		/// <returns></returns>
 		Task<ChannelMessage> ReadMessageAsync(ChannelMessageType messageTypeFilter);
-
+		/// <summary>
+		/// Close the connection
+		/// </summary>
+		/// <returns></returns>
 		Task QuitAsync();
+		/// <summary>
+		/// Closes socket connection with Redis
+		/// </summary>
+		/// <returns></returns>
 		Task DisconnectAsync();
 	}
 }
