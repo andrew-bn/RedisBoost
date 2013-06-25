@@ -85,7 +85,7 @@ namespace NBoosters.RedisBoost
 				.ContinueWithIfNoError(t =>
 					{
 						if (t.Result.MessageType == ChannelMessageType.Unknown)
-							throw new RedisException("Unexpected message received");
+							throw new RedisException("Unexpected message received. Maybe Redis connection was closed or QUIT command was sent.");
 						return t.Result;
 					});
 		}
