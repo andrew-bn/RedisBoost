@@ -1,9 +1,11 @@
 RedisBoost (.NET 4.0)
 ==========
 
+.NET 4.0 thread-safe asynchronous Redis client. Supports pipelining, Redis channels, 
+has built-in serializer and clients pool. Can be used along with async/await pattern.
+
 [Wiki pages](https://github.com/andrew-bn/RedisBoost/wiki) are available
 
-* [Redis 2.6 commands set](http://redis.io/commands) support
 * Thread-safe asynchronous architecture
 * Easy to use [pub/sub api](https://github.com/andrew-bn/RedisBoost/wiki/Redis-channels). Works directly on the level of Redis commands.
 * [Pipelining](https://github.com/andrew-bn/RedisBoost/wiki/Pipelining) support
@@ -14,4 +16,4 @@ RedisBoost (.NET 4.0)
 
 You can install RedisBoost via NuGet:
 
-![Install-Pacakage NBoosters.RedisBoost](https://raw.github.com/andrew-bn/RedisBoost/master/images/nuget.png)
+![Install-Pacakage RedisBoost](https://raw.github.com/andrew-bn/RedisBoost/master/images/nuget.png)
