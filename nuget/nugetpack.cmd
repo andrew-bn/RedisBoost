@@ -1,1 +1,1 @@
-nuget pack NBoosters.RedisBoost.nuspec
+nuget pack RedisBoost.nuspec
