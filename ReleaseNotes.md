@@ -1,5 +1,11 @@
 Release Notes
 ==============
+1.6.0
+--------------
+- solution was renamed to RedisBoost. NuGet package was renamed to RedisBoost. 
+To install, run Install-Package RedisBoost.
+- [PUBSUB command](http://redis.io/commands/pubsub) support.
+
 1.5.8
 --------------
 - new pipeline strategy introduced. RedisBoost became faster, more reliable and robust. 
