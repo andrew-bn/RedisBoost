@@ -25,6 +25,22 @@ namespace NBoosters.RedisBoost
 {
 	public partial class RedisClient
 	{
+		public Task<MultiBulk> PubSubChannels(string pattern)
+		{
+			return MultiBulkCommand(RedisConstants.PubSub, RedisConstants.Channels, pattern.ToBytes());
+		}
+
+		public Task<MultiBulk> PubSubNumSub(params string[] channels)
+		{
+			var request = ComposeRequest(RedisConstants.PubSub, RedisConstants.NumSub, channels);
+			return MultiBulkCommand(request);
+		}
+
+		public Task<long> PubSubNumPat()
+		{
+			return IntegerCommand(RedisConstants.PubSub, RedisConstants.NumSub);
+		}
+
 		public Task<long> PublishAsync<T>(string channel, T message)
 		{
 			return PublishAsync(channel, Serialize(message));

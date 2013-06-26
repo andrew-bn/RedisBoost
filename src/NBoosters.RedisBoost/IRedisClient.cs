@@ -1626,5 +1626,26 @@ namespace NBoosters.RedisBoost
 		/// <param name="pattern"></param>
 		/// <returns></returns>
 		Task<IRedisSubscription> PSubscribeAsync(params string[] pattern);
+		/// <summary>
+		/// Lists the currently active channels. An active channel is a Pub/Sub channel with one ore more subscribers (not including clients subscribed to patterns).
+		/// If no pattern is specified, all the channels are listed, otherwise if pattern is specified only channels matching the specified glob-style pattern are listed.
+		/// <br/> Complexity:  O(N), where N is the number of active channels, and assuming constant time pattern matching (relatively short channels and patterns)
+		/// </summary>
+		/// <param name="pattern"></param>
+		/// <returns></returns>
+		Task<MultiBulk> PubSubChannels(string pattern);
+		/// <summary>
+		/// Returns the number of subscribers (not counting clients subscribed to patterns) for the specified channels.
+		/// <br/> Complexity: O(N), where N is the number of requested channels
+		/// </summary>
+		/// <param name="channels"></param>
+		/// <returns></returns>
+		Task<MultiBulk> PubSubNumSub(params string[] channels);
+		/// <summary>
+		/// Returns the number of subscriptions to patterns (that are performed using the PSUBSCRIBE command). Note that this is not just the count of clients subscribed to patterns but the total number of patterns all the clients are subscribed to.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <returns></returns>
+		Task<long> PubSubNumPat();
 	}
 }

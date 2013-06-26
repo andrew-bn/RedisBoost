@@ -60,6 +60,9 @@ namespace NBoosters.RedisBoost.Core
 		public static byte[] Or = GetBytes("OR");
 		public static byte[] Xor = GetBytes("XOR");
 		public static byte[] Not = GetBytes("NOT");
+		public static byte[] Channels = GetBytes("CHANNELS");
+		public static byte[] NumSub = GetBytes("NUMSUB");
+		public static byte[] NumPat = GetBytes("NUMPAT");
 		//keys
 		public readonly static byte[] Del = GetBytes("DEL");
 		public readonly static byte[] Dump = GetBytes("DUMP");
@@ -179,6 +182,7 @@ namespace NBoosters.RedisBoost.Core
 		public readonly static byte[] Publish = GetBytes("PUBLISH");
 		public readonly static byte[] PSubscribe = GetBytes("PSUBSCRIBE");
 		public readonly static byte[] PUnsubscribe = GetBytes("PUNSUBSCRIBE");
+		public readonly static byte[] PubSub = GetBytes("PUBSUB");
 		
 		//transactions
 		public readonly static byte[] Discard = GetBytes("DISCARD");

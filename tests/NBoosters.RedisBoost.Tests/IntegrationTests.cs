@@ -1744,6 +1744,21 @@ namespace NBoosters.RedisBoost.Tests
 				Assert.AreEqual("PONG", cli.PingAsync().Result);
 			}
 		}
+		[Test]
+		public void PubSubChannels()
+		{
+			Assert.Fail("waiting for Redis 2.8 released");
+		}
+		[Test]
+		public void PubSubNumSub()
+		{
+			Assert.Fail("waiting for Redis 2.8 released");
+		}
+		[Test]
+		public void PubSubNumPat()
+		{
+			Assert.Fail("waiting for Redis 2.8 released");
+		}
 		private static byte[] GetBytes(string value)
 		{
 			return Encoding.UTF8.GetBytes(value);
