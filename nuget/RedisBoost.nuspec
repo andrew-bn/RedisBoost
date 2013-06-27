@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>RedisBoost</id>
-    <version>1.6.0</version>
+    <version>1.6.1</version>
     <title>RedisBoost</title>
     <licenseUrl>https://raw.github.com/andrew-bn/RedisBoost/master/LICENSE</licenseUrl>
     <authors>Andrey Bulygin</authors>
@@ -21,5 +21,6 @@
   </metadata>
   <files>
     <file src="..\src\RedisBoost\bin\Release\RedisBoost.dll" target="lib\net40\" />
+    <file src="..\src\RedisBoost\bin\Release\RedisBoost.XML" target="lib\net40\" />
    </files>
 </package>
