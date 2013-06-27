@@ -1,5 +1,9 @@
 Release Notes
 ==============
+1.6.1
+--------------
+- xml documentation added to nuget package
+
 1.6.0
 --------------
 - solution was renamed to RedisBoost. NuGet package was renamed to RedisBoost. 
