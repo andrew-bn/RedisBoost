@@ -53,7 +53,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\src\RedisBoost\RedisBoost.csproj">
+    <ProjectReference Include="..\RedisBoost\RedisBoost.csproj">
       <Project>{6ba81f4c-4424-4fc1-8faf-a0159c52ae33}</Project>
       <Name>RedisBoost</Name>
     </ProjectReference>

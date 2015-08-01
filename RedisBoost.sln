@@ -16,7 +16,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisBoost.Tests", "tests\R
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisBoost.ConsoleBenchmark", "tests\RedisBoost.ConsoleBenchmark\RedisBoost.ConsoleBenchmark.csproj", "{4CA84076-FA0C-410F-B04B-CD10D9E8BBFF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisBoost.Cli", "RedisBoost.Cli\RedisBoost.Cli.csproj", "{235EDDAE-8138-498F-9E37-DC0EAAFAC4B8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisBoost.Cli", "src\RedisBoost.Cli\RedisBoost.Cli.csproj", "{235EDDAE-8138-498F-9E37-DC0EAAFAC4B8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
