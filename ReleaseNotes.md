@@ -1,5 +1,10 @@
 Release Notes
 ==============
+1.6.2
+--------------
+- Bug fix: Null reference exception #3. Reason - error in empty Bulk responce parsing
+- ExecuteAsync command is open to external usage
+
 1.6.1
 --------------
 - xml documentation added to nuget package
