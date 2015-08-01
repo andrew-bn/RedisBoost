@@ -26,6 +26,8 @@ namespace RedisBoost
 	{
 		IRedisSerializer Serializer { get; }
 		string ConnectionString { get; }
+
+		Task<RedisResponse> ExecuteAsync(string command, params object[] args);
 		/// <summary>
 		/// Closes socket connection with Redis
 		/// </summary>

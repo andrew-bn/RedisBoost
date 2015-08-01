@@ -170,6 +170,12 @@ namespace RedisBoost
 			return channel;
 		}
 
+		public Task<RedisResponse> ExecuteAsync(string command, params object[] args)
+		{
+			var request = ComposeRequest(RedisConstants.SerializeCommandName(command), Serialize(args));
+			return _channel.ExecuteRedisCommand(request);
+		}
+
 		#region read response
 		private Task<MultiBulk> MultiBulkCommand(params byte[][] args)
 		{
@@ -204,7 +210,7 @@ namespace RedisBoost
 
 		#region commands execution
 
-		public Task<RedisResponse> ReadDirectResponse()
+		private Task<RedisResponse> ReadDirectResponse()
 		{
 			return _channel.ReadDirectResponse();
 		}
@@ -277,6 +283,16 @@ namespace RedisBoost
 		private byte[][] ComposeRequest(byte[] commandName, byte[] arg1, string[] args)
 		{
 			return ComposeRequest(commandName, arg1, args.Select(a => a.ToBytes()).ToArray());
+		}
+
+		private byte[][] ComposeRequest(byte[] commandName, byte[][] args)
+		{
+			var request = new byte[args.Length + 1][];
+			request[0] = commandName;
+			for (int i = 0; i < args.Length; i++)
+				request[i + 1] = args[i];
+
+			return request;
 		}
 
 		private byte[][] ComposeRequest(byte[] commandName, byte[] arg1, byte[][] args)

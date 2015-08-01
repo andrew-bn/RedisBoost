@@ -134,8 +134,6 @@ namespace RedisBoost.Core.Receiver
 				//check nil reply
 				if (length < 0)
 					_redisResponse = RedisResponse.CreateBulk(null, _serializer);
-				else if (length == 0)
-					_redisResponse = RedisResponse.CreateBulk(new byte[0], _serializer);
 				else
 				{
 					args.Completed = ProcessRedisBulkLine;

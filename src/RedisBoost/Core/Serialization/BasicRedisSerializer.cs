@@ -76,7 +76,7 @@ namespace RedisBoost.Core.Serialization
 		#region deserialization
 		public virtual object Deserialize(Type type, byte[] value)
 		{
-			if (value.SequenceEqual(Null)) return null;
+			if (value == null || value.SequenceEqual(Null)) return null;
 
 			if (type == typeof(string))
 				return DeserializeToString(value);

@@ -21,8 +21,13 @@ using System.Text;
 
 namespace RedisBoost.Core
 {
-	internal static class RedisConstants
+	public static class RedisConstants
 	{
+		public static byte[] SerializeCommandName(string command)
+		{
+			return GetBytes(command.ToUpper());
+		}
+
 		private static byte[] GetBytes(string value)
 		{
 			return Encoding.UTF8.GetBytes(value);
