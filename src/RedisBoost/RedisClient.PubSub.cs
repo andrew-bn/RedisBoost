@@ -101,7 +101,7 @@ namespace RedisBoost
 				.ContinueWithIfNoError(t =>
 					{
 						if (t.Result.MessageType == ChannelMessageType.Unknown)
-							throw new RedisException("Unexpected message received. Maybe Redis connection was closed or QUIT command was sent.");
+							throw new RedisException("Unexpected type of message received");
 						return t.Result;
 					});
 		}
@@ -117,10 +117,10 @@ namespace RedisBoost
 		{
 			if (readTask.IsFaulted)
 			{
-				tcs.SetResult(new ChannelMessage(ChannelMessageType.Unknown, 
-					RedisResponse.CreateError(readTask.Exception.UnwrapAggregation().Message, Serializer), new string[0]));
+				tcs.SetException(readTask.Exception.UnwrapAggregation());
 				return;
 			}
+
 			if (readTask.Result.ResponseType != ResponseType.MultiBulk)
 			{
 				tcs.SetResult(new ChannelMessage(ChannelMessageType.Unknown, readTask.Result, new string[0]));
