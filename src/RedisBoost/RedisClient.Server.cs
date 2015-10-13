@@ -126,6 +126,11 @@ namespace RedisBoost
 			return StatusCommand(RedisConstants.SlaveOf, host.ToBytes(), port.ToBytes());
 		}
 
+		public Task<string> SlaveOfAsync()
+		{
+			return StatusCommand(RedisConstants.SlaveOf, RedisConstants.No, RedisConstants.One);
+		}
+
 		public Task<MultiBulk> TimeAsync()
 		{
 			return MultiBulkCommand(RedisConstants.Time);

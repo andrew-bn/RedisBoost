@@ -230,5 +230,7 @@ namespace RedisBoost.Core
 		public readonly static byte[] NoSave = GetBytes("NOSAVE");
 		public readonly static byte[] SlaveOf = GetBytes("SLAVEOF");
 		public readonly static byte[] Time = GetBytes("TIME");
+		public readonly static byte[] No = GetBytes("NO");
+		public readonly static byte[] One = GetBytes("ONE");
 	}
 }

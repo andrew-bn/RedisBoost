@@ -71,7 +71,7 @@ namespace RedisBoost.Core.AsyncSocket
 			_sendArgs.BufferList = eventArgs.BufferList;
 
 			_sendArgs.UserToken = _sendAllContext;
-			var isAsync = _socket.SendAsync(_sendArgs);// SendAll(false, _sendArgs);
+			var isAsync = _socket.SendAsync(_sendArgs);
 			if (!isAsync) SendAllCallBack(false,_sendAllContext);
 			return isAsync;
 		}

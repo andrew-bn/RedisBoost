@@ -308,6 +308,11 @@ namespace RedisBoost
 		/// <returns></returns>
 		Task<string> SlaveOfAsync(string host, int port);
 		/// <summary>
+		/// Turn off the replication, turning the Redis server into a MASTER
+		/// </summary>
+		/// <returns></returns>
+		Task<string> SlaveOfAsync();
+		/// <summary>
 		/// Return the current server time. <br/> Complexity: O(1)
 		/// </summary>
 		/// <returns></returns>
