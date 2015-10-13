@@ -1687,5 +1687,17 @@ namespace RedisBoost
 		/// <param name="srcKeys"></param>
 		/// <returns></returns>
 		Task<string> PfMergeAsync(string destKey, params string[] srcKeys);
+		/// <summary>
+		/// Enables read queries for a connection to a Redis Cluster slave node
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <returns></returns>
+		//Task<string> ReadonlyAsync();
+		/// <summary>
+		/// Disables read queries for a connection to a Redis Cluster slave node.
+		/// <br/> Complexity: O(1)
+		/// </summary>
+		/// <returns></returns>
+		//Task<string> ReadWriteAsync();
 	}
 }
