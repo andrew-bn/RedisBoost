@@ -1654,5 +1654,38 @@ namespace RedisBoost
 		/// </summary>
 		/// <returns></returns>
 		Task<long> PubSubNumPat();
+		/// <summary>
+		/// Adds all the element arguments to the HyperLogLog data structure stored at the variable name specified as first argument
+		/// <br/> Complexity: O(1) to add every elemen
+		/// </summary>
+		/// <returns></returns>
+		Task<long> PfAddAsync(string key, params object[] values);
+		/// <summary>
+		/// Adds all the element arguments to the HyperLogLog data structure stored at the variable name specified as first argument
+		/// <br/> Complexity: O(1) to add every elemen
+		/// </summary>
+		/// <returns></returns>
+		Task<long> PfAddAsync<T>(string key, params T[] values);
+		/// <summary>
+		/// Adds all the element arguments to the HyperLogLog data structure stored at the variable name specified as first argument
+		/// <br/> Complexity: O(1) to add every elemen
+		/// </summary>
+		/// <returns></returns>
+		Task<long> PfAddAsync(string key, params byte[][] values);
+		/// <summary>
+		/// When called with a single key, returns the approximated cardinality computed by the HyperLogLog data structure stored at the specified variable, which is 0 if the variable does not exist.
+		/// When called with multiple keys, returns the approximated cardinality of the union of the HyperLogLogs passed, by internally merging the HyperLogLogs stored at the provided keys into a temporary HyperLogLog
+		/// <br/> Complexity: O(1) with every small average constant times when called with a single key. O(N) with N being the number of keys, and much bigger constant times, when called with multiple keys.
+		/// </summary>
+		/// <returns></returns>
+		Task<long> PfCountAsync(params string[] keys);
+		/// <summary>
+		/// Merge multiple HyperLogLog values into an unique value that will approximate the cardinality of the union of the observed Sets of the source HyperLogLog structures
+		/// <br/> Complexity: O(N) to merge N HyperLogLogs, but with high constant times.
+		/// </summary>
+		/// <param name="destKey"></param>
+		/// <param name="srcKeys"></param>
+		/// <returns></returns>
+		Task<string> PfMergeAsync(string destKey, params string[] srcKeys);
 	}
 }

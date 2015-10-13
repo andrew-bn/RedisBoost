@@ -164,7 +164,7 @@ namespace RedisBoost.Tests
 				var expR = cli.PExpireAsync("Key", 2000).Result;
 				Assert.AreEqual(1, expR);
 				var ttl = cli.PttlAsync("Key").Result;
-				Assert.IsTrue(ttl > 100 && ttl < 2000);
+				Assert.IsTrue(ttl > 100 && ttl < 2100);
 			}
 		}
 		[Test]
@@ -378,7 +378,7 @@ namespace RedisBoost.Tests
 			using (var cli = CreateClient())
 			{
 				cli.SetExAsync("Key", 2, GetBytes("Value")).Wait();
-				Thread.Sleep(2000);
+				Thread.Sleep(2500);
 				var exists = cli.ExistsAsync("Key").Result;
 				Assert.AreEqual(0, exists);
 			}
@@ -389,7 +389,7 @@ namespace RedisBoost.Tests
 			using (var cli = CreateClient())
 			{
 				cli.PSetExAsync("Key", 2000, GetBytes("Value")).Wait();
-				Thread.Sleep(2000);
+				Thread.Sleep(2500);
 				var exists = cli.ExistsAsync("Key").Result;
 				Assert.AreEqual(0, exists);
 			}
@@ -600,6 +600,40 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Val2", GetString(result[1]));
 			}
 		}
+		#region hyperloglog
+		[Test]
+		public void PfAdd()
+		{
+			using (var cli = CreateClient())
+			{
+				var res = cli.PfAddAsync("hll", 1, 2, 3, 4, 5, 6, 7).Result;
+				Assert.AreEqual(1, res);
+			}
+		}
+		[Test]
+		public void PfCount()
+		{
+			using (var cli = CreateClient())
+			{
+				cli.PfAddAsync("hll", 1, 2, 3, 4, 5, 6, 7).Wait();
+				var res = cli.PfCountAsync("hll").Result;
+				Assert.AreEqual(7, res);
+			}
+		}
+		[Test]
+		public void PfMerge()
+		{
+			using (var cli = CreateClient())
+			{
+				cli.PfAddAsync("hll1", "foo", "bar", "zap", "a").Wait();
+				cli.PfAddAsync("hll2", "a", "b", "c", "foo").Wait();
+				var mergeRes = cli.PfMergeAsync("hll3", "hll1", "hll2").Result;
+				var countRes = cli.PfCountAsync("hll3").Result;
+				Assert.AreEqual("OK", mergeRes);
+				Assert.AreEqual(6, countRes);
+			}
+		}
+		#endregion hyperloglog
 		[Test]
 		public void RPopLPush()
 		{
@@ -1334,6 +1368,7 @@ namespace RedisBoost.Tests
 			}
 		}
 		[Test]
+		[ExpectedException(typeof(AggregateException))]
 		public void Subscribe_NoFilter_ReadMessagesAfterChannelClosing()
 		{
 			using (var cli1 = CreateClient())
@@ -1432,6 +1467,7 @@ namespace RedisBoost.Tests
 			}
 		}
 		#endregion
+
 		[Test]
 		public void Transactions()
 		{

@@ -196,6 +196,11 @@ namespace RedisBoost.Core
 		public readonly static byte[] Unwatch = GetBytes("UNWATCH");
 		public readonly static byte[] Watch = GetBytes("WATCH");
 
+		// hyperloglog
+		public readonly static byte[] PfAdd = GetBytes("PFADD");
+		public readonly static byte[] PfCount = GetBytes("PFCOUNT");
+		public readonly static byte[] PfMerge = GetBytes("PFMERGE");
+
 		//scripting
 		public readonly static byte[] Eval = GetBytes("EVAL");
 		public readonly static byte[] Script = GetBytes("SCRIPT");

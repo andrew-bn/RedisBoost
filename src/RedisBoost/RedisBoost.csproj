@@ -84,6 +84,9 @@
     <Compile Include="Misk\IObjectsPool.cs" />
     <Compile Include="Misk\ObjectsPool.cs" />
     <Compile Include="MultiBulk.cs" />
+    <Compile Include="RedisClient.HyperLogLog.cs" >
+      <DependentUpon>RedisClient.cs</DependentUpon>
+    </Compile>
     <Compile Include="Subcommand.cs" />
     <Compile Include="RedisClient.Connection.cs">
       <DependentUpon>RedisClient.cs</DependentUpon>
