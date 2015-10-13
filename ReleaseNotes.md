@@ -1,5 +1,10 @@
 Release Notes
 ==============
+1.6.4
+--------------
+- Interface for HyperLogLog commands
+- Interface for command SlaveOf NO ONE
+
 1.6.3
 --------------
 - Exception processing loging changed: ReadMessageAsync and connection failure #4. Now ReadMessageAsync() raises RedisException if some socket issue happened, returns Unknown message if the format of received message is not valid. ReadMessageAsync(filter) raises RedisException if some socket issue happened (inner exception will be preserved), raises RedisException if Unknown packed was received
