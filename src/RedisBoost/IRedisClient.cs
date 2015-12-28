@@ -454,7 +454,7 @@ namespace RedisBoost
 		/// <param name="field"></param>
 		/// <param name="increment"></param>
 		/// <returns></returns>
-		Task<long> HIncrByAsync<TFld>(string key, TFld field, int increment);
+		Task<long> HIncrByAsync<TFld>(string key, TFld field, long increment);
 		/// <summary>
 		/// Increment the integer value of a hash field by the given number. <br/> Complexity: O(1)
 		/// </summary>
@@ -462,7 +462,7 @@ namespace RedisBoost
 		/// <param name="field"></param>
 		/// <param name="increment"></param>
 		/// <returns></returns>
-		Task<long> HIncrByAsync(string key, byte[] field, int increment);
+		Task<long> HIncrByAsync(string key, byte[] field, long increment);
 		/// <summary>
 		/// Increment the float value of a hash field by the given amount. <br/> Complexity: O(1)
 		/// </summary>

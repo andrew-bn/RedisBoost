@@ -85,12 +85,12 @@ namespace RedisBoost
 			return MultiBulkCommand(RedisConstants.HGetAll, key.ToBytes());
 		}
 
-		public Task<long> HIncrByAsync<TFld>(string key, TFld field, int increment)
+		public Task<long> HIncrByAsync<TFld>(string key, TFld field, long increment)
 		{
 			return HIncrByAsync(key, Serialize(field), increment);
 		}
 
-		public Task<long> HIncrByAsync(string key, byte[] field, int increment)
+		public Task<long> HIncrByAsync(string key, byte[] field, long increment)
 		{
 			return IntegerCommand(RedisConstants.HIncrBy, key.ToBytes(), field, increment.ToBytes());
 		}
