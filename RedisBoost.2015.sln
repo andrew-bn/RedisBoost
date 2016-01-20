@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuget", "nuget", "{990EE99D-DC21-420F-AD09-8F2248CC7E42}"
+	ProjectSection(SolutionItems) = preProject
+		nuget\nuget.exe = nuget\nuget.exe
+		nuget\nugetpack.cmd = nuget\nugetpack.cmd
+		nuget\RedisBoost.nuspec = nuget\RedisBoost.nuspec
+	EndProjectSection
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "RedisBoost", "src\RedisBoost\RedisBoost.xproj", "{24D76A0D-611A-4314-88D6-C21C416EEE87}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{24D76A0D-611A-4314-88D6-C21C416EEE87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{24D76A0D-611A-4314-88D6-C21C416EEE87}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{24D76A0D-611A-4314-88D6-C21C416EEE87}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{24D76A0D-611A-4314-88D6-C21C416EEE87}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -12,7 +12,7 @@ TestResults
 *.suo
 *.user
 *.sln.docstates
-
+*project.lock.json
 # Build results
 [Dd]ebug/
 [Rr]elease/

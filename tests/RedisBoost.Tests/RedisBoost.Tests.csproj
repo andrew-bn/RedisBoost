@@ -65,12 +65,6 @@
     </None>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\RedisBoost\RedisBoost.csproj">
-      <Project>{6ba81f4c-4424-4fc1-8faf-a0159c52ae33}</Project>
-      <Name>RedisBoost</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
