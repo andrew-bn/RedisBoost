@@ -46,7 +46,12 @@ namespace RedisBoost.Core.AsyncSocket
 
 		public bool DisconnectAsync(SocketAsyncEventArgs args)
 		{
+#if !DOTNET5_4
 			return _socket.DisconnectAsync(args);
+#else
+			_socket.Dispose();
+			return false; // not async
+#endif
 		}
 
 		public void Dispose()

@@ -24,6 +24,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Reflection;
+using RedisBoost.Misk;
 
 namespace RedisBoost.Core.Serialization
 {
@@ -44,7 +45,7 @@ namespace RedisBoost.Core.Serialization
 				return SerializeString(value.ToString());
 			if (type == typeof(byte[]))
 				return value as byte[];
-			if (type.IsEnum)
+			if (type.IsEnum())
 				return SerializeString(value.ToString());
 			if (type == typeof(DateTime))
 				return SerializeString((value as IFormattable).ToString(DatetimeFormat, CultureInfo.InvariantCulture));
@@ -83,7 +84,7 @@ namespace RedisBoost.Core.Serialization
 				return DeserializeToString(value);
 			if (type == typeof(byte[]))
 				return value;
-			if (type.IsEnum)
+			if (type.IsEnum())
 				return DeserializeToEnum(DeserializeToString(value), type);
 			if (type == typeof (DateTime))
 				return DateTime.ParseExact(DeserializeToString(value), DatetimeFormat, CultureInfo.InvariantCulture);
@@ -142,7 +143,7 @@ namespace RedisBoost.Core.Serialization
 		}
 		private static string DeserializeToString(byte[] value)
 		{
-			return Encoding.UTF8.GetString(value);
+			return Encoding.UTF8.GetString(value, 0, value.Length);
 		}
 	}
 }

@@ -18,6 +18,7 @@
 
 using System;
 using System.Threading.Tasks;
+using System.Reflection;
 
 namespace RedisBoost.Misk
 {
@@ -53,6 +54,16 @@ namespace RedisBoost.Misk
 				if (task.IsFaulted) throw task.Exception.UnwrapAggregation();
 				return func(task);
 			});
+		}
+
+		public static bool IsEnum(this Type type)
+		{
+#if NET40
+			return type.IsEnum;
+#else
+			return type.GetTypeInfo().IsEnum;
+#endif
+
 		}
 	}
 }

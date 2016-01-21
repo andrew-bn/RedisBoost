@@ -63,7 +63,7 @@ namespace RedisBoost.Misk
 		}
 		internal static string AsString(this byte[] value)
 		{
-			return Encoding.UTF8.GetString(value);
+			return Encoding.UTF8.GetString(value, 0, value.Length);
 		}
 		internal static byte[] ToBytes(this string value)
 		{
