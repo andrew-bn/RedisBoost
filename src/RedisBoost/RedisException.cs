@@ -21,7 +21,7 @@ using System.Runtime.Serialization;
 
 namespace RedisBoost
 {
-#if NET40 || NET45 || NET451
+#if !COREFX
 	[Serializable]
 #endif
 	public class RedisException:Exception
@@ -36,7 +36,7 @@ namespace RedisBoost
 		{
 			
 		}
-#if NET40 || NET45 || NET451
+#if !COREFX
 		protected RedisException(SerializationInfo info, StreamingContext context) 
 			: base(info, context)
 		{

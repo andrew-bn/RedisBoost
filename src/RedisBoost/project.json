@@ -28,6 +28,7 @@
       }
     },
     "dotnet5.4": {
+      "compilationOptions": {"define": ["COREFX"]},
       "dependencies": {
         "Microsoft.CSharp": "4.0.1-beta-23516",
         "System.Collections": "4.0.11-beta-23516",
