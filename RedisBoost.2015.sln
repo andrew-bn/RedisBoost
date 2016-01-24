@@ -12,6 +12,20 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuget", "nuget", "{990EE99D
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "RedisBoost", "src\RedisBoost\RedisBoost.xproj", "{24D76A0D-611A-4314-88D6-C21C416EEE87}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{16EE4B71-3FBB-4A86-A0D0-539A3643B8E4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VagrantRedis", "VagrantRedis", "{F4E4C390-79C4-4E62-B2FB-200D9CBD7885}"
+	ProjectSection(SolutionItems) = preProject
+		tests\VagrantRedis\Vagrantfile = tests\VagrantRedis\Vagrantfile
+	EndProjectSection
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "RedisBoost.Test", "tests\RedisBoost.Test\RedisBoost.Test.xproj", "{56F8BA25-B2FB-442E-A91A-3FC2178B6658}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{49CA897D-B819-4E2F-83B0-95E3891DA22C}"
+	ProjectSection(SolutionItems) = preProject
+		global.json = global.json
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,8 +36,16 @@ Global
 		{24D76A0D-611A-4314-88D6-C21C416EEE87}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{24D76A0D-611A-4314-88D6-C21C416EEE87}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{24D76A0D-611A-4314-88D6-C21C416EEE87}.Release|Any CPU.Build.0 = Release|Any CPU
+		{56F8BA25-B2FB-442E-A91A-3FC2178B6658}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{56F8BA25-B2FB-442E-A91A-3FC2178B6658}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{56F8BA25-B2FB-442E-A91A-3FC2178B6658}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{56F8BA25-B2FB-442E-A91A-3FC2178B6658}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F4E4C390-79C4-4E62-B2FB-200D9CBD7885} = {16EE4B71-3FBB-4A86-A0D0-539A3643B8E4}
+		{56F8BA25-B2FB-442E-A91A-3FC2178B6658} = {16EE4B71-3FBB-4A86-A0D0-539A3643B8E4}
 	EndGlobalSection
 EndGlobal

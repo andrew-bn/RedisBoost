@@ -14,7 +14,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
-[assembly: InternalsVisibleTo("RedisBoost.Tests")]
+[assembly: InternalsVisibleTo("RedisBoost.Test")]
 [assembly: InternalsVisibleTo("Moq")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")] 
 // Setting ComVisible to false makes the types in this assembly not visible 

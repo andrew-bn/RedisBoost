@@ -1,49 +1,47 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using Moq;
-using NUnit.Framework;
 using RedisBoost.Core.AsyncSocket;
+using Xunit;
 
 namespace RedisBoost.Tests.Core
 {
-	[TestFixture]
 	public class AsyncSocketTests
 	{
 		private Mock<ISocket> _socket;
-		[SetUp]
-		public void Setup()
+		public AsyncSocketTests()
 		{
 			_socket = new Mock<ISocket>();
 		}
 
-		[Test]
+		[Fact]
 		public void Connect_CallsSocketConnect()
 		{
-			var ep = new IPEndPoint(IPAddress.Parse("127.0.0.1"),1234);
+			var ep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1234);
 			var sock = CreateSocket();
 			var args = new AsyncSocketEventArgs();
 			args.RemoteEndPoint = ep;
 			sock.Connect(args);
 
-			_socket.Verify(s=>s.ConnectAsync(
-								It.Is((SocketAsyncEventArgs a)=> a.RemoteEndPoint == ep)));
+			_socket.Verify(s => s.ConnectAsync(
+								It.Is((SocketAsyncEventArgs a) => a.RemoteEndPoint == ep)));
 		}
-		[Test]
+		[Fact]
 		public void Connect_ReturnsTrueIsOperationIsAsync()
 		{
 			_socket.Setup(s => s.ConnectAsync(It.IsAny<SocketAsyncEventArgs>())).Returns(true);
 			var result = CreateSocket().Connect(new AsyncSocketEventArgs());
-			Assert.IsTrue(result);
+			Assert.True(result);
 		}
-		[Test]
+		[Fact]
 		public void Connect_ReturnsFalseIsOperationIsAsync()
 		{
 			_socket.Setup(s => s.ConnectAsync(It.IsAny<SocketAsyncEventArgs>())).Returns(false);
 			var result = CreateSocket().Connect(new AsyncSocketEventArgs());
-			Assert.IsFalse(result);
+			Assert.False(result);
 		}
-		[Test]
+		[Fact]
 		public void Disconnect_CallsSocketConnect()
 		{
 			var args = new AsyncSocketEventArgs();
@@ -52,21 +50,21 @@ namespace RedisBoost.Tests.Core
 			_socket.Verify(s => s.DisconnectAsync(It.IsAny<SocketAsyncEventArgs>()));
 		}
 
-		[Test]
+		[Fact]
 		public void Disconnect_ReturnsTrueIsOperationIsAsync()
 		{
 			_socket.Setup(s => s.DisconnectAsync(It.IsAny<SocketAsyncEventArgs>())).Returns(true);
 			var result = CreateSocket().Disconnect(new AsyncSocketEventArgs());
-			Assert.IsTrue(result);
+			Assert.True(result);
 		}
-		[Test]
+		[Fact]
 		public void Disconnect_ReturnsFalseIsOperationIsAsync()
 		{
 			_socket.Setup(s => s.DisconnectAsync(It.IsAny<SocketAsyncEventArgs>())).Returns(false);
 			var result = CreateSocket().Disconnect(new AsyncSocketEventArgs());
-			Assert.IsFalse(result);
+			Assert.False(result);
 		}
-		[Test]
+		[Fact]
 		public void NotIoSyncOperation_CompletedNotCalled()
 		{
 			_socket.Setup(s => s.DisconnectAsync(It.IsAny<SocketAsyncEventArgs>())).Returns(false);
@@ -77,11 +75,11 @@ namespace RedisBoost.Tests.Core
 
 			var sock = CreateSocket();
 			sock.Disconnect(args);
-			
-			Assert.IsFalse(called);
+
+			Assert.False(called);
 		}
 
-		[Test]
+		[Fact]
 		public void NotIoAsyncOperation_CompletedCalled()
 		{
 			_socket.Setup(s => s.DisconnectAsync(It.IsAny<SocketAsyncEventArgs>()))
@@ -95,10 +93,10 @@ namespace RedisBoost.Tests.Core
 			var sock = CreateSocket();
 			sock.Disconnect(args);
 
-			Assert.IsTrue(called);
+			Assert.True(called);
 		}
 
-		[Test]
+		[Fact]
 		public void Receive_CallsSocketReceive()
 		{
 			const int bufferSize = 111;
@@ -111,27 +109,27 @@ namespace RedisBoost.Tests.Core
 								It.Is((SocketAsyncEventArgs a) => a.Count == bufferSize &&
 								a.Offset == 0)));
 		}
-		[Test]
+		[Fact]
 		public void Receive_ReturnsTrueIsOperationIsAsync()
 		{
 			_socket.Setup(s => s.ReceiveAsync(It.IsAny<SocketAsyncEventArgs>())).Returns(true);
 
-			var result = CreateSocket().Receive(new AsyncSocketEventArgs(){BufferToReceive = new byte[0]});
-			Assert.IsTrue(result);
+			var result = CreateSocket().Receive(new AsyncSocketEventArgs() { BufferToReceive = new byte[0] });
+			Assert.True(result);
 		}
-		[Test]
+		[Fact]
 		public void Receive_ReturnsFalseIsOperationIsAsync()
 		{
 			_socket.Setup(s => s.ReceiveAsync(It.IsAny<SocketAsyncEventArgs>())).Returns(false);
 			var result = CreateSocket().Receive(new AsyncSocketEventArgs() { BufferToReceive = new byte[0] });
-			Assert.IsFalse(result);
+			Assert.False(result);
 		}
 
 
 		private void CallOnCompleted(SocketAsyncEventArgs a)
 		{
-			var method = typeof (SocketAsyncEventArgs).GetMethod("OnCompleted", BindingFlags.Instance|BindingFlags.NonPublic);
-			method.Invoke(a, new object[]{a});
+			var method = typeof(SocketAsyncEventArgs).GetMethod("OnCompleted", BindingFlags.Instance | BindingFlags.NonPublic);
+			method.Invoke(a, new object[] { a });
 		}
 
 		private AsyncSocketWrapper CreateSocket()
