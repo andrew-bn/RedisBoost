@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if MOQ
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Moq;
@@ -211,3 +212,4 @@ namespace RedisBoost.Test
 	}
 }
 
+#endif

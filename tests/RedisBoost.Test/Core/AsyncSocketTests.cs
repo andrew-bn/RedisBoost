@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿#if MOQ
+using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using Moq;
@@ -141,3 +142,4 @@ namespace RedisBoost.Tests.Core
 
 	}
 }
+#endif

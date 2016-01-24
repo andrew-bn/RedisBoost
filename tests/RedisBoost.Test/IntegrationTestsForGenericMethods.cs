@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -55,7 +54,7 @@ namespace RedisBoost.Test
 				return Equals(val);
 			}
 		}
-		[Serializable]
+
 		public enum ModelEnum
 		{
 			Value1,

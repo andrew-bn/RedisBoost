@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if MOQ
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -137,3 +138,5 @@ namespace RedisBoost.Tests.Core
 		}
 	}
 }
+
+#endif

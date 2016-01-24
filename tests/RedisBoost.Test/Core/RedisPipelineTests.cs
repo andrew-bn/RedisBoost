@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if MOQ
+using System;
 using Moq;
 using RedisBoost.Core.Pipeline;
 using RedisBoost.Core.Receiver;
@@ -114,3 +115,4 @@ namespace RedisBoost.Tests.Core
 		}
 	}
 }
+#endif
