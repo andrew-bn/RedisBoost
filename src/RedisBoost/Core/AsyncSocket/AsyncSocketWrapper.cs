@@ -31,47 +31,37 @@ namespace RedisBoost.Core.AsyncSocket
 			public SocketAsyncEventArgs SocketArgs { get; set; }
 		}
 
-		private readonly SendAllContext _sendAllContext;
-		private readonly SocketAsyncEventArgs _sendArgs;
-		private readonly SocketAsyncEventArgs _receiveArgs;
-		private readonly SocketAsyncEventArgs _notIoArgs;
+		private  SendAllContext _sendAllContext;
 
 		private ISocket _socket;
 		public AsyncSocketWrapper()
 		{
-			_notIoArgs = new SocketAsyncEventArgs();
-			_notIoArgs.Completed += NotSendCallBack;
-
-			_receiveArgs = new SocketAsyncEventArgs();
-			_receiveArgs.Completed += NotSendCallBack;
-
-			_sendArgs = new SocketAsyncEventArgs();
-			_sendArgs.Completed += SendCallBack;
-
 			_sendAllContext = new SendAllContext();
 			_sendAllContext.SendCallBack = SendAllCallBack;
-			_sendAllContext.SocketArgs = _sendArgs;
 		}
 
 		public void EngageWith(ISocket socket)
 		{
 			_socket = socket;
-			_notIoArgs.AcceptSocket = _socket.UnderlyingSocket;
-			_receiveArgs.AcceptSocket = _socket.UnderlyingSocket;
-			_sendArgs.AcceptSocket = _socket.UnderlyingSocket;
 		}
 
 		#region send
 		public bool Send(AsyncSocketEventArgs eventArgs)
 		{
+			var args = new SocketAsyncEventArgs();
+			args.Completed += SendCallBack;
+			args.AcceptSocket = _socket.UnderlyingSocket;
+
 			_sendAllContext.SentBytes = 0;
 			_sendAllContext.EventArgs = eventArgs;
+			_sendAllContext.SocketArgs = args;
+
 			eventArgs.Error = null;
 
-			_sendArgs.BufferList = eventArgs.BufferList;
+			args.BufferList = eventArgs.BufferList;
 
-			_sendArgs.UserToken = _sendAllContext;
-			var isAsync = _socket.SendAsync(_sendArgs);
+			args.UserToken = _sendAllContext;
+			var isAsync = _socket.SendAsync(args);
 			if (!isAsync) SendAllCallBack(false,_sendAllContext);
 			return isAsync;
 		}
@@ -124,12 +114,15 @@ namespace RedisBoost.Core.AsyncSocket
 		#region receive
 		public bool Receive(AsyncSocketEventArgs eventArgs)
 		{
-			_receiveArgs.SetBuffer(eventArgs.BufferToReceive, 0,eventArgs.BufferToReceive.Length);
-			_receiveArgs.UserToken = eventArgs;
+			var args = new SocketAsyncEventArgs();
+			args.Completed += NotSendCallBack;
+			
+			args.SetBuffer(eventArgs.BufferToReceive, 0,eventArgs.BufferToReceive.Length);
+			args.UserToken = eventArgs;
 			eventArgs.Error = null;
 
-			var isAsync = _socket.ReceiveAsync(_receiveArgs);
-			if (!isAsync) NotSendCallBack(false, _receiveArgs);
+			var isAsync = _socket.ReceiveAsync(args);
+			if (!isAsync) NotSendCallBack(false, args);
 			return isAsync;
 		}
 
@@ -137,22 +130,28 @@ namespace RedisBoost.Core.AsyncSocket
 		#region Not IO operations
 		public bool Connect(AsyncSocketEventArgs eventArgs)
 		{
-			_notIoArgs.RemoteEndPoint = eventArgs.RemoteEndPoint;
-			_notIoArgs.UserToken = eventArgs;
+			var args = new SocketAsyncEventArgs();
+			args.Completed += NotSendCallBack;
+			
+			args.RemoteEndPoint = eventArgs.RemoteEndPoint;
+			args.UserToken = eventArgs;
 			eventArgs.Error = null;
 
-			var isAsync = _socket.ConnectAsync(_notIoArgs);
-			if (!isAsync) NotSendCallBack(false, _notIoArgs);
+			var isAsync = _socket.ConnectAsync(args);
+			if (!isAsync) NotSendCallBack(false, args);
 			return isAsync;
 		}
 
 		public bool Disconnect(AsyncSocketEventArgs eventArgs)
 		{
-			_notIoArgs.UserToken = eventArgs;
+			var args = new SocketAsyncEventArgs();
+			args.Completed += NotSendCallBack;
+
+			args.UserToken = eventArgs;
 			eventArgs.Error = null;
 
-			var isAsync = _socket.DisconnectAsync(_notIoArgs);
-			if (!isAsync) NotSendCallBack(false, _notIoArgs);
+			var isAsync = _socket.DisconnectAsync(args);
+			if (!isAsync) NotSendCallBack(false, args);
 			return isAsync;
 		}
 
