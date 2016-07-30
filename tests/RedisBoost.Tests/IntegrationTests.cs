@@ -1,20 +1,29 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using NUnit.Framework;
+using Microsoft.Extensions.Configuration;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace RedisBoost.Tests
 {
-	[TestFixture]
+	[TestClass]
 	public class IntegrationTests
 	{
-		[Test]
+	    public IntegrationTests()
+	    {
+            var _builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+            _configuration = _builder.Build();
+        }
+
+        [TestMethod]
 		public void FlushDb()
 		{
 			using (var cli = CreateClient())
@@ -25,7 +34,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(0, result.Length);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Set()
 		{
 			using (var cli = CreateClient())
@@ -33,7 +42,7 @@ namespace RedisBoost.Tests
 				cli.SetAsync("Key", GetBytes("Value")).Wait();
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Del()
 		{
 			using (var cli = CreateClient())
@@ -45,7 +54,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(0, result.Length);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void BitOp()
 		{
 			using (var cli = CreateClient())
@@ -56,7 +65,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("`bc`ab", GetString(cli.GetAsync("dst").Result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void GetSetBit()
 		{
 			using (var cli = CreateClient())
@@ -67,7 +76,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(0, cli.GetBitAsync("key", 100).Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void GetBit()
 		{
 			using (var cli = CreateClient())
@@ -78,7 +87,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("`bc`ab", GetString(cli.GetAsync("dst").Result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Dump()
 		{
 			using (var cli = CreateClient())
@@ -88,7 +97,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(17, result.Length);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Restore()
 		{
 			using (var cli = CreateClient())
@@ -102,7 +111,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, cli.ExistsAsync("Key").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Type()
 		{
 			using (var cli = CreateClient())
@@ -111,7 +120,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("string", cli.TypeAsync("Key").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Type_NoKey()
 		{
 			using (var cli = CreateClient())
@@ -119,7 +128,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("none", cli.TypeAsync("Key").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Exists()
 		{
 			using (var cli = CreateClient())
@@ -129,7 +138,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Expire()
 		{
 			using (var cli = CreateClient())
@@ -142,7 +151,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(0, exists);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void PExpire()
 		{
 			using (var cli = CreateClient())
@@ -155,7 +164,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(0, exists);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Pttl()
 		{
 			using (var cli = CreateClient())
@@ -167,7 +176,7 @@ namespace RedisBoost.Tests
 				Assert.IsTrue(ttl > 100 && ttl < 2100);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Persist()
 		{
 			using (var cli = CreateClient())
@@ -182,7 +191,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, exists);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ExpireAt()
 		{
 			using (var cli = CreateClient())
@@ -190,10 +199,10 @@ namespace RedisBoost.Tests
 				cli.SetAsync("Key", GetBytes("Value")).Wait();
 				var expR = cli.ExpireAtAsync("Key", DateTime.Now.AddSeconds(2)).Result;
 				var ttl = cli.TtlAsync("Key").Result;
-				Assert.Greater(ttl, 0);
+				Assert.IsTrue(ttl > 0);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void RandomKey()
 		{
 			using (var cli = CreateClient())
@@ -203,7 +212,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Key", key);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void RandomKey_NoKeys()
 		{
 			using (var cli = CreateClient())
@@ -212,7 +221,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(string.Empty, key);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Rename()
 		{
 			using (var cli = CreateClient())
@@ -224,7 +233,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, res2);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Get()
 		{
 			using (var cli = CreateClient())
@@ -234,7 +243,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Value", GetString(result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Append()
 		{
 			using (var cli = CreateClient())
@@ -244,7 +253,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Value_appendix", GetString(cli.GetAsync("Key").Result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Move()
 		{
 			using (var cli = CreateClient())
@@ -256,7 +265,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, cli.ExistsAsync("Key").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Object()
 		{
 			using (var cli = CreateClient())
@@ -267,7 +276,7 @@ namespace RedisBoost.Tests
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void Sort()
 		{
 			using (var cli = CreateClient())
@@ -276,7 +285,7 @@ namespace RedisBoost.Tests
 					asc: false, alpha: true, destination: "dst", getPatterns: new[] { "getPattern" }).Wait();
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void IncrDecr()
 		{
 			using (var cli = CreateClient())
@@ -286,7 +295,7 @@ namespace RedisBoost.Tests
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void IncrByDecrBy()
 		{
 			using (var cli = CreateClient())
@@ -295,7 +304,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(0, cli.DecrByAsync("Key", 3).Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void IncrByFloat()
 		{
 			using (var cli = CreateClient())
@@ -304,7 +313,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("10.6", GetString(cli.IncrByFloatAsync("key", 0.1).Result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void HIncrByFloat()
 		{
 			using (var cli = CreateClient())
@@ -314,7 +323,7 @@ namespace RedisBoost.Tests
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void GetRange()
 		{
 			using (var cli = CreateClient())
@@ -323,7 +332,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("alu", GetString(cli.GetRangeAsync("Key", 1, 3).Result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void GetSet()
 		{
 			using (var cli = CreateClient())
@@ -332,7 +341,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Value", GetString(cli.GetSetAsync("Key", GetBytes("NewValue")).Result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void MGet()
 		{
 			using (var cli = CreateClient())
@@ -345,7 +354,7 @@ namespace RedisBoost.Tests
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void MSet()
 		{
 			using (var cli = CreateClient())
@@ -359,7 +368,7 @@ namespace RedisBoost.Tests
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void MSetNx()
 		{
 			using (var cli = CreateClient())
@@ -372,7 +381,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Value2", GetString(result[1]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void SetEx()
 		{
 			using (var cli = CreateClient())
@@ -383,7 +392,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(0, exists);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void PSetEx()
 		{
 			using (var cli = CreateClient())
@@ -394,7 +403,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(0, exists);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void SetNx()
 		{
 			using (var cli = CreateClient())
@@ -404,7 +413,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Value", GetString(cli.GetAsync("Key").Result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void SetRange()
 		{
 			using (var cli = CreateClient())
@@ -414,7 +423,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Vaeul", GetString(cli.GetAsync("Key").Result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void StrLen()
 		{
 			using (var cli = CreateClient())
@@ -423,7 +432,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(5, cli.StrLenAsync("Key").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void HSet()
 		{
 			using (var cli = CreateClient())
@@ -431,7 +440,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, cli.HSetAsync("Key", "Fld", GetBytes("Value")).Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void HDel()
 		{
 			using (var cli = CreateClient())
@@ -443,7 +452,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(0, cli.HExistsAsync("Key", "Fld2").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void HExists()
 		{
 			using (var cli = CreateClient())
@@ -453,7 +462,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, cli.HExistsAsync("Key", "Fld").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void HGet()
 		{
 			using (var cli = CreateClient())
@@ -462,7 +471,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Val1", GetString(cli.HGetAsync("Key", "Fld1").Result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void HGetAll()
 		{
 			using (var cli = CreateClient())
@@ -476,7 +485,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Val2", GetString(result[3]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void HIncrBy()
 		{
 			using (var cli = CreateClient())
@@ -484,7 +493,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(23, cli.HIncrByAsync("Key", "Fld", 23).Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void HKeys()
 		{
 			using (var cli = CreateClient())
@@ -496,7 +505,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Fld2", GetString(result[1]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void HVals()
 		{
 			using (var cli = CreateClient())
@@ -508,7 +517,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Val2", GetString(result[1]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void LPushBlPop()
 		{
 			using (var cli = CreateClient())
@@ -523,7 +532,7 @@ namespace RedisBoost.Tests
 				}
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void LPushBlPop_NilReply()
 		{
 			using (var cli = CreateClient())
@@ -533,7 +542,7 @@ namespace RedisBoost.Tests
 				Assert.IsTrue(result.IsNull);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void RPushBrPop()
 		{
 			using (var cli = CreateClient())
@@ -548,7 +557,7 @@ namespace RedisBoost.Tests
 				}
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void RPop()
 		{
 			using (var cli = CreateClient())
@@ -557,7 +566,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Value", GetString(cli.RPopAsync("Key").Result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void LPop()
 		{
 			using (var cli = CreateClient())
@@ -566,7 +575,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Value", GetString(cli.LPopAsync("Key").Result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void HLen()
 		{
 			using (var cli = CreateClient())
@@ -576,7 +585,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(2, cli.HLenAsync("Key").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void HMGet()
 		{
 			using (var cli = CreateClient())
@@ -588,7 +597,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Val2", GetString(result[1]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void HMSet()
 		{
 			using (var cli = CreateClient())
@@ -601,7 +610,7 @@ namespace RedisBoost.Tests
 			}
 		}
 		#region hyperloglog
-		[Test]
+		[TestMethod]
 		public void PfAdd()
 		{
 			using (var cli = CreateClient())
@@ -610,7 +619,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, res);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void PfCount()
 		{
 			using (var cli = CreateClient())
@@ -620,7 +629,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(7, res);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void PfMerge()
 		{
 			using (var cli = CreateClient())
@@ -634,7 +643,7 @@ namespace RedisBoost.Tests
 			}
 		}
 		#endregion hyperloglog
-		[Test]
+		[TestMethod]
 		public void RPopLPush()
 		{
 			using (var cli = CreateClient())
@@ -645,7 +654,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("three", GetString(cli.RPopLPushAsync("mylist", "mylist2").Result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void BRPopLPush()
 		{
 			using (var cli = CreateClient())
@@ -656,7 +665,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("three", GetString(cli.BRPopLPushAsync("mylist", "mylist2", 10).Result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void LIndex()
 		{
 			using (var cli = CreateClient())
@@ -666,7 +675,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Value2", GetString(cli.LIndexAsync("Key", 1).Result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void LInsert()
 		{
 			using (var cli = CreateClient())
@@ -678,7 +687,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Value1.5", GetString(cli.LIndexAsync("Key", 1).Result));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void LLen()
 		{
 			using (var cli = CreateClient())
@@ -689,7 +698,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(2, cli.LLenAsync("Key").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void LPushX()
 		{
 			using (var cli = CreateClient())
@@ -700,7 +709,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(0, cli.LLenAsync("Key").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void RPushX()
 		{
 			using (var cli = CreateClient())
@@ -709,7 +718,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(0, cli.LLenAsync("Key").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void LRange()
 		{
 			using (var cli = CreateClient())
@@ -723,7 +732,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Two", GetString(result[1]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void LRem()
 		{
 			using (var cli = CreateClient())
@@ -737,7 +746,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(2, cli.LLenAsync("Key").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void LTrim()
 		{
 			using (var cli = CreateClient())
@@ -749,7 +758,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, cli.LLenAsync("Key").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void SAdd()
 		{
 			using (var cli = CreateClient())
@@ -757,7 +766,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(2, cli.SAddAsync("Key", GetBytes("Val1"), GetBytes("Val2")).Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void SRem()
 		{
 			using (var cli = CreateClient())
@@ -767,7 +776,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, cli.SCardAsync("Key").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void SCard()
 		{
 			using (var cli = CreateClient())
@@ -778,7 +787,7 @@ namespace RedisBoost.Tests
 		}
 
 
-		[Test]
+		[TestMethod]
 		public void SDiffStore()
 		{
 			using (var cli = CreateClient())
@@ -796,7 +805,7 @@ namespace RedisBoost.Tests
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void SUnionStore()
 		{
 			using (var cli = CreateClient())
@@ -813,7 +822,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(4, result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void SInter()
 		{
 			using (var cli = CreateClient())
@@ -830,7 +839,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("c", GetString(result[0]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void SInterStore()
 		{
 			using (var cli = CreateClient())
@@ -847,7 +856,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, cli.SCardAsync("New").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void SIsMember()
 		{
 			using (var cli = CreateClient())
@@ -857,7 +866,7 @@ namespace RedisBoost.Tests
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void SMove()
 		{
 			using (var cli = CreateClient())
@@ -868,7 +877,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("a", GetString(result[0]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void SPop()
 		{
 			using (var cli = CreateClient())
@@ -878,7 +887,7 @@ namespace RedisBoost.Tests
 
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void SRandMember()
 		{
 			using (var cli = CreateClient())
@@ -888,7 +897,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(2, cli.SRandMemberAsync("Key", 2).Result.Length);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZAdd()
 		{
 			using (var cli = CreateClient())
@@ -897,7 +906,7 @@ namespace RedisBoost.Tests
 														new ZAddArgs(100, GetBytes("Value2"))).Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZCard()
 		{
 			using (var cli = CreateClient())
@@ -907,7 +916,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(2, cli.ZCardAsync("Key").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZCount()
 		{
 			using (var cli = CreateClient())
@@ -918,7 +927,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, cli.ZCountAsync("Key", 150, 222).Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZCountInf()
 		{
 			using (var cli = CreateClient())
@@ -930,7 +939,7 @@ namespace RedisBoost.Tests
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void ZIncrBy()
 		{
 			using (var cli = CreateClient())
@@ -939,7 +948,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(110.3, cli.ZIncrByAsync("Key", 10.3, GetBytes("Value")).Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZInterStore()
 		{
 			using (var cli = CreateClient())
@@ -953,7 +962,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(2, cli.ZInterStoreAsync("out", "zset1", "zset2").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZInterStore_Min()
 		{
 			using (var cli = CreateClient())
@@ -967,7 +976,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(2, cli.ZInterStoreAsync("out", Aggregation.Min, "zset1", "zset2").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZInterStore_WithWeights()
 		{
 			using (var cli = CreateClient())
@@ -982,7 +991,7 @@ namespace RedisBoost.Tests
 														 new ZAggrStoreArgs("zset2", 3)).Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZInterStore_WithWeights_Sum()
 		{
 			using (var cli = CreateClient())
@@ -998,7 +1007,7 @@ namespace RedisBoost.Tests
 													new ZAggrStoreArgs("zset2", 3)).Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRange()
 		{
 			using (var cli = CreateClient())
@@ -1014,7 +1023,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("three", GetString(result[1]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRange_WithScores()
 		{
 			using (var cli = CreateClient())
@@ -1034,7 +1043,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("3", GetString(result[3]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRangeByScore()
 		{
 			using (var cli = CreateClient())
@@ -1052,7 +1061,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("two", GetString(result[1]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRangeByScore_WithScores()
 		{
 			using (var cli = CreateClient())
@@ -1073,7 +1082,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("two", GetString(result[2]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRangeByScore_WithLimits()
 		{
 			using (var cli = CreateClient())
@@ -1089,7 +1098,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("two", GetString(result[0]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRangeByScore_WithLimits_WithScores()
 		{
 			using (var cli = CreateClient())
@@ -1106,7 +1115,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("2", GetString(result[1]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRank()
 		{
 			using (var cli = CreateClient())
@@ -1117,7 +1126,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, cli.ZRankAsync("zset1", GetBytes("three")).Result.Value);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRevRank()
 		{
 			using (var cli = CreateClient())
@@ -1128,7 +1137,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(0, cli.ZRevRankAsync("zset1", GetBytes("three")).Result.Value);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRank_NullReply()
 		{
 			using (var cli = CreateClient())
@@ -1139,7 +1148,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(null, cli.ZRankAsync("zset1", GetBytes("four")).Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRem()
 		{
 			using (var cli = CreateClient())
@@ -1151,7 +1160,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, cli.ZCardAsync("zset1").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRemRangeByRank()
 		{
 			using (var cli = CreateClient())
@@ -1163,7 +1172,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(2, cli.ZCardAsync("zset1").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRemRangeByScore()
 		{
 			using (var cli = CreateClient())
@@ -1175,7 +1184,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, cli.ZCardAsync("zset1").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRevRange()
 		{
 			using (var cli = CreateClient())
@@ -1191,7 +1200,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("one", GetString(result[2]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRevRange_WithScores()
 		{
 			using (var cli = CreateClient())
@@ -1204,7 +1213,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(6, result.Length);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRevRangeByScore()
 		{
 			using (var cli = CreateClient())
@@ -1223,7 +1232,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("three", GetString(result[0]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRevRangeByScore_WithScores()
 		{
 			using (var cli = CreateClient())
@@ -1238,7 +1247,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(6, result.Length);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRevRangeByScore_WithLimits()
 		{
 			using (var cli = CreateClient())
@@ -1254,7 +1263,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("two", GetString(result[0]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZRevRangeByScore_WithLimits_WithScores()
 		{
 			using (var cli = CreateClient())
@@ -1271,7 +1280,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("2", GetString(result[1]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZScore()
 		{
 			using (var cli = CreateClient())
@@ -1282,7 +1291,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(3, cli.ZScoreAsync("zset1", GetBytes("three")).Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZUnionStore()
 		{
 			using (var cli = CreateClient())
@@ -1296,7 +1305,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(3, cli.ZUnionStoreAsync("out", "zset1", "zset2").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZUnionStore_Min()
 		{
 			using (var cli = CreateClient())
@@ -1310,7 +1319,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(3, cli.ZUnionStoreAsync("out", Aggregation.Min, "zset1", "zset2").Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZUnionStore_WithWeights()
 		{
 			using (var cli = CreateClient())
@@ -1325,7 +1334,7 @@ namespace RedisBoost.Tests
 														 new ZAggrStoreArgs("zset2", 3)).Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ZUnionStore_WithWeights_Sum()
 		{
 			using (var cli = CreateClient())
@@ -1342,7 +1351,7 @@ namespace RedisBoost.Tests
 			}
 		}
 		#region pubsub
-		[Test]
+		[TestMethod]
 		public void Subscribe()
 		{
 			using (var cli1 = CreateClient())
@@ -1354,7 +1363,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("1", GetString(subResult.Value));
 			}
 		}
-		[Test]
+		[TestMethod]
 		[ExpectedException(typeof(AggregateException))]
 		public void Subscribe_WithFilter_ReadMessagesAfterChannelClosing()
 		{
@@ -1367,7 +1376,7 @@ namespace RedisBoost.Tests
 				readTask.Wait();
 			}
 		}
-		[Test]
+		[TestMethod]
 		[ExpectedException(typeof(AggregateException))]
 		public void Subscribe_NoFilter_ReadMessagesAfterChannelClosing()
 		{
@@ -1382,7 +1391,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(ResponseType.Error, subResult.Value.ResponseType);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Unsubscribe()
 		{
 			using (var cli1 = CreateClient())
@@ -1399,7 +1408,7 @@ namespace RedisBoost.Tests
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void Publish()
 		{
 			using (var cli1 = CreateClient())
@@ -1408,7 +1417,7 @@ namespace RedisBoost.Tests
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void Publish_Subscribe_WithFilter()
 		{
 			using (var subscriber = CreateClient().SubscribeAsync("channel").Result)
@@ -1426,7 +1435,7 @@ namespace RedisBoost.Tests
 				}
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Publish_Subscribe_TimeoutEmulation()
 		{
 			using (var cli1 = CreateClient())
@@ -1441,7 +1450,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(ChannelMessageType.Unsubscribe, result.MessageType);
 			}
 		}
-		[Test]
+		[TestMethod]
 		[ExpectedException(typeof(AggregateException))]
 		public void Subscribe_Quit_WithFilter_ExceptionExpected()
 		{
@@ -1454,7 +1463,7 @@ namespace RedisBoost.Tests
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void Subscribe_Quit_NoFilter_ValidResponse()
 		{
 			using (var cli1 = CreateClient().SubscribeAsync("channel").Result)
@@ -1468,7 +1477,7 @@ namespace RedisBoost.Tests
 		}
 		#endregion
 
-		[Test]
+		[TestMethod]
 		public void Transactions()
 		{
 			using (var cli1 = CreateClient())
@@ -1481,7 +1490,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("1", GetString(result[1]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Eval()
 		{
 			using (var cli = CreateClient())
@@ -1497,7 +1506,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("second", GetString(mb[3].AsBulk()));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ScriptLoadSha()
 		{
 			using (var cli = CreateClient())
@@ -1513,7 +1522,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("second", GetString(mb[3].AsBulk()));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ScriptExists()
 		{
 			using (var cli = CreateClient())
@@ -1525,7 +1534,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("1", GetString(result[0]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ScriptFlushExists()
 		{
 			using (var cli = CreateClient())
@@ -1537,7 +1546,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("0", GetString(result[0]));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Echo()
 		{
 			using (var cli = CreateClient())
@@ -1546,7 +1555,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("Message", GetString(resp));
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Ping()
 		{
 			using (var cli = CreateClient())
@@ -1554,7 +1563,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("PONG", cli.PingAsync().Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Quit()
 		{
 			using (var cli = CreateClient())
@@ -1563,17 +1572,17 @@ namespace RedisBoost.Tests
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void ClientList()
 		{
 			using (var cli = CreateClient())
 			{
 				var result = GetString(cli.ClientListAsync().Result);
-				Assert.IsNotEmpty(result);
+				Assert.IsFalse(string.IsNullOrEmpty(result));
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void DbSize()
 		{
 			using (var cli = CreateClient())
@@ -1582,7 +1591,7 @@ namespace RedisBoost.Tests
 				Assert.AreEqual(1, cli.DbSizeAsync().Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void FlushAll()
 		{
 			using (var cli = CreateClient())
@@ -1590,16 +1599,16 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("OK", cli.FlushAllAsync().Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Info()
 		{
 			using (var cli = CreateClient())
 			{
 				var result = GetString(cli.InfoAsync().Result);
-				Assert.IsNotEmpty(result);
-			}
+                Assert.IsFalse(string.IsNullOrEmpty(result));
+            }
 		}
-		[Test]
+		[TestMethod]
 		public void ConfigGet()
 		{
 			using (var cli = CreateClient())
@@ -1607,15 +1616,15 @@ namespace RedisBoost.Tests
 				var result = cli.ConfigGetAsync("loglevel").Result;
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void LastSave()
 		{
 			using (var cli = CreateClient())
 			{
-				Assert.Greater(cli.LastSaveAsync().Result, 0);
+				Assert.IsTrue(cli.LastSaveAsync().Result > 0);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Time()
 		{
 			using (var cli = CreateClient())
@@ -1623,7 +1632,7 @@ namespace RedisBoost.Tests
 				var result = cli.TimeAsync().Result;
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ResetStat()
 		{
 			using (var cli = CreateClient())
@@ -1631,7 +1640,7 @@ namespace RedisBoost.Tests
 				var result = cli.ConfigResetStatAsync().Result;
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ClientsPool()
 		{
 			using (var pool = RedisClient.CreateClientsPool())
@@ -1649,7 +1658,7 @@ namespace RedisBoost.Tests
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void PoolTest_Timeout()
 		{
 			using (var pool = RedisClient.CreateClientsPool(100))
@@ -1669,7 +1678,7 @@ namespace RedisBoost.Tests
 				Assert.AreNotEqual(cli1, cli2);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void ClosePipline()
 		{
 			using (var cli = CreateClient())
@@ -1688,7 +1697,7 @@ namespace RedisBoost.Tests
 
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void PipelineTest()
 		{
 			const int size = 10000;
@@ -1711,7 +1720,7 @@ namespace RedisBoost.Tests
 				}
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void PipelineTest_PipelineIsClosed()
 		{
 			using (var cli = CreateClient())
@@ -1740,7 +1749,9 @@ namespace RedisBoost.Tests
 			}
 		}
 		private int _requestId = 0;
-		[Test]
+	    private IConfigurationRoot _configuration;
+
+	    [TestMethod]
 		public void PipelineTest_ParallelPipelining()
 		{
 			_requestId = 0;
@@ -1771,7 +1782,7 @@ namespace RedisBoost.Tests
 				}
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void Ctor_WithHostPort()
 		{
 			var sb = new RedisConnectionStringBuilder(ConnectionString);
@@ -1780,17 +1791,17 @@ namespace RedisBoost.Tests
 				Assert.AreEqual("PONG", cli.PingAsync().Result);
 			}
 		}
-		[Test]
+		[TestMethod]
 		public void PubSubChannels()
 		{
 			Assert.Fail("waiting for Redis 2.8 released");
 		}
-		[Test]
+		[TestMethod]
 		public void PubSubNumSub()
 		{
 			Assert.Fail("waiting for Redis 2.8 released");
 		}
-		[Test]
+		[TestMethod]
 		public void PubSubNumPat()
 		{
 			Assert.Fail("waiting for Redis 2.8 released");
@@ -1803,11 +1814,10 @@ namespace RedisBoost.Tests
 		{
 			return Encoding.UTF8.GetString(data);
 		}
-		private string ConnectionString
-		{
-			get { return ConfigurationManager.ConnectionStrings["Redis"].ConnectionString; }
-		}
-		private IRedisClient CreateClient()
+
+	    private string ConnectionString => _configuration.GetSection("ConnectionStrings")["Redis"];
+
+        private IRedisClient CreateClient()
 		{
 			var cli = RedisClient.ConnectAsync(ConnectionString).Result;
 			cli.FlushDbAsync().Wait();

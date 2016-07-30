@@ -1,0 +1,26 @@
+﻿{
+  "version": "1.0.0-*",
+  "buildOptions": {
+    "emitEntryPoint": true
+  },
+  "dependencies": {
+    "NETStandard.Library": "1.6.0",
+    "BookSleeve": "1.3.41",
+    "RedisBoost": "1.0.0-*",
+    "csredis": "1.4.7.1",
+    "ServiceStack.Redis": "3.9.71",
+    "ServiceStack.Common": "3.9.71",
+    "ServiceStack.Text": "3.9.71",
+    "Microsoft.Extensions.Configuration": "1.0.0",
+    "Microsoft.Extensions.Configuration.FileExtensions": "1.0.0",
+    "Microsoft.Extensions.Configuration.Json": "1.0.0"
+  },
+
+  "frameworks": {
+    "net4.6": {
+      "frameworkAssemblies": {
+        "System.Xml": "4.0.0.0"
+      }
+    }
+  }
+}

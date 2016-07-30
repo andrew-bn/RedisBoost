@@ -21,6 +21,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text;
 
@@ -43,7 +44,7 @@ namespace RedisBoost.Core.Serialization
 				return SerializeString(value.ToString());
 			if (type == typeof(byte[]))
 				return value as byte[];
-			if (type.IsEnum)
+			if (type.GetTypeInfo().IsEnum)
 				return SerializeString(value.ToString());
 			if (type == typeof(DateTime))
 				return SerializeString((value as IFormattable).ToString(DatetimeFormat, CultureInfo.InvariantCulture));
@@ -82,7 +83,7 @@ namespace RedisBoost.Core.Serialization
 				return DeserializeToString(value);
 			if (type == typeof(byte[]))
 				return value;
-			if (type.IsEnum)
+			if (type.GetTypeInfo().IsEnum)
 				return DeserializeToEnum(DeserializeToString(value), type);
 			if (type == typeof (DateTime))
 				return DateTime.ParseExact(DeserializeToString(value), DatetimeFormat, CultureInfo.InvariantCulture);

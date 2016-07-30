@@ -16,6 +16,7 @@
  */
 #endregion
 
+using System;
 using System.Net.Sockets;
 
 namespace RedisBoost.Core.AsyncSocket
@@ -46,7 +47,8 @@ namespace RedisBoost.Core.AsyncSocket
 
 		public bool DisconnectAsync(SocketAsyncEventArgs args)
 		{
-			return _socket.DisconnectAsync(args);
+		    Dispose();
+		    return false;
 		}
 
 		public void Dispose()

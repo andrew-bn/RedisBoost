@@ -1,21 +1,20 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using NUnit.Framework;
 using RedisBoost.Core.Pool;
 using RedisBoost.Core.Serialization;
 
 namespace RedisBoost.Tests
 {
-	[TestFixture]
+	[TestClass]
 	public class RedisClientsPoolTests
 	{
 		private Mock<IPooledRedisClient> _redisClient;
 		private Func<RedisConnectionStringBuilder, BasicRedisSerializer, IPooledRedisClient> _clientsFactory;
 		private string _connectionString;
-		[SetUp]
-		public void Setup()
+		public RedisClientsPoolTests()
 		{
 			_connectionString = "data source=127.0.0.1";
 
@@ -30,7 +29,7 @@ namespace RedisBoost.Tests
 			_clientsFactory = (sb, s) => _redisClient.Object;
 
 		}
-		[Test]
+		[TestMethod]
 		public void CreateClient_PoolIsEmtpy_CallsFactoryToCreateClient()
 		{
 			var connectionStringBuilder = new RedisConnectionStringBuilder(_connectionString);
@@ -45,7 +44,7 @@ namespace RedisBoost.Tests
 			//assert
 			Assert.IsTrue(factoryWasCalled);
 		}
-		[Test]
+		[TestMethod]
 		[ExpectedException(typeof(Exception))]
 		public void CreateClient_PoolIsEmtpy_FactoryThrowsException()
 		{
@@ -54,7 +53,7 @@ namespace RedisBoost.Tests
 			//act
 			CreatePool().CreateClientAsync(connectionStringBuilder).Wait();
 		}
-		[Test]
+		[TestMethod]
 		public void CreateClient_PoolIsEmtpy_PreparesClientConnection()
 		{
 			CreatePool().CreateClientAsync(_connectionString).Wait();
@@ -62,7 +61,7 @@ namespace RedisBoost.Tests
 			_redisClient.Verify(c => c.PrepareClientConnection());
 		}
 
-		[Test]
+		[TestMethod]
 		public void CreateClient_Twice_CallsFactoryToCreateClient()
 		{
 			var factoryWasCalled = 0;
@@ -77,42 +76,42 @@ namespace RedisBoost.Tests
 			//assert
 			Assert.AreEqual(2, factoryWasCalled);
 		}
-		[Test]
+		[TestMethod]
 		public void ReturnClient_StatusIsQuit_DestroysClient()
 		{
 			_redisClient.Setup(c => c.State).Returns(ClientState.Quit);
 			CreatePool().ReturnClient(_redisClient.Object);
 			_redisClient.Verify(c => c.Destroy());
 		}
-		[Test]
+		[TestMethod]
 		public void ReturnClient_StatusIsDisconnect_DestroysClient()
 		{
 			_redisClient.Setup(c => c.State).Returns(ClientState.Disconnect);
 			CreatePool().ReturnClient(_redisClient.Object);
 			_redisClient.Verify(c => c.Destroy());
 		}
-		[Test]
+		[TestMethod]
 		public void ReturnClient_StatusIsSubscription_DestroysClient()
 		{
 			_redisClient.Setup(c => c.State).Returns(ClientState.Subscription);
 			CreatePool().ReturnClient(_redisClient.Object);
 			_redisClient.Verify(c => c.Destroy());
 		}
-		[Test]
+		[TestMethod]
 		public void ReturnClient_StatusIsFatalError_DestroysClient()
 		{
 			_redisClient.Setup(c => c.State).Returns(ClientState.FatalError);
 			CreatePool().ReturnClient(_redisClient.Object);
 			_redisClient.Verify(c => c.Destroy());
 		}
-		[Test]
+		[TestMethod]
 		public void TimeoutExpired_QuitCommandCalled()
 		{
 			CreatePool(timeout: 100).ReturnClient(_redisClient.Object);
 			Thread.Sleep(1000);
 			_redisClient.Verify(c => c.QuitAsync());
 		}
-		[Test]
+		[TestMethod]
 		public void TimeoutExpired_DestroyCalled()
 		{
 			CreatePool(timeout: 100).ReturnClient(_redisClient.Object);
@@ -120,7 +119,7 @@ namespace RedisBoost.Tests
 			_redisClient.Verify(c => c.Destroy());
 		}
 
-		[Test]
+		[TestMethod]
 		public void TimeoutExpired_DestroyExceptionOccured_NextClientCreatesWithoutExceptions()
 		{
 			_redisClient.Setup(c => c.Destroy()).Throws(new Exception("some exception"));
@@ -129,10 +128,10 @@ namespace RedisBoost.Tests
 			Thread.Sleep(1000);
 			_redisClient.Verify(c => c.Destroy());
 			var cli = pool.CreateClientAsync(_connectionString).Result;
-			Assert.NotNull(cli);
+			Assert.IsNotNull(cli);
 		}
 
-		[Test]
+		[TestMethod]
 		public void DisposePool_QuitCommandCalled()
 		{
 			var pool = CreatePool();
@@ -140,7 +139,7 @@ namespace RedisBoost.Tests
 			pool.Dispose();
 			_redisClient.Verify(c => c.QuitAsync());
 		}
-		[Test]
+		[TestMethod]
 		public void DisposePool_DestroyCalled()
 		{
 			var pool = CreatePool();
@@ -148,7 +147,7 @@ namespace RedisBoost.Tests
 			pool.Dispose();
 			_redisClient.Verify(c => c.Destroy());
 		}
-		[Test]
+		[TestMethod]
 		public void ReturnClient_AfterPoolDispose_QuitCalled()
 		{
 			var pool = CreatePool();
@@ -157,7 +156,7 @@ namespace RedisBoost.Tests
 			_redisClient.Verify(c => c.QuitAsync());
 		}
 
-		[Test]
+		[TestMethod]
 		public void ReturnClient_PoolIsOversized_QuitCalled()
 		{
 			var pool = CreatePool(maxPoolSize: 1);
@@ -165,7 +164,7 @@ namespace RedisBoost.Tests
 			pool.ReturnClient(_redisClient.Object);
 			_redisClient.Verify(c => c.QuitAsync());
 		}
-		[Test]
+		[TestMethod]
 		public void ReturnClient_PoolIsOversized_DestroyCalled()
 		{
 			var pool = CreatePool(maxPoolSize: 100);
@@ -174,7 +173,7 @@ namespace RedisBoost.Tests
 			pool.ReturnClient(_redisClient.Object);
 			_redisClient.Verify(c => c.Destroy(), Times.Once());
 		}
-		[Test]
+		[TestMethod]
 		public void ReturnClient_AfterPoolDispose_DestroyExpected()
 		{
 			var pool = CreatePool();
@@ -182,7 +181,7 @@ namespace RedisBoost.Tests
 			pool.ReturnClient(_redisClient.Object);
 			_redisClient.Verify(c => c.Destroy());
 		}
-		[Test]
+		[TestMethod]
 		public void QuitClient_OperationTimeout_DestroyIsCalled()
 		{
 			_redisClient.Setup(c => c.QuitAsync())
@@ -197,7 +196,7 @@ namespace RedisBoost.Tests
 			pool.ReturnClient(_redisClient.Object);
 			_redisClient.Verify(c => c.Destroy());
 		}
-		[Test]
+		[TestMethod]
 		[ExpectedException(typeof(ObjectDisposedException))]
 		public void ReturnClient_AfterPoolDispose()
 		{

@@ -1,17 +1,18 @@
 ﻿
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using RedisBoost.ConsoleBenchmark.Clients;
 
 namespace RedisBoost.ConsoleBenchmark
 {
-	class Program
-	{
+    public class Program
+    {
 		private enum TestCase
 		{
 			SmallPack,
@@ -28,10 +29,16 @@ namespace RedisBoost.ConsoleBenchmark
 		private static RedisConnectionStringBuilder _cs;
 		private static ITestClient[] _clients;
 
-		static void Main(string[] args)
-		{
+        public static void Main(string[] args)
+        {
 			var testCase = InteractiveInitialization();
-			_cs = new RedisConnectionStringBuilder(ConfigurationManager.ConnectionStrings["Redis"].ConnectionString);
+
+		    var _builder = new ConfigurationBuilder()
+		        .SetBasePath(Directory.GetCurrentDirectory())
+		        .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+            var _configuration = _builder.Build();
+
+            _cs = new RedisConnectionStringBuilder(_configuration["ConnectionStrings:Redis"]);
 
 			_clients = new ITestClient[]
 				{
