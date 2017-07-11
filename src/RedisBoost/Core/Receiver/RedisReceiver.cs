@@ -277,27 +277,29 @@ namespace RedisBoost.Core.Receiver
 
 		private bool ReceiveDataFromSocket(AsyncSocketEventArgs args)
 		{
+			byte[] buffer;
+			if (_buffersPool.TryGet(out buffer, b => ReceiveDataFromSocket(b, args, true)))
+				return ReceiveDataFromSocket(buffer, args, false);
+
+			return true;
+		}
+
+		private bool ReceiveDataFromSocket(byte[] buffer, AsyncSocketEventArgs args, bool invokeCompletedCallback)
+		{
+			_readSocketBuffer = buffer;
+			args.BufferToReceive = _readSocketBuffer;
 			try
 			{
-				byte[] tmp;
-				if (_buffersPool.TryGet(out tmp,
-					b =>
-					{
-						_readSocketBuffer = b;
-						args.BufferToReceive = _readSocketBuffer;
-						if (!_asyncSocket.Receive(args))
-							args.Completed(args);
-					}))
-				{
-					_readSocketBuffer = tmp;
-					args.BufferToReceive = _readSocketBuffer;
-					return _asyncSocket.Receive(args);
-				}
-				return true;
+				var async = _asyncSocket.Receive(args);
+				if (!async && invokeCompletedCallback)
+					args.Completed(args);
+				return async;
 			}
 			catch (Exception ex)
 			{
 				args.Error = ex;
+				if (invokeCompletedCallback)
+					args.Completed(args);
 				return false;
 			}
 		}
