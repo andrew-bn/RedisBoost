@@ -103,6 +103,8 @@ namespace RedisBoost.Core.Channel
 		{
 			if (ex != null)
 				tcs.SetException(ProcessException(ex));
+			else if (response == null)
+				tcs.SetException(ProcessException(new ArgumentNullException(nameof(response))));
 			else if (response.ResponseType == ResponseType.Error)
 				tcs.SetException(new RedisException(response.AsError()));
 			else

@@ -29,20 +29,20 @@ namespace RedisBoost.Core.Receiver
 		private IRedisSerializer _serializer;
 		private readonly IBuffersPool _buffersPool;
 		private readonly IAsyncSocket _asyncSocket;
-		private byte[] _readSocketBuffer;
+		private volatile byte[] _readSocketBuffer;
 		private readonly AsyncSocketEventArgs _socketArgs;
 
 		#region context
 		private ReceiverAsyncEventArgs _curEventArgs;
-		private int _multiBulkPartsLeft;
-		private RedisResponse[] _multiBulkParts;
-		private RedisResponse _redisResponse;
-		private byte _firstChar;
+		private volatile int _multiBulkPartsLeft;
+		private volatile RedisResponse[] _multiBulkParts;
+		private volatile RedisResponse _redisResponse;
+		private volatile byte _firstChar;
 		private readonly StringBuilder _lineBuffer;
-		private byte[] _block;
-		private int _readBytes;
-		private int _offset;
-		private int _bufferSize;
+		private volatile byte[] _block;
+		private volatile int _readBytes;
+		private volatile int _offset;
+		private volatile int _bufferSize;
 		#endregion
 
 		public RedisReceiver(IBuffersPool buffersPool, IAsyncSocket asyncSocket)
@@ -244,6 +244,7 @@ namespace RedisBoost.Core.Receiver
 				ReleaseBuffer();
 			return ReadBlockLineTask(async, args);
 		}
+
 		private bool ReadBlockLineTask(bool async, AsyncSocketEventArgs args)
 		{
 			if (args.HasError)
@@ -278,7 +279,8 @@ namespace RedisBoost.Core.Receiver
 		{
 			try
 			{
-				if (_buffersPool.TryGet(out _readSocketBuffer,
+				byte[] tmp;
+				if (_buffersPool.TryGet(out tmp,
 					b =>
 					{
 						_readSocketBuffer = b;
@@ -287,6 +289,7 @@ namespace RedisBoost.Core.Receiver
 							args.Completed(args);
 					}))
 				{
+					_readSocketBuffer = tmp;
 					args.BufferToReceive = _readSocketBuffer;
 					return _asyncSocket.Receive(args);
 				}
