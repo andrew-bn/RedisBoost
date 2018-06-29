@@ -29,20 +29,20 @@ namespace RedisBoost.Core.Receiver
 		private IRedisSerializer _serializer;
 		private readonly IBuffersPool _buffersPool;
 		private readonly IAsyncSocket _asyncSocket;
-		private byte[] _readSocketBuffer;
+		private volatile byte[] _readSocketBuffer;
 		private readonly AsyncSocketEventArgs _socketArgs;
 
 		#region context
 		private ReceiverAsyncEventArgs _curEventArgs;
-		private int _multiBulkPartsLeft;
-		private RedisResponse[] _multiBulkParts;
-		private RedisResponse _redisResponse;
-		private byte _firstChar;
+		private volatile int _multiBulkPartsLeft;
+		private volatile RedisResponse[] _multiBulkParts;
+		private volatile RedisResponse _redisResponse;
+		private volatile byte _firstChar;
 		private readonly StringBuilder _lineBuffer;
-		private byte[] _block;
-		private int _readBytes;
-		private int _offset;
-		private int _bufferSize;
+		private volatile byte[] _block;
+		private volatile int _readBytes;
+		private volatile int _offset;
+		private volatile int _bufferSize;
 		#endregion
 
 		public RedisReceiver(IBuffersPool buffersPool, IAsyncSocket asyncSocket)
@@ -244,6 +244,7 @@ namespace RedisBoost.Core.Receiver
 				ReleaseBuffer();
 			return ReadBlockLineTask(async, args);
 		}
+
 		private bool ReadBlockLineTask(bool async, AsyncSocketEventArgs args)
 		{
 			if (args.HasError)
@@ -276,25 +277,29 @@ namespace RedisBoost.Core.Receiver
 
 		private bool ReceiveDataFromSocket(AsyncSocketEventArgs args)
 		{
+			byte[] buffer;
+			if (_buffersPool.TryGet(out buffer, b => ReceiveDataFromSocket(b, args, true)))
+				return ReceiveDataFromSocket(buffer, args, false);
+
+			return true;
+		}
+
+		private bool ReceiveDataFromSocket(byte[] buffer, AsyncSocketEventArgs args, bool invokeCompletedCallback)
+		{
+			_readSocketBuffer = buffer;
+			args.BufferToReceive = _readSocketBuffer;
 			try
 			{
-				if (_buffersPool.TryGet(out _readSocketBuffer,
-					b =>
-					{
-						_readSocketBuffer = b;
-						args.BufferToReceive = _readSocketBuffer;
-						if (!_asyncSocket.Receive(args))
-							args.Completed(args);
-					}))
-				{
-					args.BufferToReceive = _readSocketBuffer;
-					return _asyncSocket.Receive(args);
-				}
-				return true;
+				var async = _asyncSocket.Receive(args);
+				if (!async && invokeCompletedCallback)
+					args.Completed(args);
+				return async;
 			}
 			catch (Exception ex)
 			{
 				args.Error = ex;
+				if (invokeCompletedCallback)
+					args.Completed(args);
 				return false;
 			}
 		}

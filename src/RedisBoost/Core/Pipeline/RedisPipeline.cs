@@ -190,8 +190,7 @@ namespace RedisBoost.Core.Pipeline
 
 		private void ItemReceiveProcessDone(bool async, ReceiverAsyncEventArgs args)
 		{
-			if (args.HasError)
-				_pipelineException = args.Error;
+			_pipelineException = args.Error;
 
 			if (_pipelineException != null)
 				_currentReceiveItem.CallBack(_pipelineException, null);
