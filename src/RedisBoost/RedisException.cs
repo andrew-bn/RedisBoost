@@ -21,7 +21,6 @@ using System.Runtime.Serialization;
 
 namespace RedisBoost
 {
-	[Serializable]
 	public class RedisException:Exception
 	{
 		public RedisException(string message)
@@ -33,11 +32,6 @@ namespace RedisBoost
 			: base(message, innerException)
 		{
 			
-		}
-
-		protected RedisException(SerializationInfo info, StreamingContext context) 
-			: base(info, context)
-		{
 		}
 
 		public RedisException()

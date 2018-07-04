@@ -5,12 +5,12 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RedisBoost.Core.Serialization;
 
 namespace RedisBoost.Tests
 {
-	[TestFixture]
+	[TestClass]
 	public class BasicRedisSerializerTests
 	{
 		public class ToSerialize
@@ -20,7 +20,7 @@ namespace RedisBoost.Tests
 		}
 		public enum FooEnum {val1,val2}
 
-		[Test]
+		[TestMethod]
 		public void Serialize_ByteArray()
 		{
 			var value = new byte[] {1, 2, 3, 4, 5};
@@ -28,7 +28,7 @@ namespace RedisBoost.Tests
 			Assert.IsTrue( value.SequenceEqual(res));
 		}
 
-		[Test]
+		[TestMethod]
 		public void Serialize_Enum()
 		{
 			var value = FooEnum.val1;
@@ -36,7 +36,7 @@ namespace RedisBoost.Tests
 			Assert.IsTrue(Encoding.UTF8.GetBytes(value.ToString()).SequenceEqual(res));
 		}
 
-		[Test]
+		[TestMethod]
 		public void Serialize_Int()
 		{
 			var value = 56;
@@ -44,7 +44,7 @@ namespace RedisBoost.Tests
 			Assert.IsTrue(Encoding.UTF8.GetBytes(value.ToString()).SequenceEqual(res));
 		}
 
-		[Test]
+		[TestMethod]
 		public void Serialize_Float()
 		{
 			var value = 56.4;
@@ -52,7 +52,7 @@ namespace RedisBoost.Tests
 			Assert.IsTrue(Encoding.UTF8.GetBytes(value.ToString(CultureInfo.InvariantCulture)).SequenceEqual(res));
 		}
 
-		[Test]
+		[TestMethod]
 		public void Serialize_String()
 		{
 			var value = "string value";
@@ -60,14 +60,14 @@ namespace RedisBoost.Tests
 			Assert.IsTrue(Encoding.UTF8.GetBytes(value).SequenceEqual(res));
 		}
 
-		[Test]
+		[TestMethod]
 		public void Serialize_Null()
 		{
 			var res = CreateSerializer().Serialize(null);
 			Assert.IsTrue(res.SequenceEqual(BasicRedisSerializer.Null));
 		}
 
-		[Test]
+		[TestMethod]
 		public void Serialize_DateTime()
 		{
 			var value = DateTime.Now;
@@ -75,7 +75,7 @@ namespace RedisBoost.Tests
 			Assert.IsTrue(Encoding.UTF8.GetBytes(value.ToString(BasicRedisSerializer.DatetimeFormat, CultureInfo.InvariantCulture)).SequenceEqual(res));
 		}
 
-		[Test]
+		[TestMethod]
 		public void Serialize_Guid()
 		{
 			var value = Guid.NewGuid();
@@ -83,7 +83,7 @@ namespace RedisBoost.Tests
 			Assert.IsTrue(Encoding.UTF8.GetBytes(value.ToString()).SequenceEqual(res));
 		}
 		
-		[Test]
+		[TestMethod]
 		public void Serialize_Complex()
 		{
 			var expected = @"<BasicRedisSerializerTests.ToSerialize xmlns=""http://schemas.datacontract.org/2004/07/RedisBoost.Tests"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Prop1>prop1</Prop1><Prop2>23</Prop2></BasicRedisSerializerTests.ToSerialize>";
@@ -92,7 +92,7 @@ namespace RedisBoost.Tests
 			Assert.IsTrue(Encoding.UTF8.GetBytes(expected).SequenceEqual(res));
 		}
 
-		[Test]
+		[TestMethod]
 		public void Deserialize_ByteArray()
 		{
 			var value = new byte[] { 1, 2, 3, 4, 5 };
@@ -100,7 +100,7 @@ namespace RedisBoost.Tests
 			Assert.IsTrue(value.SequenceEqual(res));
 		}
 
-		[Test]
+		[TestMethod]
 		public void Deserialize_String()
 		{
 			var expected = "expected value";
@@ -109,7 +109,7 @@ namespace RedisBoost.Tests
 			Assert.AreEqual(expected,res);
 		}
 
-		[Test]
+		[TestMethod]
 		public void Deserialize_Int()
 		{
 			var expected = 2343;
@@ -118,7 +118,7 @@ namespace RedisBoost.Tests
 			Assert.AreEqual(expected, res);
 		}
 
-		[Test]
+		[TestMethod]
 		public void Deserialize_Float()
 		{
 			var expected = 2343.23;
@@ -127,7 +127,7 @@ namespace RedisBoost.Tests
 			Assert.AreEqual(expected, res);
 		}
 
-		[Test]
+		[TestMethod]
 		public void Deserialize_Char()
 		{
 			var expected = 'a';
@@ -136,7 +136,7 @@ namespace RedisBoost.Tests
 			Assert.AreEqual(expected, res);
 		}
 
-		[Test]
+		[TestMethod]
 		public void Deserialize_Guid()
 		{
 			var expected = Guid.NewGuid();
@@ -145,7 +145,7 @@ namespace RedisBoost.Tests
 			Assert.AreEqual(expected, res);
 		}
 
-		[Test]
+		[TestMethod]
 		public void Deserialize_DateTime()
 		{
 			var expected = DateTime.Now;
@@ -154,7 +154,7 @@ namespace RedisBoost.Tests
 			Assert.AreEqual(expected, res);
 		}
 
-		[Test]
+		[TestMethod]
 		public void Deserialize_Enum()
 		{
 			var expected = FooEnum.val2;
@@ -163,7 +163,7 @@ namespace RedisBoost.Tests
 			Assert.AreEqual(expected, res);
 		}
 
-		[Test]
+		[TestMethod]
 		public void Deserialize_Null()
 		{
 			object expected = null;
@@ -172,7 +172,7 @@ namespace RedisBoost.Tests
 			Assert.AreEqual(null, res);
 		}
 
-		[Test]
+		[TestMethod]
 		public void Deserialize_Complex()
 		{
 			var expected = new ToSerialize { Prop1 = "prop1", Prop2 = 23 };

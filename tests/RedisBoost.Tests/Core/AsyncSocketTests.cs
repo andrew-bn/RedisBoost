@@ -1,23 +1,22 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using NUnit.Framework;
 using RedisBoost.Core.AsyncSocket;
 
 namespace RedisBoost.Tests.Core
 {
-	[TestFixture]
+	[TestClass]
 	public class AsyncSocketTests
 	{
 		private Mock<ISocket> _socket;
-		[SetUp]
-		public void Setup()
+		public AsyncSocketTests()
 		{
 			_socket = new Mock<ISocket>();
 		}
 
-		[Test]
+		[TestMethod]
 		public void Connect_CallsSocketConnect()
 		{
 			var ep = new IPEndPoint(IPAddress.Parse("127.0.0.1"),1234);
@@ -29,21 +28,21 @@ namespace RedisBoost.Tests.Core
 			_socket.Verify(s=>s.ConnectAsync(
 								It.Is((SocketAsyncEventArgs a)=> a.RemoteEndPoint == ep)));
 		}
-		[Test]
+		[TestMethod]
 		public void Connect_ReturnsTrueIsOperationIsAsync()
 		{
 			_socket.Setup(s => s.ConnectAsync(It.IsAny<SocketAsyncEventArgs>())).Returns(true);
 			var result = CreateSocket().Connect(new AsyncSocketEventArgs());
 			Assert.IsTrue(result);
 		}
-		[Test]
+		[TestMethod]
 		public void Connect_ReturnsFalseIsOperationIsAsync()
 		{
 			_socket.Setup(s => s.ConnectAsync(It.IsAny<SocketAsyncEventArgs>())).Returns(false);
 			var result = CreateSocket().Connect(new AsyncSocketEventArgs());
 			Assert.IsFalse(result);
 		}
-		[Test]
+		[TestMethod]
 		public void Disconnect_CallsSocketConnect()
 		{
 			var args = new AsyncSocketEventArgs();
@@ -52,21 +51,21 @@ namespace RedisBoost.Tests.Core
 			_socket.Verify(s => s.DisconnectAsync(It.IsAny<SocketAsyncEventArgs>()));
 		}
 
-		[Test]
+		[TestMethod]
 		public void Disconnect_ReturnsTrueIsOperationIsAsync()
 		{
 			_socket.Setup(s => s.DisconnectAsync(It.IsAny<SocketAsyncEventArgs>())).Returns(true);
 			var result = CreateSocket().Disconnect(new AsyncSocketEventArgs());
 			Assert.IsTrue(result);
 		}
-		[Test]
+		[TestMethod]
 		public void Disconnect_ReturnsFalseIsOperationIsAsync()
 		{
 			_socket.Setup(s => s.DisconnectAsync(It.IsAny<SocketAsyncEventArgs>())).Returns(false);
 			var result = CreateSocket().Disconnect(new AsyncSocketEventArgs());
 			Assert.IsFalse(result);
 		}
-		[Test]
+		[TestMethod]
 		public void NotIoSyncOperation_CompletedNotCalled()
 		{
 			_socket.Setup(s => s.DisconnectAsync(It.IsAny<SocketAsyncEventArgs>())).Returns(false);
@@ -81,7 +80,7 @@ namespace RedisBoost.Tests.Core
 			Assert.IsFalse(called);
 		}
 
-		[Test]
+		[TestMethod]
 		public void NotIoAsyncOperation_CompletedCalled()
 		{
 			_socket.Setup(s => s.DisconnectAsync(It.IsAny<SocketAsyncEventArgs>()))
@@ -98,7 +97,7 @@ namespace RedisBoost.Tests.Core
 			Assert.IsTrue(called);
 		}
 
-		[Test]
+		[TestMethod]
 		public void Receive_CallsSocketReceive()
 		{
 			const int bufferSize = 111;
@@ -111,7 +110,7 @@ namespace RedisBoost.Tests.Core
 								It.Is((SocketAsyncEventArgs a) => a.Count == bufferSize &&
 								a.Offset == 0)));
 		}
-		[Test]
+		[TestMethod]
 		public void Receive_ReturnsTrueIsOperationIsAsync()
 		{
 			_socket.Setup(s => s.ReceiveAsync(It.IsAny<SocketAsyncEventArgs>())).Returns(true);
@@ -119,7 +118,7 @@ namespace RedisBoost.Tests.Core
 			var result = CreateSocket().Receive(new AsyncSocketEventArgs(){BufferToReceive = new byte[0]});
 			Assert.IsTrue(result);
 		}
-		[Test]
+		[TestMethod]
 		public void Receive_ReturnsFalseIsOperationIsAsync()
 		{
 			_socket.Setup(s => s.ReceiveAsync(It.IsAny<SocketAsyncEventArgs>())).Returns(false);
