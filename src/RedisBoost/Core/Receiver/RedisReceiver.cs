@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Concurrent;
 using System.Text;
 using RedisBoost.Core.AsyncSocket;
 using RedisBoost.Core.Serialization;
@@ -34,8 +35,7 @@ namespace RedisBoost.Core.Receiver
 
 		#region context
 		private ReceiverAsyncEventArgs _curEventArgs;
-		private volatile int _multiBulkPartsLeft;
-		private volatile RedisResponse[] _multiBulkParts;
+		private readonly ConcurrentStack<MultiBulkPart> _multiBulkParts = new ConcurrentStack<MultiBulkPart>();
 		private volatile RedisResponse _redisResponse;
 		private volatile byte _firstChar;
 		private readonly StringBuilder _lineBuffer;
@@ -67,8 +67,7 @@ namespace RedisBoost.Core.Receiver
 			args.Error = null;
 			args.Response = null;
 
-			_multiBulkPartsLeft = 0;
-			_multiBulkParts = null;
+			_multiBulkParts.Clear();
 			_redisResponse = null;
 
 			return ReadResponseFromStream(false, _socketArgs);
@@ -82,19 +81,29 @@ namespace RedisBoost.Core.Receiver
 
 		private bool ProcessRedisResponse(bool async, AsyncSocketEventArgs args)
 		{
-			if (args.HasError || _multiBulkParts == null)
+			while (true)
+			{
+				if (args.HasError || _multiBulkParts.IsEmpty)
+					return CallOperationCompleted(async, args);
+
+				_multiBulkParts.TryPeek(out var part);
+				var multiBulkPartsLeft = part.MultiBulkPartsLeft;
+				var multiBulkParts = part.MultiBulkParts;
+				if (multiBulkPartsLeft > 0)
+					multiBulkParts[multiBulkParts.Length - multiBulkPartsLeft] = _redisResponse;
+
+				if (--part.MultiBulkPartsLeft > 0)
+					return ReadResponseFromStream(async, args);
+
+				_redisResponse = RedisResponse.CreateMultiBulk(multiBulkParts, _serializer);
+				_multiBulkParts.TryPop(out _);
+				if (!_multiBulkParts.IsEmpty)
+				{
+					continue;
+				}
+
 				return CallOperationCompleted(async, args);
-
-			if (_multiBulkPartsLeft > 0)
-				_multiBulkParts[_multiBulkParts.Length - _multiBulkPartsLeft] = _redisResponse;
-
-			--_multiBulkPartsLeft;
-
-			if (_multiBulkPartsLeft > 0)
-				return ReadResponseFromStream(async, args);
-
-			_redisResponse = RedisResponse.CreateMultiBulk(_multiBulkParts, _serializer);
-			return CallOperationCompleted(async, args);
+			}
 		}
 
 		private void ProcessRedisBulkLine(AsyncSocketEventArgs args)
@@ -142,15 +151,15 @@ namespace RedisBoost.Core.Receiver
 			}
 			else if (_firstChar.IsMultiBulkReply())
 			{
-				_multiBulkPartsLeft = lineValue.ToInt();
+				var multiBulkPartsLeft = lineValue.ToInt();
 
-				if (_multiBulkPartsLeft == -1) // multi-bulk nill
+				if (multiBulkPartsLeft == -1) // multi-bulk nill
 					_redisResponse = RedisResponse.CreateMultiBulk(null, _serializer);
 				else
 				{
-					_multiBulkParts = new RedisResponse[_multiBulkPartsLeft];
+					_multiBulkParts.Push(new MultiBulkPart { MultiBulkParts = new RedisResponse[multiBulkPartsLeft], MultiBulkPartsLeft = multiBulkPartsLeft });
 
-					if (_multiBulkPartsLeft > 0)
+					if (multiBulkPartsLeft > 0)
 						return ReadResponseFromStream(async, args);
 				}
 			}
@@ -184,8 +193,6 @@ namespace RedisBoost.Core.Receiver
 
 			return ReadLineTask(async, args);
 		}
-
-
 
 		private void RecalculateBufferSize(AsyncSocketEventArgs args)
 		{
@@ -331,6 +338,12 @@ namespace RedisBoost.Core.Receiver
 		public void EngageWith(IRedisSerializer serializer)
 		{
 			_serializer = serializer;
+		}
+
+		private class MultiBulkPart
+		{
+			public int MultiBulkPartsLeft { get; set; }
+			public RedisResponse[] MultiBulkParts { get; set; }
 		}
 	}
 }

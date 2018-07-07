@@ -1473,12 +1473,33 @@ namespace RedisBoost.Tests
 		{
 			using (var cli1 = CreateClient())
 			{
+				cli1.SAddAsync("s1", 1, 2, 3);
+				cli1.SAddAsync("s2", 4, 5, 6);
 				Assert.AreEqual("OK", cli1.MultiAsync().Result);
 				Assert.AreEqual(0, cli1.IncrAsync("foo").Result);
+				Assert.AreEqual(null, cli1.SMembersAsync("s1").Result);
+				Assert.AreEqual(null, cli1.SMembersAsync("s2").Result);
 				Assert.AreEqual(0, cli1.IncrAsync("bar").Result);
 				var result = cli1.ExecAsync().Result;
 				Assert.AreEqual("1", GetString(result[0]));
-				Assert.AreEqual("1", GetString(result[1]));
+				Assert.That(result[1], Is.InstanceOf(typeof(MultiBulk)));
+				Assert.That(result[2], Is.InstanceOf(typeof(MultiBulk)));
+				var multiBulk = result[1].AsMultiBulk();
+				for (int i = 0; i < multiBulk.Length; i++)
+				{
+					Assert.AreEqual((i + 1).ToString(), multiBulk[i].As<string>());
+				}
+				multiBulk = result[2].AsMultiBulk();
+				for (int i = 0; i < multiBulk.Length; i++)
+				{
+					Assert.AreEqual((i + 4).ToString(), multiBulk[i].As<string>());
+				}
+				Assert.AreEqual("1", GetString(result[3]));
+
+				Assert.AreEqual("OK", cli1.MultiAsync().Result);
+				Assert.AreEqual(0, cli1.IncrAsync("foo").Result);
+				result = cli1.ExecAsync().Result;
+				Assert.AreEqual("2", GetString(result[0]));
 			}
 		}
 		[Test]
