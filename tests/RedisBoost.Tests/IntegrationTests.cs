@@ -1473,8 +1473,10 @@ namespace RedisBoost.Tests
 		{
 			using (var cli1 = CreateClient())
 			{
-				cli1.SAddAsync("s1", 1, 2, 3);
-				cli1.SAddAsync("s2", 4, 5, 6);
+				var s1Members = new[] { 1, 2, 3 };
+				var s2Members = new[] { 4, 5, 6 };
+				cli1.SAddAsync("s1", s1Members);
+				cli1.SAddAsync("s2", s2Members);
 				Assert.AreEqual("OK", cli1.MultiAsync().Result);
 				Assert.AreEqual(0, cli1.IncrAsync("foo").Result);
 				Assert.AreEqual(null, cli1.SMembersAsync("s1").Result);
@@ -1485,14 +1487,14 @@ namespace RedisBoost.Tests
 				Assert.That(result[1], Is.InstanceOf(typeof(MultiBulk)));
 				Assert.That(result[2], Is.InstanceOf(typeof(MultiBulk)));
 				var multiBulk = result[1].AsMultiBulk();
-				for (int i = 0; i < multiBulk.Length; i++)
+				for (int i = 0; i < s1Members.Length; i++)
 				{
-					Assert.AreEqual((i + 1).ToString(), multiBulk[i].As<string>());
+					Assert.AreEqual(s1Members[i].ToString(), multiBulk[i].As<string>());
 				}
 				multiBulk = result[2].AsMultiBulk();
-				for (int i = 0; i < multiBulk.Length; i++)
+				for (int i = 0; i < s2Members.Length; i++)
 				{
-					Assert.AreEqual((i + 4).ToString(), multiBulk[i].As<string>());
+					Assert.AreEqual(s2Members[i].ToString(), multiBulk[i].As<string>());
 				}
 				Assert.AreEqual("1", GetString(result[3]));
 
