@@ -149,6 +149,7 @@ namespace RedisBoost
 			Serializer = serializer ?? DefaultSerializer;
 
 			var socket = new Socket(_connectionStringBuilder.EndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+			socket.NoDelay = true; // NOTE: to ensure that we don't have delays in our connection, turn Nagle's Algorithm off by setting TCP_NODELAY socket option, as Redis Server does (https://redis.io/topics/clients).
 			_channel = PrepareRedisChannel(socket);
 		}
 
