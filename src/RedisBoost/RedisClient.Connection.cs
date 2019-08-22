@@ -26,7 +26,16 @@ namespace RedisBoost
 	{
 		public Task<string> AuthAsync(string password)
 		{
-			return StatusCommand(RedisConstants.Auth, password.ToBytes());
+			var ret = StatusCommand(RedisConstants.Auth, password.ToBytes());
+            ret.ContinueWith(t =>
+            {
+                if (!t.IsFaulted)
+                {
+                    _isAuthenticated = true;
+                }
+                return t.Result;
+            });
+            return ret;
 		}
 
 		public Task<Bulk> EchoAsync<T>(T message)

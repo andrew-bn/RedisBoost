@@ -137,10 +137,14 @@ namespace RedisBoost
 		public IRedisSerializer Serializer { get; private set; }
 
 		private int _disposed;
+        private bool _isAuthenticated;
 		private readonly IRedisChannel _channel;
 		private readonly RedisConnectionStringBuilder _connectionStringBuilder;
 
 		ClientState IPrepareSupportRedisClient.State { get { return _channel.State; } }
+
+        bool IPrepareSupportRedisClient.IsAuthenticated {  get { return _isAuthenticated; } }
+
 
 		protected RedisClient(RedisConnectionStringBuilder connectionString, IRedisSerializer serializer)
 		{
