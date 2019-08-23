@@ -14,21 +14,25 @@ namespace RedisBoost.Tests
 		private Mock<IPooledRedisClient> _redisClient;
 		private Func<RedisConnectionStringBuilder, BasicRedisSerializer, IPooledRedisClient> _clientsFactory;
 		private string _connectionString;
+        private bool _isAuthenticated;
+
 		[SetUp]
 		public void Setup()
 		{
 			_connectionString = "data source=127.0.0.1";
 
 			_redisClient = new Mock<IPooledRedisClient>();
-			_redisClient.Setup(c => c.PrepareClientConnection())
+            _redisClient.Setup(c => c.PrepareClientConnection())
 						.Returns(Task<IRedisClient>.Factory.StartNew(() => { return _redisClient.Object; }));
 			_redisClient.Setup(c => c.QuitAsync())
 						.Returns(Task<string>.Factory.StartNew(() => { return "OK"; }));
 			_redisClient.Setup(c => c.ConnectionString)
 						.Returns(_connectionString);
 			_redisClient.Setup(c => c.State).Returns(ClientState.Connect);
-			_clientsFactory = (sb, s) => _redisClient.Object;
-
+            // Hotwire IsAuthenticated to our internal IsAuthenticated flag
+            _redisClient.Setup(c => c.IsAuthenticated)
+                        .Returns(() => { return _isAuthenticated; });
+            _clientsFactory = (sb, s) => _redisClient.Object;
 		}
 		[Test]
 		public void CreateClient_PoolIsEmtpy_CallsFactoryToCreateClient()
@@ -55,14 +59,14 @@ namespace RedisBoost.Tests
 			CreatePool().CreateClientAsync(connectionStringBuilder).Wait();
 		}
 		[Test]
-		public void CreateClient_PoolIsEmtpy_PreparesClientConnection()
+		public void CreateClient_PoolIsEmpty_PreparesClientConnection()
 		{
 			CreatePool().CreateClientAsync(_connectionString).Wait();
 			//assert
 			_redisClient.Verify(c => c.PrepareClientConnection());
 		}
 
-		[Test]
+        [Test]
 		public void CreateClient_Twice_CallsFactoryToCreateClient()
 		{
 			var factoryWasCalled = 0;

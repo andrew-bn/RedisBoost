@@ -122,13 +122,24 @@ namespace RedisBoost
 		Task<IRedisClient> IPrepareSupportRedisClient.PrepareClientConnection()
 		{
 			var dbIndex = _connectionStringBuilder.DbIndex;
+            var authPw = _connectionStringBuilder.Password;
+            // Establish connection to endpoint
 			var connectTask = ConnectAsync();
+            // If connection string includes password now would be the time to use it.
+            var authTask = _isAuthenticated || string.IsNullOrWhiteSpace(authPw)
+                ? connectTask.ContinueWithIfNoError(t => (IRedisClient)this)
+                : connectTask.ContinueWithIfNoError(
+                                        t => AuthAsync(authPw)
+                                                .ContinueWithIfNoError(tsk => (IRedisClient)this))
+                                                .Unwrap();
+            // Now that we have authenticated we can select db index without triggering access failure
 			return dbIndex == 0
-						? connectTask.ContinueWithIfNoError(t => (IRedisClient)this)
-						: connectTask.ContinueWithIfNoError(
-										t => SelectAsync(dbIndex).ContinueWithIfNoError(
-												tsk => (IRedisClient)this))
-									  .Unwrap();
+						//? connectTask.ContinueWithIfNoError(t => (IRedisClient)this)
+                        ? authTask
+                        : authTask.ContinueWithIfNoError(
+										t => SelectAsync(dbIndex)
+                                               .ContinueWithIfNoError(tsk => (IRedisClient)this))
+									           .Unwrap();
 		}
 
 		#endregion
@@ -137,10 +148,14 @@ namespace RedisBoost
 		public IRedisSerializer Serializer { get; private set; }
 
 		private int _disposed;
+        private bool _isAuthenticated;
 		private readonly IRedisChannel _channel;
 		private readonly RedisConnectionStringBuilder _connectionStringBuilder;
 
 		ClientState IPrepareSupportRedisClient.State { get { return _channel.State; } }
+
+        bool IPrepareSupportRedisClient.IsAuthenticated {  get { return _isAuthenticated; } }
+
 
 		protected RedisClient(RedisConnectionStringBuilder connectionString, IRedisSerializer serializer)
 		{

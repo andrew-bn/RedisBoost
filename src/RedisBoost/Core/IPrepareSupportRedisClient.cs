@@ -24,5 +24,9 @@ namespace RedisBoost.Core
 	{
 		ClientState State { get; }
 		Task<IRedisClient> PrepareClientConnection();
-	}
+        /// <summary>
+        /// Whether or not this client has issued a successful AUTH command.
+        /// </summary>
+        bool IsAuthenticated { get; }
+    }
 }
