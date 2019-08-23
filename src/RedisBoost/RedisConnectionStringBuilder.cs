@@ -29,16 +29,23 @@ namespace RedisBoost
 	{
 		private readonly SqlConnectionStringBuilder _connectionStringBuilder;
 		private readonly string _connectionString;
-		public EndPoint EndPoint { get; private set; }
+        public EndPoint EndPoint { get; private set; }
 		public int DbIndex { get; private set; }
+        public string Password { get; private set; } 
 
-		public RedisConnectionStringBuilder(string host, int port = RedisConstants.DefaultPort, int dbIndex = 0)
-			: this(string.Format("data source={0}:{1};initial catalog=\"{2}\"", host, port, dbIndex))
+		public RedisConnectionStringBuilder(string host, int port = RedisConstants.DefaultPort, int dbIndex = 0, string password = default(string))
+			: this(ParseEndpoint(string.Format("{0}:{1}", host, port)), dbIndex, password)
 		{
 		}
-		public RedisConnectionStringBuilder(EndPoint endPoint,int dbIndex = 0)
+		public RedisConnectionStringBuilder(EndPoint endPoint,int dbIndex = 0, string password = default(string))
 		{
-			_connectionString = string.Format("data source={0};initial catalog=\"{1}\"", endPoint, dbIndex);
+            var builder = new System.Text.StringBuilder(string.Format("data source={0};initial catalog=\"{1}\"", endPoint, dbIndex));
+            if (!string.IsNullOrWhiteSpace(password))
+            {
+                Password = ParsePassword(password);
+                builder.AppendFormat(";password=\"{0}\"", password);
+            }
+            _connectionString = builder.ToString();
 			EndPoint = endPoint;
 			DbIndex = dbIndex;
 		}
@@ -49,6 +56,7 @@ namespace RedisBoost
 			_connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
 			EndPoint = ParseEndpoint(_connectionStringBuilder.DataSource);
 			DbIndex = ParseDbIndex(_connectionStringBuilder.InitialCatalog);
+            Password = ParsePassword(_connectionStringBuilder.Password);
 		}
 
 		private static int ParseDbIndex(string dbIndex)
@@ -78,7 +86,14 @@ namespace RedisBoost
 
 			return new IPEndPoint(ipAddress,port);
 		}
-
+        private string ParsePassword(string password)
+        {
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                return default(string);
+            }
+            return password;
+        }
 		public override string ToString()
 		{
 			return _connectionString;

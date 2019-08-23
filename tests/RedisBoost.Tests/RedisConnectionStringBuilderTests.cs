@@ -22,8 +22,15 @@ namespace RedisBoost.Tests
 		{
 			var cs = new RedisConnectionStringBuilder("data source=127.0.0.1:2312");
 			Assert.AreEqual("127.0.0.1:2312", cs.EndPoint.ToString());
-		}
-		[Test]
+        }
+        [Test]
+        public static void InitializeByConnectionString_PasswordIncluded()
+        {
+            var cs = new RedisConnectionStringBuilder("data source=127.0.0.1:2312; password=\"test-password\"");
+            Assert.AreEqual("test-password", cs.Password);
+            Assert.IsTrue(cs.ContainsKey("password"));
+        }
+        [Test]
 		public static void InitializeByConnectionString_DbIndexIncluded()
 		{
 			var cs = new RedisConnectionStringBuilder("data source=127.0.0.1; initial catalog=23");
@@ -36,5 +43,15 @@ namespace RedisBoost.Tests
 			Assert.AreEqual("127.0.0.1:3242", cs.EndPoint.ToString());
 			Assert.AreEqual(23, cs.DbIndex);
 		}
-	}
+
+        [Test]
+        public static void InitializeByHostPort_WithPassword_ValidConnectionString()
+        {
+            var cs = new RedisConnectionStringBuilder("127.0.0.1", 3242, 23, "some-password");
+            Assert.AreEqual("some-password", cs.Password);
+            Assert.AreEqual("data source=\"127.0.0.1:2312\"; passsword=\"some-password\"", cs.ConnectionString);
+        }
+
+
+    }
 }
